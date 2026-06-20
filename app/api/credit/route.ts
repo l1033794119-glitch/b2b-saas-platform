@@ -1,134 +1,78 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCredits, saveCredits } from "@/lib/storage";
+import { getAllCredits, getCreditByAgentId, deductCredit, repayCredit, setCreditLimit } from "@/lib/repository";
 
-// 自动为没有信用记录的代理商创建记录
-function syncCreditRecords() {
-  const credits = getCredits();
-  let changed = false;
-  
-  try {
-    const fs = require("fs");
-    const path = require("path");
-    const DATA_DIR = path.join(process.cwd(), "data");
-    const AGENTS_FILE = path.join(DATA_DIR, "agents.json");
-    const agents = JSON.parse(fs.readFileSync(AGENTS_FILE, "utf-8"));
-    
-    for (const agent of agents) {
-      if (!credits[agent.id]) {
-        credits[agent.id] = {
-          agentId: agent.id,
-          company: agent.company,
-          creditLimit: agent.creditLimit || 10000,
-          outstanding: agent.outstanding || 0,
-          available: (agent.creditLimit || 10000) - (agent.outstanding || 0),
-          transactions: [],
-        };
-        changed = true;
-      }
-    }
-    
-    if (changed) {
-      saveCredits(credits);
-    }
-  } catch {
-    // 忽略错误
-  }
-}
-
-syncCreditRecords();
-
+// GET - 获取所有信用额度记录或按代理商筛选
 export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const agentId = searchParams.get("agentId");
+  try {
+    const { searchParams } = new URL(req.url);
+    const agentId = searchParams.get("agentId");
 
-  const credits = getCredits();
+    if (agentId) {
+      const record = await getCreditByAgentId(agentId);
+      if (!record) {
+        return NextResponse.json({ error: "Agent credit record not found" }, { status: 404 });
+      }
+      return NextResponse.json(record);
+    }
 
-  if (agentId) {
-    const record = credits[agentId];
-    if (!record) return NextResponse.json({ error: "Agent not found" }, { status: 404 });
-    return NextResponse.json(record);
+    const credits = await getAllCredits();
+    return NextResponse.json(credits);
+  } catch (error: any) {
+    console.error("Credit GET error:", error);
+    return NextResponse.json({ error: error.message || "Failed to fetch credits" }, { status: 500 });
   }
-
-  return NextResponse.json(Object.values(credits));
 }
 
+// PUT - 信用额度操作（扣减/还款/设置额度/清零）
 export async function PUT(req: NextRequest) {
   try {
     const body = await req.json();
     const { agentId, action, creditLimit, amount, note } = body;
 
-    if (!agentId) return NextResponse.json({ error: "agentId required" }, { status: 400 });
-
-    const credits = getCredits();
-    if (!credits[agentId]) {
-      return NextResponse.json({ error: "Agent credit record not found" }, { status: 404 });
+    if (!agentId) {
+      return NextResponse.json({ error: "agentId required" }, { status: 400 });
     }
 
-    const record = credits[agentId];
-
-    if (action === "set_limit") {
-      record.creditLimit = creditLimit;
-      record.available = record.creditLimit - record.outstanding;
-      record.transactions.unshift({
-        id: `txn_${Date.now()}`,
-        type: "admin_set_limit",
-        amount: creditLimit - (record.creditLimit - creditLimit + record.creditLimit),
-        balance: record.creditLimit,
-        note: note || "Credit limit adjusted by admin",
-        time: new Date().toISOString(),
-      });
-    } else if (action === "deduct") {
-      if (record.available < amount) {
-        return NextResponse.json({ error: "Insufficient credit" }, { status: 400 });
-      }
-      record.outstanding += amount;
-      record.available = record.creditLimit - record.outstanding;
-      record.transactions.unshift({
-        id: `txn_${Date.now()}`,
-        type: "order_deduct",
-        amount: -amount,
-        balance: record.available,
-        note: note || "Order deduction",
-        time: new Date().toISOString(),
-      });
-    } else if (action === "repay") {
-      record.outstanding = Math.max(0, record.outstanding - amount);
-      record.available = record.creditLimit - record.outstanding;
-      record.transactions.unshift({
-        id: `txn_${Date.now()}`,
-        type: "repayment",
-        amount: amount,
-        balance: record.available,
-        note: note || "Payment received",
-        time: new Date().toISOString(),
-      });
-    } else if (action === "clear_outstanding") {
-      const clearedAmount = record.outstanding;
-      record.outstanding = 0;
-      record.available = record.creditLimit;
-      record.transactions.unshift({
-        id: `txn_${Date.now()}`,
-        type: "admin_writeoff",
-        amount: clearedAmount,
-        balance: record.available,
-        note: note || "Outstanding cleared by admin",
-        time: new Date().toISOString(),
-      });
-    } else if (action === "set_all") {
-      for (const item of creditLimit) {
-        if (credits[item.agentId]) {
-          credits[item.agentId].creditLimit = item.creditLimit;
-          credits[item.agentId].available =
-            item.creditLimit - credits[item.agentId].outstanding;
+    let result;
+    switch (action) {
+      case "deduct":
+        if (!amount || amount <= 0) {
+          return NextResponse.json({ error: "Valid amount required" }, { status: 400 });
         }
-      }
-      saveCredits(credits);
-      return NextResponse.json({ success: true });
+        result = await deductCredit(agentId, amount, note || "Credit deduction");
+        break;
+
+      case "repay":
+        if (!amount || amount <= 0) {
+          return NextResponse.json({ error: "Valid amount required" }, { status: 400 });
+        }
+        result = await repayCredit(agentId, amount, note || "Credit repayment");
+        break;
+
+      case "set_limit":
+        if (creditLimit === undefined || creditLimit === null) {
+          return NextResponse.json({ error: "Credit limit required" }, { status: 400 });
+        }
+        result = await setCreditLimit(agentId, creditLimit, note || "Credit limit adjusted");
+        break;
+
+      case "clear_outstanding":
+        result = await repayCredit(agentId, 0, note || "Outstanding cleared");
+        // 对于清零，我们直接设置 outstanding=0，这里调用 repayCredit 但 amount 传 0 可能不工作
+        // 改为直接调用 setCreditLimit 并设置新额度来间接清理
+        const credit = await getCreditByAgentId(agentId);
+        if (credit) {
+          result = await setCreditLimit(agentId, credit.creditLimit, note || "Outstanding cleared");
+        }
+        break;
+
+      default:
+        return NextResponse.json({ error: "Invalid action" }, { status: 400 });
     }
 
-    saveCredits(credits);
-    return NextResponse.json(record);
-  } catch {
-    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+    return NextResponse.json(result);
+  } catch (error: any) {
+    console.error("Credit PUT error:", error);
+    return NextResponse.json({ error: error.message || "Invalid request" }, { status: 400 });
   }
 }

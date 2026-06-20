@@ -1,158 +1,62 @@
 import { NextRequest, NextResponse } from "next/server";
-import { promises as fs } from "fs";
-import path from "path";
+import { getAllProducts, createOrUpdateProduct, getProductById } from "@/lib/repository";
 
-const DATA_DIR = path.join(process.cwd(), "data");
-const PRODUCTS_FILE = path.join(DATA_DIR, "products.json");
-const WAREHOUSES_FILE = path.join(DATA_DIR, "warehouses.json");
-
-interface Product {
-  id: string;
-  sku: string;
-  name: string;
-  nameZh: string;
-  category: string;
-  brand: string;
-  images: string[];
-  description: string;
-  descriptionZh: string;
-  costPrice: number;
-  wholesalePrice: number;
-  retailPrice: number;
-  stock: number;
-  warehouse: string;
-  warehouseId: string;
-  status: string;
-  levelAPrice: number;
-  levelBPrice: number;
-  levelCPrice: number;
-}
-
-interface Warehouse {
-  id: string;
-  name: string;
-  location: string;
-  manager: string;
-}
-
-async function getProducts(): Promise<Product[]> {
-  try {
-    const data = await fs.readFile(PRODUCTS_FILE, "utf-8");
-    return JSON.parse(data);
-  } catch {
-    return [];
-  }
-}
-
-async function saveProducts(products: Product[]): Promise<void> {
-  await fs.writeFile(PRODUCTS_FILE, JSON.stringify(products, null, 2));
-}
-
-async function getWarehouses(): Promise<Warehouse[]> {
-  try {
-    const data = await fs.readFile(WAREHOUSES_FILE, "utf-8");
-    return JSON.parse(data);
-  } catch {
-    return [];
-  }
-}
-
-// 数据迁移：为没有 warehouseId 的老产品补齐 warehouseId
-async function migrateProducts(): Promise<Product[]> {
-  const products = await getProducts();
-  const warehouses = await getWarehouses();
-  let changed = false;
-
-  const nameToId = new Map(warehouses.map(w => [w.name, w.id]));
-
-  for (const p of products) {
-    if (!(p as any).warehouseId && p.warehouse) {
-      const id = nameToId.get(p.warehouse);
-      if (id) {
-        (p as any).warehouseId = id;
-        changed = true;
-      } else {
-        (p as any).warehouseId = "";
-        changed = true;
-      }
-    }
-  }
-
-  if (changed) {
-    await saveProducts(products);
-  }
-  return products;
-}
-
+// GET - 获取所有产品（支持按仓库筛选）
 export async function GET(req: NextRequest) {
-  const products = await migrateProducts();
-  return NextResponse.json(products);
+  try {
+    const { searchParams } = new URL(req.url);
+    const warehouseId = searchParams.get("warehouseId");
+    const products = await getAllProducts();
+
+    if (warehouseId) {
+      return NextResponse.json(products.filter((p: any) => p.warehouseId === warehouseId));
+    }
+    return NextResponse.json(products);
+  } catch (error: any) {
+    console.error("Products GET error:", error);
+    return NextResponse.json({ error: error.message || "Failed to fetch products" }, { status: 500 });
+  }
 }
 
+// POST - 创建或更新产品
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const products = await migrateProducts();
-    const warehouses = await getWarehouses();
-    const id = body.id || `p${Date.now()}`;
-    const exists = products.find((p: any) => p.id === id);
 
-    let warehouseId = body.warehouseId || "";
-    let warehouseName = body.warehouse || "";
-
-    if (warehouseId) {
-      const wh = warehouses.find(w => w.id === warehouseId);
-      if (wh) warehouseName = wh.name;
-    } else if (warehouseName) {
-      const wh = warehouses.find(w => w.name === warehouseName);
-      if (wh) warehouseId = wh.id;
+    if (!body.id && body.sku) {
+      body.id = `p${Date.now()}`;
     }
 
-    if (!warehouseId && warehouses.length > 0) {
-      warehouseId = warehouses[0].id;
-      warehouseName = warehouses[0].name;
-    } else if (!warehouseId) {
-      warehouseName = warehouseName || "UK Warehouse";
+    if (!body.name && !body.sku) {
+      return NextResponse.json({ error: "Product name or SKU is required" }, { status: 400 });
     }
 
-    if (exists) {
-      const idx = products.findIndex((p: any) => p.id === id);
-      products[idx] = {
-        ...exists,
-        ...body,
-        id,
-        warehouse: warehouseName,
-        warehouseId: warehouseId,
-      };
-      await saveProducts(products);
-      return NextResponse.json(products[idx]);
-    } else {
-      const newProduct: any = {
-        id,
-        sku: body.sku || `SKU-${Date.now()}`,
-        name: body.name || "New Product",
-        nameZh: body.nameZh || "新产品",
-        category: body.category || "General",
-        brand: body.brand || "Generic",
-        images: body.images || [],
-        description: body.description || "",
-        descriptionZh: body.descriptionZh || "",
-        costPrice: body.costPrice || 0,
-        wholesalePrice: body.wholesalePrice || 0,
-        retailPrice: body.retailPrice || 0,
-        stock: body.stock || 0,
-        warehouse: warehouseName,
-        warehouseId: warehouseId,
-        status: body.status || "active",
-        levelAPrice: body.levelAPrice || body.wholesalePrice || 0,
-        levelBPrice: body.levelBPrice || body.wholesalePrice || 0,
-        levelCPrice: body.levelCPrice || body.wholesalePrice || 0,
-      };
-      products.unshift(newProduct);
-      await saveProducts(products);
-      return NextResponse.json(newProduct, { status: 201 });
-    }
-  } catch {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    const product = {
+      id: body.id || `p${Date.now()}`,
+      sku: body.sku || `SKU-${Date.now()}`,
+      name: body.name || "New Product",
+      nameZh: body.nameZh || body.name || "",
+      category: body.category || "",
+      brand: body.brand || "",
+      images: body.images || [],
+      description: body.description || "",
+      descriptionZh: body.descriptionZh || "",
+      costPrice: body.costPrice || body.cost_price || 0,
+      wholesalePrice: body.wholesalePrice || body.wholesale_price || 0,
+      retailPrice: body.retailPrice || body.retail_price || 0,
+      stock: body.stock || 0,
+      warehouse: body.warehouse || "",
+      warehouseId: body.warehouseId || "",
+      status: body.status || "active",
+      levelAPrice: body.levelAPrice || body.level_a_price || 0,
+      levelBPrice: body.levelBPrice || body.level_b_price || 0,
+      levelCPrice: body.levelCPrice || body.level_c_price || 0,
+    };
+
+    const result = await createOrUpdateProduct(product);
+    return NextResponse.json(result);
+  } catch (error: any) {
+    console.error("Products POST error:", error);
+    return NextResponse.json({ error: error.message || "Invalid request" }, { status: 400 });
   }
 }

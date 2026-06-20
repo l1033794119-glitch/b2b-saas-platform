@@ -1,91 +1,78 @@
 import { NextRequest, NextResponse } from "next/server";
-import { promises as fs } from "fs";
-import path from "path";
+import { getOrderById, updateOrder, deleteOrder, deductCredit, addInventoryLog, getProductById } from "@/lib/repository";
 
-const DATA_DIR = path.join(process.cwd(), "data");
-const ORDERS_FILE = path.join(DATA_DIR, "orders.json");
-
-interface Order {
-  id: string;
-  orderNo: string;
-  agentId: string;
-  items: any[];
-  total: number;
-  status: string;
-  date: string;
-  shippingAddress: string;
-  postalCode?: string;
-  country?: string;
-  contactName?: string;
-  phone?: string;
-  email?: string;
-  notes?: string;
-  trackingNumber?: string;
-  trackingImage?: string;
-  company?: string;
-  shippingFee?: number;
-  shippedAt?: string;
-}
-
-async function getOrders(): Promise<Order[]> {
-  try {
-    await fs.mkdir(DATA_DIR, { recursive: true });
-    const data = await fs.readFile(ORDERS_FILE, "utf-8");
-    return JSON.parse(data);
-  } catch {
-    return [];
-  }
-}
-
-async function saveOrders(orders: Order[]): Promise<void> {
-  await fs.mkdir(DATA_DIR, { recursive: true });
-  await fs.writeFile(ORDERS_FILE, JSON.stringify(orders, null, 2));
-}
-
+// GET - 获取单个订单详情
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
-  const orders = await getOrders();
-  const order = orders.find((o) => o.id === params.id);
-  if (!order) {
-    return NextResponse.json({ error: "Order not found" }, { status: 404 });
+  try {
+    const order = await getOrderById(params.id);
+    if (!order) {
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
+    return NextResponse.json(order);
+  } catch (error: any) {
+    console.error("Order GET error:", error);
+    return NextResponse.json({ error: error.message || "Failed to fetch order" }, { status: 500 });
   }
-  return NextResponse.json(order);
 }
 
+// PUT - 更新订单（包含运费功能：从代理商信用额度扣减运费
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const body = await req.json();
-    const orders = await getOrders();
-    const index = orders.findIndex((o) => o.id === params.id);
+    const order = await getOrderById(params.id);
 
-    if (index === -1) {
+    if (!order) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    // Update order fields
-    orders[index] = {
-      ...orders[index],
-      ...body,
-      // Ensure critical fields are not overwritten
-      id: orders[index].id,
-      orderNo: orders[index].orderNo,
-      agentId: orders[index].agentId,
-      date: orders[index].date,
+    // 字段映射
+    const updates: any = {
+      status: body.status,
+      trackingNumber: body.trackingNumber,
+      company: body.company,
     };
 
-    await saveOrders(orders);
-    return NextResponse.json(orders[index]);
-  } catch {
-    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+    // 运费处理：如果提供 shippingFee 且订单状态变为已发货（shipped），则从代理商信用额度中扣减运费
+    if (body.shippingFee !== undefined && body.shippingFee !== null) {
+      updates.shippingFee = parseFloat(body.shippingFee);
+
+      // 如果之前没有运费记录，且现在发货则扣减运费
+      if (!order.shippingFee && parseFloat(body.shippingFee) > 0) {
+        try {
+          await deductCredit(order.agentId, parseFloat(body.shippingFee), `Shipping fee for order ${order.orderNo}`);
+          updates.shippedAt = body.shippedAt || new Date().toISOString();
+        } catch (err: any) {
+            console.error("Failed to deduct shipping fee:", err);
+          }
+      } else {
+        updates.shippedAt = body.shippedAt || new Date().toISOString();
+      }
+    }
+
+    // 保留原有的订单信息更新
+    if (body.shippingAddress !== undefined) updates.shippingAddress = body.shippingAddress;
+    if (body.postalCode !== undefined) updates.postalCode = body.postalCode;
+    if (body.country !== undefined) updates.country = body.country;
+    if (body.contactName !== undefined) updates.contactName = body.contactName;
+    if (body.phone !== undefined) updates.phone = body.phone;
+    if (body.email !== undefined) updates.email = body.email;
+    if (body.notes !== undefined) updates.notes = body.notes;
+
+    const updated = await updateOrder(params.id, updates);
+    return NextResponse.json(updated);
+  } catch (error: any) {
+    console.error("Order PUT error:", error);
+    return NextResponse.json({ error: error.message || "Invalid request" }, { status: 400 });
   }
 }
 
+// DELETE - 删除订单
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const orders = await getOrders();
-    const filtered = orders.filter((o) => o.id !== params.id);
-    await saveOrders(filtered);
-    return NextResponse.json({ success: true });
-  } catch {
-    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+    const result = await deleteOrder(params.id);
+    return NextResponse.json(result);
+  } catch (error: any) {
+    console.error("Order DELETE error:", error);
+    return NextResponse.json({ error: error.message || "Invalid request" }, { status: 400 });
   }
 }

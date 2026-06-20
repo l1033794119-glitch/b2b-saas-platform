@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import fs from "fs";
-import path from "path";
+import { getAllEmployees, getEmployeeById, getEmployeeByEmail, createEmployee, updateEmployee, deleteEmployee } from "@/lib/repository";
 
-const DATA_DIR = path.join(process.cwd(), "data");
-const EMPLOYEES_FILE = path.join(DATA_DIR, "employees.json");
-
-// 菜单权限定义：key 必须与 AdminSidebar 中的 menuKey 一致
 const MENU_PERMISSIONS = [
   { key: "dashboard", label: "仪表盘", labelEn: "Dashboard" },
   { key: "products", label: "产品管理", labelEn: "Products" },
@@ -23,172 +18,105 @@ const MENU_PERMISSIONS = [
   { key: "settings", label: "系统设置", labelEn: "Settings" },
 ];
 
-interface Employee {
-  id: string;
-  name: string;
-  email: string;
-  password: string;
-  // 菜单权限：key 为菜单项标识，true = 有权限
-  permissions: Record<string, boolean>;
-  active: boolean;
-  createdAt: string;
-}
-
-function ensureDir() {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-  }
-}
-
-function readEmployees(): Employee[] {
-  ensureDir();
-  if (!fs.existsSync(EMPLOYEES_FILE)) {
-    return [];
-  }
-  try {
-    return JSON.parse(fs.readFileSync(EMPLOYEES_FILE, "utf-8"));
-  } catch {
-    return [];
-  }
-}
-
-function writeEmployees(employees: Employee[]) {
-  ensureDir();
-  fs.writeFileSync(EMPLOYEES_FILE, JSON.stringify(employees, null, 2), "utf-8");
-}
-
-// 首次运行时初始化默认管理员账号
-function initDefaultAdmin() {
-  const employees = readEmployees();
-  if (employees.length === 0) {
-    const defaultAdmin: Employee = {
-      id: "emp_admin",
-      name: "Administrator",
-      email: "admin@company.com",
-      password: "admin123",
-      permissions: Object.fromEntries(MENU_PERMISSIONS.map((m) => [m.key, true])),
-      active: true,
-      createdAt: new Date().toISOString(),
-    };
-    writeEmployees([defaultAdmin]);
-  }
-}
-
-initDefaultAdmin();
-
-// GET - 获取所有员工（不含密码）或登录验证
+// GET - 获取所有员工或登录验证
 export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const email = searchParams.get("email");
-  const password = searchParams.get("password");
+  try {
+    const { searchParams } = new URL(req.url);
+    const email = searchParams.get("email");
+    const password = searchParams.get("password");
 
-  // 员工登录验证
-  if (email && password) {
-    const employees = readEmployees();
-    const emp = employees.find(
-      (e) => e.email.toLowerCase() === email.toLowerCase()
-    );
-    if (!emp || emp.password !== password) {
-      return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+    // 员工登录验证
+    if (email && password) {
+      const emp = await getEmployeeByEmail(email, password);
+      if (!emp) {
+        return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+      }
+      return NextResponse.json(emp);
     }
-    if (!emp.active) {
-      return NextResponse.json({ error: "Account disabled" }, { status: 403 });
-    }
-    const { password: _, ...safeEmp } = emp;
-    return NextResponse.json(safeEmp);
+
+    // 返回所有员工
+    const employees = await getAllEmployees();
+    return NextResponse.json(employees);
+  } catch (error: any) {
+    console.error("Employees GET error:", error);
+    return NextResponse.json({ error: error.message || "Failed to fetch employees" }, { status: 500 });
   }
-
-  // 返回所有员工（不含密码）
-  const employees = readEmployees();
-  const safeEmployees = employees.map(({ password: _, ...emp }) => emp);
-  return NextResponse.json(safeEmployees);
 }
 
-// POST - 创建或更新员工
+// POST - 创建员工
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const employees = readEmployees();
-
-    const id = body.id || `emp_${Date.now()}`;
-    const email = (body.email || "").trim().toLowerCase();
-    const password = (body.password || "admin123").trim();
-    const name = (body.name || "").trim();
-    const permissions = body.permissions || {};
-    const active = body.active !== false;
+    const employees = await getAllEmployees();
 
     // 检查邮箱是否已被其他员工使用
-    const existingIdx = employees.findIndex(
-      (e) => e.email.toLowerCase() === email && e.id !== id
-    );
-    if (existingIdx >= 0) {
-      return NextResponse.json(
-        { error: "Email already in use by another employee" },
-        { status: 400 }
-      );
+    if (body.email && employees.find((e: any) => e.email === body.email)) {
+      return NextResponse.json({ error: "Email already in use" }, { status: 400 });
     }
 
-    // 更新现有员工
-    const editIdx = employees.findIndex((e) => e.id === id);
-    if (editIdx >= 0) {
-      // 如果传了新密码则更新，否则保留原密码
-      const newPassword = body.password ? password : employees[editIdx].password;
-      employees[editIdx] = {
-        ...employees[editIdx],
-        name,
-        email,
-        password: newPassword,
-        permissions,
-        active,
-      };
-      writeEmployees(employees);
-      const { password: _, ...safeEmp } = employees[editIdx];
-      return NextResponse.json(safeEmp);
-    }
-
-    // 创建新员工
-    const newEmp: Employee = {
+    const id = body.id || `emp_${Date.now()}`;
+    const employee = {
       id,
-      name,
-      email,
-      password,
-      permissions,
-      active,
+      name: body.name || "",
+      email: body.email || "",
+      password: body.password || "admin123",
+      permissions: body.permissions || Object.fromEntries(MENU_PERMISSIONS.map((m) => [m.key, true])),
+      active: body.active !== false,
       createdAt: new Date().toISOString(),
     };
-    employees.push(newEmp);
-    writeEmployees(employees);
-    const { password: _, ...safeEmp } = newEmp;
-    return NextResponse.json(safeEmp, { status: 201 });
-  } catch {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+
+    const result = await createEmployee(employee);
+    return NextResponse.json(result, { status: 201 });
+  } catch (error: any) {
+    console.error("Employees POST error:", error);
+    return NextResponse.json({ error: error.message || "Invalid request" }, { status: 400 });
+  }
+}
+
+// PUT - 更新员工信息
+export async function PUT(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const employees = await getAllEmployees();
+    const idx = employees.findIndex((e: any) => e.id === body.id);
+
+    if (idx === -1) {
+      return NextResponse.json({ error: "Employee not found" }, { status: 404 });
+    }
+
+    const updates: any = {};
+    if (body.name !== undefined) updates.name = body.name;
+    if (body.email !== undefined) updates.email = body.email;
+    if (body.password !== undefined) updates.password = body.password;
+    if (body.permissions !== undefined) updates.permissions = body.permissions;
+    if (body.active !== undefined) updates.active = body.active;
+
+    const result = await updateEmployee(body.id, updates);
+    return NextResponse.json(result);
+  } catch (error: any) {
+    console.error("Employees PUT error:", error);
+    return NextResponse.json({ error: error.message || "Invalid request" }, { status: 400 });
   }
 }
 
 // DELETE - 删除员工
 export async function DELETE(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const id = searchParams.get("id");
+  try {
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
 
-  if (!id) {
-    return NextResponse.json({ error: "Employee ID required" }, { status: 400 });
+    if (!id) {
+      return NextResponse.json({ error: "Employee ID required" }, { status: 400 });
+    }
+
+    const result = await deleteEmployee(id);
+    if (!result.success) {
+      return NextResponse.json({ error: "Employee not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    console.error("Employees DELETE error:", error);
+    return NextResponse.json({ error: error.message || "Invalid request" }, { status: 400 });
   }
-
-  const employees = readEmployees();
-  const idx = employees.findIndex((e) => e.id === id);
-  if (idx === -1) {
-    return NextResponse.json({ error: "Employee not found" }, { status: 404 });
-  }
-
-  // 防止删除最后一个管理员
-  if (employees.length === 1) {
-    return NextResponse.json(
-      { error: "Cannot delete the last employee" },
-      { status: 400 }
-    );
-  }
-
-  employees.splice(idx, 1);
-  writeEmployees(employees);
-  return NextResponse.json({ success: true });
 }
