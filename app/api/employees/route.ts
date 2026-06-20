@@ -6,7 +6,7 @@ const DATA_DIR = path.join(process.cwd(), "data");
 const EMPLOYEES_FILE = path.join(DATA_DIR, "employees.json");
 
 // 菜单权限定义：key 必须与 AdminSidebar 中的 menuKey 一致
-export const MENU_PERMISSIONS = [
+const MENU_PERMISSIONS = [
   { key: "dashboard", label: "仪表盘", labelEn: "Dashboard" },
   { key: "products", label: "产品管理", labelEn: "Products" },
   { key: "inventory", label: "库存管理", labelEn: "Inventory" },

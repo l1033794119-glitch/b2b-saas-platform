@@ -218,7 +218,7 @@ export default function AgentDashboard() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <StatCard label={t("orders")} value={formatNumber(stats.totalOrders)} icon={Package} accent="indigo" />
         <StatCard label={lang === "en" ? "Total spent" : lang === "zh-CN" ? "累计消费" : "累計消費"} value={formatCurrency(stats.totalSpent, currency)} icon={CreditCard} accent="emerald" />
-        <StatCard label={lang === "en" ? "Shipping fees" : lang === "zh-CN" ? "运费支出" : "運費支出"} value={formatCurrency(stats.totalShippingFees, currency)} icon={Truck} accent="orange" />
+        <StatCard label={lang === "en" ? "Shipping fees" : lang === "zh-CN" ? "运费支出" : "運費支出"} value={formatCurrency(stats.totalShippingFees, currency)} icon={Truck} accent="amber" />
         <StatCard label={lang === "en" ? "Credit available" : lang === "zh-CN" ? "可用额度" : "可用額度"} value={formatCurrency(credit?.available ?? 0, currency)} icon={CreditCard} accent="amber" />
       </div>
 

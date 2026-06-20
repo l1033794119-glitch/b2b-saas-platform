@@ -33,6 +33,7 @@ interface InventoryLog {
   productId: string;
   productName: string;
   sku: string;
+  warehouse?: string;
   qty: number;
   stockBefore: number;
   stockAfter: number;

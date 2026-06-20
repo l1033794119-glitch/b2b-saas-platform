@@ -19,23 +19,41 @@ interface Product {
   levelAPrice: number;
   levelBPrice: number;
   levelCPrice: number;
+  warehouseId?: string;
+  warehouse?: string;
+}
+
+interface Warehouse {
+  id: string;
+  name: string;
+  location?: string;
+  manager?: string;
 }
 
 export default function CatalogPage() {
   const { t, currency, lang, user } = useApp();
   const { count, lastAdded } = useCart();
   const [products, setProducts] = useState<Product[]>([]);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [cat, setCat] = useState("all");
+  const [selectedWarehouse, setSelectedWarehouse] = useState("all");
 
   const fetchProducts = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/products");
-      if (res.ok) {
-        const data = await res.json();
+      const [productsRes, warehousesRes] = await Promise.all([
+        fetch("/api/products"),
+        fetch("/api/warehouses"),
+      ]);
+      if (productsRes.ok) {
+        const data = await productsRes.json();
         setProducts(data);
+      }
+      if (warehousesRes.ok) {
+        const whData = await warehousesRes.json();
+        setWarehouses(whData);
       }
     } finally {
       setLoading(false);
@@ -63,8 +81,9 @@ export default function CatalogPage() {
   const filtered = products.filter((p) => {
     const matchQ = !q || p.name.toLowerCase().includes(q.toLowerCase()) || p.sku.toLowerCase().includes(q.toLowerCase()) || p.nameZh.includes(q);
     const matchC = cat === "all" || p.category === cat;
+    const matchW = selectedWarehouse === "all" || p.warehouseId === selectedWarehouse;
     const active = p.status === "active";
-    return matchQ && matchC && active;
+    return matchQ && matchC && matchW && active;
   });
 
   return (
@@ -83,6 +102,16 @@ export default function CatalogPage() {
           {cats.map((c) => (
             <option key={c} value={c}>
               {c === "all" ? (lang === "en" ? "All categories" : lang === "zh-CN" ? "全部分类" : "全部分類") : c}
+            </option>
+          ))}
+        </select>
+        <select className="select py-2.5 w-auto" value={selectedWarehouse} onChange={(e) => setSelectedWarehouse(e.target.value)}>
+          <option value="all">
+            {lang === "en" ? "All warehouses" : lang === "zh-CN" ? "全部仓库" : "全部倉庫"}
+          </option>
+          {warehouses.map((w) => (
+            <option key={w.id} value={w.id}>
+              {w.name}{w.location ? ` (${w.location})` : ""}
             </option>
           ))}
         </select>

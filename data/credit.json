@@ -3,9 +3,33 @@
     "agentId": "a1781952414085",
     "company": "测试1",
     "creditLimit": 10000,
-    "outstanding": 114,
-    "available": 9886,
+    "outstanding": 95,
+    "available": 9905,
     "transactions": [
+      {
+        "id": "txn_1781959068055",
+        "type": "order_deduct",
+        "amount": -5,
+        "balance": 9905,
+        "note": "Shipping fee for ORD-1781958990257",
+        "time": "2026-06-20T12:37:48.055Z"
+      },
+      {
+        "id": "txn_1781958990244",
+        "type": "order_deduct",
+        "amount": -90,
+        "balance": 9910,
+        "note": "Order ORD-1781958990208",
+        "time": "2026-06-20T12:36:30.244Z"
+      },
+      {
+        "id": "txn_1781958901287",
+        "type": "admin_writeoff",
+        "amount": 114,
+        "balance": 10000,
+        "note": "已用额度清零",
+        "time": "2026-06-20T12:35:01.287Z"
+      },
       {
         "id": "txn_1781955821937",
         "type": "order_deduct",

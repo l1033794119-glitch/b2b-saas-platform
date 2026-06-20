@@ -1,1 +1,16 @@
-[]
+[
+  {
+    "id": "log_1781958758087",
+    "type": "stock_in",
+    "productId": "p1781958740654",
+    "productName": "lb",
+    "sku": "SKU-1781958740654",
+    "warehouse": "英国仓库",
+    "qty": 50,
+    "stockBefore": 50,
+    "stockAfter": 100,
+    "operator": "Admin",
+    "time": "2026-06-20T12:32:38.087Z",
+    "note": ""
+  }
+]

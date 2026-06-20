@@ -6,5 +6,13 @@
     "manager": "abc",
     "stock": 0,
     "value": 0
+  },
+  {
+    "id": "w1781960106597",
+    "name": "荷兰仓库",
+    "location": "1",
+    "manager": "1",
+    "stock": 0,
+    "value": 0
   }
 ]

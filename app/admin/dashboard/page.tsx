@@ -481,7 +481,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
         <StatCard label={t("orders_count") || (lang === "en" ? "Orders" : lang === "zh-CN" ? "订单数" : "訂單數")} value={formatNumber(totalOrdersCount)} icon={ShoppingCart} accent="indigo" />
         <StatCard label={lang === "en" ? "Revenue" : lang === "zh-CN" ? "营业收入" : "營業收入"} value={formatCurrency(totalRevenue, currency)} icon={DollarSign} accent="emerald" />
-        <StatCard label={lang === "en" ? "Shipping Fees" : lang === "zh-CN" ? "运费收入" : "運費收入"} value={formatCurrency(totalShippingFees, currency)} icon={Truck} accent="orange" />
+        <StatCard label={lang === "en" ? "Shipping Fees" : lang === "zh-CN" ? "运费收入" : "運費收入"} value={formatCurrency(totalShippingFees, currency)} icon={Truck} accent="amber" />
         <StatCard label={lang === "en" ? "Pending" : lang === "zh-CN" ? "待处理" : "待處理"} value={formatNumber(pendingOrdersCount)} icon={Package} accent="amber" />
         <StatCard label={lang === "en" ? "Shipped" : lang === "zh-CN" ? "已发货" : "已發貨"} value={formatNumber(shippedOrdersCount)} icon={PackageCheck} accent="sky" />
         <StatCard label={lang === "en" ? "Total Inventory" : lang === "zh-CN" ? "库存总量" : "庫存總量"} value={formatCurrency(totalValue, currency)} icon={BarChart3} accent="emerald" />

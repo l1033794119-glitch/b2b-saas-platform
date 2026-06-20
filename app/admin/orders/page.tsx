@@ -51,8 +51,6 @@ const statuses = [
   { id: "pending_review", labelEn: "Pending Review", labelZhCN: "待审核", labelZhTW: "待審核" },
   { id: "approved", labelEn: "Approved", labelZhCN: "已批准", labelZhTW: "已批准" },
   { id: "shipped", labelEn: "Shipped", labelZhCN: "已发货", labelZhTW: "已發貨" },
-  { id: "completed", labelEn: "Completed", labelZhCN: "已完成", labelZhTW: "已完成" },
-  { id: "cancelled", labelEn: "Cancelled", labelZhCN: "已取消", labelZhTW: "已取消" },
 ];
 
 export default function OrdersPage() {
@@ -177,10 +175,6 @@ export default function OrdersPage() {
     } finally {
       setUpdating(false);
     }
-  };
-
-  const handleComplete = (order: Order) => {
-    updateOrderStatus(order.id, "completed");
   };
 
   const filtered = data.filter((o) => {
@@ -411,13 +405,6 @@ export default function OrdersPage() {
             {selectedOrder.status === "approved" && (
               <button onClick={() => setShowShipModal(true)} disabled={updating} className="btn-primary flex items-center gap-2">
                 <Truck className="w-4 h-4" /> {lang === "en" ? "发货" : lang === "zh-CN" ? "发货" : "發貨"}
-              </button>
-            )}
-
-            {/* 已发货 → 已完成 */}
-            {selectedOrder.status === "shipped" && (
-              <button onClick={() => handleComplete(selectedOrder)} disabled={updating} className="btn-primary flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700">
-                <Check className="w-4 h-4" /> {lang === "en" ? "已完成" : lang === "zh-CN" ? "已完成" : "已完成"}
               </button>
             )}
 
