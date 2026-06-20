@@ -1,0 +1,16 @@
+[
+  {
+    "id": "a1781952414085",
+    "company": "测试1",
+    "contact": "测试",
+    "email": "cs1@163.com",
+    "password": "agent123",
+    "phone": "1",
+    "country": "",
+    "level": "A",
+    "status": "active",
+    "creditLimit": 10000,
+    "outstanding": 0,
+    "joinDate": "2026-06-20"
+  }
+]

@@ -1,0 +1,19 @@
+0 verbose cli /Users/mac/Documents/ture code/.local/node-v20.18.0-darwin-arm64/bin/node /Users/mac/Documents/ture code/.local/node-v20.18.0-darwin-arm64/bin/npm
+1 info using npm@10.8.2
+2 info using node@v20.18.0
+3 silly config load:file:/Users/mac/Documents/ture code/.local/node-v20.18.0-darwin-arm64/lib/node_modules/npm/npmrc
+4 silly config load:file:/Users/mac/Documents/ture code/.npmrc
+5 silly config load:file:/Users/mac/.npmrc
+6 silly config load:file:/Users/mac/Documents/ture code/.local/node-v20.18.0-darwin-arm64/etc/npmrc
+7 verbose title npm run dev
+8 verbose argv "run" "dev"
+9 verbose logfile logs-max:10 dir:/Users/mac/Documents/ture code/.local/.npm-cache/_logs/2026-06-19T20_05_24_893Z-
+10 verbose logfile /Users/mac/Documents/ture code/.local/.npm-cache/_logs/2026-06-19T20_05_24_893Z-debug-0.log
+11 silly logfile start cleaning logs, removing 1 files
+12 silly logfile done cleaning log files
+13 verbose cwd /Users/mac/Documents/ture code
+14 verbose os Darwin 25.5.0
+15 verbose node v20.18.0
+16 verbose npm  v10.8.2
+17 verbose exit 0
+18 info ok

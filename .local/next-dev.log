@@ -1,0 +1,2310 @@
+
+> b2b-saas-platform@1.0.0 dev
+> next dev
+
+  ▲ Next.js 14.2.15
+  - Local:        http://localhost:3000
+
+ ✓ Starting...
+Attention: Next.js now collects completely anonymous telemetry regarding usage.
+This information is used to shape Next.js' roadmap and prioritize features.
+You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+https://nextjs.org/telemetry
+
+ ✓ Ready in 1916ms
+ ○ Compiling / ...
+ ✓ Compiled / in 1530ms (526 modules)
+ GET / 200 in 1627ms
+ ✓ Compiled /login in 143ms (536 modules)
+ GET /login 200 in 221ms
+ ✓ Compiled /admin/login in 94ms (532 modules)
+ GET /admin/login 200 in 152ms
+ ○ Compiling /admin/dashboard ...
+ ✓ Compiled /admin/dashboard in 1301ms (1632 modules)
+ GET /admin/dashboard 200 in 1446ms
+ ✓ Compiled /admin/products in 164ms (1652 modules)
+ GET /admin/products 200 in 214ms
+ ✓ Compiled /admin/inventory in 132ms (1666 modules)
+ GET /admin/inventory 200 in 181ms
+ ✓ Compiled /admin/warehouse in 140ms (1682 modules)
+ GET /admin/warehouse 200 in 187ms
+ ✓ Compiled /admin/agents in 151ms (1698 modules)
+ GET /admin/agents 200 in 199ms
+ ✓ Compiled /admin/orders in 150ms (1708 modules)
+ GET /admin/orders 200 in 197ms
+ ✓ Compiled /admin/shipping in 148ms (1716 modules)
+ GET /admin/shipping 200 in 197ms
+ ✓ Compiled /admin/finance in 302ms (1740 modules)
+ GET /admin/finance 200 in 406ms
+ ⨯ ./app/admin/analytics/page.tsx
+Error: 
+  [31mx[0m Unexpected token `AdminLayout`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/admin/analytics/page.tsx[0m:23:1]
+ [2m23[0m |   }));
+ [2m24[0m | 
+ [2m25[0m |   return (
+ [2m26[0m |     <AdminLayout title={t("analytics")} subtitle={lang === "en" ? "Business insights" : lang === "zh-CN" ? "商业洞察" : "商業洞察"}>
+    : [31;1m     ^^^^^^^^^^^[0m
+ [2m27[0m |       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+ [2m28[0m |         <StatCard label={t("revenue")} value={formatCurrency(orders.reduce((s, o) => s + o.total, 0), currency)} delta="+18%" icon={TrendingUp} accent="indigo" />
+ [2m29[0m |         <StatCard label={t("agents")} value={formatNumber(agents.length)} icon={Users} accent="emerald" />
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/admin/analytics/page.tsx
+ ⨯ ./app/admin/analytics/page.tsx
+Error: 
+  [31mx[0m Unexpected token `AdminLayout`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/admin/analytics/page.tsx[0m:23:1]
+ [2m23[0m |   }));
+ [2m24[0m | 
+ [2m25[0m |   return (
+ [2m26[0m |     <AdminLayout title={t("analytics")} subtitle={lang === "en" ? "Business insights" : lang === "zh-CN" ? "商业洞察" : "商業洞察"}>
+    : [31;1m     ^^^^^^^^^^^[0m
+ [2m27[0m |       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+ [2m28[0m |         <StatCard label={t("revenue")} value={formatCurrency(orders.reduce((s, o) => s + o.total, 0), currency)} delta="+18%" icon={TrendingUp} accent="indigo" />
+ [2m29[0m |         <StatCard label={t("agents")} value={formatNumber(agents.length)} icon={Users} accent="emerald" />
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/admin/analytics/page.tsx
+ ○ Compiling /_not-found ...
+ ⨯ ./app/admin/analytics/page.tsx
+Error: 
+  [31mx[0m Unexpected token `AdminLayout`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/admin/analytics/page.tsx[0m:23:1]
+ [2m23[0m |   }));
+ [2m24[0m | 
+ [2m25[0m |   return (
+ [2m26[0m |     <AdminLayout title={t("analytics")} subtitle={lang === "en" ? "Business insights" : lang === "zh-CN" ? "商业洞察" : "商業洞察"}>
+    : [31;1m     ^^^^^^^^^^^[0m
+ [2m27[0m |       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+ [2m28[0m |         <StatCard label={t("revenue")} value={formatCurrency(orders.reduce((s, o) => s + o.total, 0), currency)} delta="+18%" icon={TrendingUp} accent="indigo" />
+ [2m29[0m |         <StatCard label={t("agents")} value={formatNumber(agents.length)} icon={Users} accent="emerald" />
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/admin/analytics/page.tsx
+ GET /admin/analytics 500 in 1326ms
+ ⨯ ./app/admin/analytics/page.tsx
+Error: 
+  [31mx[0m Unexpected token `AdminLayout`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/admin/analytics/page.tsx[0m:23:1]
+ [2m23[0m |   }));
+ [2m24[0m | 
+ [2m25[0m |   return (
+ [2m26[0m |     <AdminLayout title={t("analytics")} subtitle={lang === "en" ? "Business insights" : lang === "zh-CN" ? "商业洞察" : "商業洞察"}>
+    : [31;1m     ^^^^^^^^^^^[0m
+ [2m27[0m |       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+ [2m28[0m |         <StatCard label={t("revenue")} value={formatCurrency(orders.reduce((s, o) => s + o.total, 0), currency)} delta="+18%" icon={TrendingUp} accent="indigo" />
+ [2m29[0m |         <StatCard label={t("agents")} value={formatNumber(agents.length)} icon={Users} accent="emerald" />
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/admin/analytics/page.tsx
+ GET /admin/notifications 500 in 200ms
+ ⨯ ./app/admin/analytics/page.tsx
+Error: 
+  [31mx[0m Unexpected token `AdminLayout`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/admin/analytics/page.tsx[0m:23:1]
+ [2m23[0m |   }));
+ [2m24[0m | 
+ [2m25[0m |   return (
+ [2m26[0m |     <AdminLayout title={t("analytics")} subtitle={lang === "en" ? "Business insights" : lang === "zh-CN" ? "商业洞察" : "商業洞察"}>
+    : [31;1m     ^^^^^^^^^^^[0m
+ [2m27[0m |       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+ [2m28[0m |         <StatCard label={t("revenue")} value={formatCurrency(orders.reduce((s, o) => s + o.total, 0), currency)} delta="+18%" icon={TrendingUp} accent="indigo" />
+ [2m29[0m |         <StatCard label={t("agents")} value={formatNumber(agents.length)} icon={Users} accent="emerald" />
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/admin/analytics/page.tsx
+ GET /admin/employees 500 in 232ms
+ ⨯ ./app/admin/analytics/page.tsx
+Error: 
+  [31mx[0m Unexpected token `AdminLayout`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/admin/analytics/page.tsx[0m:23:1]
+ [2m23[0m |   }));
+ [2m24[0m | 
+ [2m25[0m |   return (
+ [2m26[0m |     <AdminLayout title={t("analytics")} subtitle={lang === "en" ? "Business insights" : lang === "zh-CN" ? "商业洞察" : "商業洞察"}>
+    : [31;1m     ^^^^^^^^^^^[0m
+ [2m27[0m |       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+ [2m28[0m |         <StatCard label={t("revenue")} value={formatCurrency(orders.reduce((s, o) => s + o.total, 0), currency)} delta="+18%" icon={TrendingUp} accent="indigo" />
+ [2m29[0m |         <StatCard label={t("agents")} value={formatNumber(agents.length)} icon={Users} accent="emerald" />
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/admin/analytics/page.tsx
+ GET /admin/settings 500 in 305ms
+ ⨯ ./app/admin/analytics/page.tsx
+Error: 
+  [31mx[0m Unexpected token `AdminLayout`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/admin/analytics/page.tsx[0m:23:1]
+ [2m23[0m |   }));
+ [2m24[0m | 
+ [2m25[0m |   return (
+ [2m26[0m |     <AdminLayout title={t("analytics")} subtitle={lang === "en" ? "Business insights" : lang === "zh-CN" ? "商业洞察" : "商業洞察"}>
+    : [31;1m     ^^^^^^^^^^^[0m
+ [2m27[0m |       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+ [2m28[0m |         <StatCard label={t("revenue")} value={formatCurrency(orders.reduce((s, o) => s + o.total, 0), currency)} delta="+18%" icon={TrendingUp} accent="indigo" />
+ [2m29[0m |         <StatCard label={t("agents")} value={formatNumber(agents.length)} icon={Users} accent="emerald" />
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/admin/analytics/page.tsx
+ GET /admin/audit-logs 500 in 255ms
+ ⨯ ./app/admin/analytics/page.tsx
+Error: 
+  [31mx[0m Unexpected token `AdminLayout`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/admin/analytics/page.tsx[0m:23:1]
+ [2m23[0m |   }));
+ [2m24[0m | 
+ [2m25[0m |   return (
+ [2m26[0m |     <AdminLayout title={t("analytics")} subtitle={lang === "en" ? "Business insights" : lang === "zh-CN" ? "商业洞察" : "商業洞察"}>
+    : [31;1m     ^^^^^^^^^^^[0m
+ [2m27[0m |       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+ [2m28[0m |         <StatCard label={t("revenue")} value={formatCurrency(orders.reduce((s, o) => s + o.total, 0), currency)} delta="+18%" icon={TrendingUp} accent="indigo" />
+ [2m29[0m |         <StatCard label={t("agents")} value={formatNumber(agents.length)} icon={Users} accent="emerald" />
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/admin/analytics/page.tsx
+ GET /admin/customer-service 500 in 272ms
+ ⨯ ./app/admin/analytics/page.tsx
+Error: 
+  [31mx[0m Unexpected token `AdminLayout`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/admin/analytics/page.tsx[0m:23:1]
+ [2m23[0m |   }));
+ [2m24[0m | 
+ [2m25[0m |   return (
+ [2m26[0m |     <AdminLayout title={t("analytics")} subtitle={lang === "en" ? "Business insights" : lang === "zh-CN" ? "商业洞察" : "商業洞察"}>
+    : [31;1m     ^^^^^^^^^^^[0m
+ [2m27[0m |       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+ [2m28[0m |         <StatCard label={t("revenue")} value={formatCurrency(orders.reduce((s, o) => s + o.total, 0), currency)} delta="+18%" icon={TrendingUp} accent="indigo" />
+ [2m29[0m |         <StatCard label={t("agents")} value={formatNumber(agents.length)} icon={Users} accent="emerald" />
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/admin/analytics/page.tsx
+ GET /admin/operations 500 in 271ms
+ ⨯ ./app/admin/analytics/page.tsx
+Error: 
+  [31mx[0m Unexpected token `AdminLayout`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/admin/analytics/page.tsx[0m:23:1]
+ [2m23[0m |   }));
+ [2m24[0m | 
+ [2m25[0m |   return (
+ [2m26[0m |     <AdminLayout title={t("analytics")} subtitle={lang === "en" ? "Business insights" : lang === "zh-CN" ? "商业洞察" : "商業洞察"}>
+    : [31;1m     ^^^^^^^^^^^[0m
+ [2m27[0m |       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+ [2m28[0m |         <StatCard label={t("revenue")} value={formatCurrency(orders.reduce((s, o) => s + o.total, 0), currency)} delta="+18%" icon={TrendingUp} accent="indigo" />
+ [2m29[0m |         <StatCard label={t("agents")} value={formatNumber(agents.length)} icon={Users} accent="emerald" />
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/admin/analytics/page.tsx
+ GET /agent/dashboard 500 in 278ms
+ ⨯ ./app/admin/analytics/page.tsx
+Error: 
+  [31mx[0m Unexpected token `AdminLayout`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/admin/analytics/page.tsx[0m:23:1]
+ [2m23[0m |   }));
+ [2m24[0m | 
+ [2m25[0m |   return (
+ [2m26[0m |     <AdminLayout title={t("analytics")} subtitle={lang === "en" ? "Business insights" : lang === "zh-CN" ? "商业洞察" : "商業洞察"}>
+    : [31;1m     ^^^^^^^^^^^[0m
+ [2m27[0m |       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+ [2m28[0m |         <StatCard label={t("revenue")} value={formatCurrency(orders.reduce((s, o) => s + o.total, 0), currency)} delta="+18%" icon={TrendingUp} accent="indigo" />
+ [2m29[0m |         <StatCard label={t("agents")} value={formatNumber(agents.length)} icon={Users} accent="emerald" />
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/admin/analytics/page.tsx
+ GET /agent/catalog 500 in 277ms
+ ⨯ ./app/admin/analytics/page.tsx
+Error: 
+  [31mx[0m Unexpected token `AdminLayout`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/admin/analytics/page.tsx[0m:23:1]
+ [2m23[0m |   }));
+ [2m24[0m | 
+ [2m25[0m |   return (
+ [2m26[0m |     <AdminLayout title={t("analytics")} subtitle={lang === "en" ? "Business insights" : lang === "zh-CN" ? "商业洞察" : "商業洞察"}>
+    : [31;1m     ^^^^^^^^^^^[0m
+ [2m27[0m |       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+ [2m28[0m |         <StatCard label={t("revenue")} value={formatCurrency(orders.reduce((s, o) => s + o.total, 0), currency)} delta="+18%" icon={TrendingUp} accent="indigo" />
+ [2m29[0m |         <StatCard label={t("agents")} value={formatNumber(agents.length)} icon={Users} accent="emerald" />
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/admin/analytics/page.tsx
+ GET /agent/cart 500 in 418ms
+ ⨯ ./app/admin/analytics/page.tsx
+Error: 
+  [31mx[0m Unexpected token `AdminLayout`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/admin/analytics/page.tsx[0m:23:1]
+ [2m23[0m |   }));
+ [2m24[0m | 
+ [2m25[0m |   return (
+ [2m26[0m |     <AdminLayout title={t("analytics")} subtitle={lang === "en" ? "Business insights" : lang === "zh-CN" ? "商业洞察" : "商業洞察"}>
+    : [31;1m     ^^^^^^^^^^^[0m
+ [2m27[0m |       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+ [2m28[0m |         <StatCard label={t("revenue")} value={formatCurrency(orders.reduce((s, o) => s + o.total, 0), currency)} delta="+18%" icon={TrendingUp} accent="indigo" />
+ [2m29[0m |         <StatCard label={t("agents")} value={formatNumber(agents.length)} icon={Users} accent="emerald" />
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/admin/analytics/page.tsx
+ GET /agent/orders 500 in 248ms
+ ⨯ ./app/admin/analytics/page.tsx
+Error: 
+  [31mx[0m Unexpected token `AdminLayout`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/admin/analytics/page.tsx[0m:23:1]
+ [2m23[0m |   }));
+ [2m24[0m | 
+ [2m25[0m |   return (
+ [2m26[0m |     <AdminLayout title={t("analytics")} subtitle={lang === "en" ? "Business insights" : lang === "zh-CN" ? "商业洞察" : "商業洞察"}>
+    : [31;1m     ^^^^^^^^^^^[0m
+ [2m27[0m |       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+ [2m28[0m |         <StatCard label={t("revenue")} value={formatCurrency(orders.reduce((s, o) => s + o.total, 0), currency)} delta="+18%" icon={TrendingUp} accent="indigo" />
+ [2m29[0m |         <StatCard label={t("agents")} value={formatNumber(agents.length)} icon={Users} accent="emerald" />
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/admin/analytics/page.tsx
+ GET /agent/addresses 500 in 254ms
+ ⨯ ./app/admin/analytics/page.tsx
+Error: 
+  [31mx[0m Unexpected token `AdminLayout`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/admin/analytics/page.tsx[0m:23:1]
+ [2m23[0m |   }));
+ [2m24[0m | 
+ [2m25[0m |   return (
+ [2m26[0m |     <AdminLayout title={t("analytics")} subtitle={lang === "en" ? "Business insights" : lang === "zh-CN" ? "商业洞察" : "商業洞察"}>
+    : [31;1m     ^^^^^^^^^^^[0m
+ [2m27[0m |       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+ [2m28[0m |         <StatCard label={t("revenue")} value={formatCurrency(orders.reduce((s, o) => s + o.total, 0), currency)} delta="+18%" icon={TrendingUp} accent="indigo" />
+ [2m29[0m |         <StatCard label={t("agents")} value={formatNumber(agents.length)} icon={Users} accent="emerald" />
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/admin/analytics/page.tsx
+ GET /agent/settings 500 in 245ms
+ ⨯ ./app/admin/analytics/page.tsx
+Error: 
+  [31mx[0m Unexpected token `AdminLayout`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/admin/analytics/page.tsx[0m:35:1]
+ [2m35[0m |   }));
+ [2m36[0m | 
+ [2m37[0m |   return (
+ [2m38[0m |     <AdminLayout title={t("analytics")} subtitle={lang === "en" ? "Business insights" : lang === "zh-CN" ? "商业洞察" : "商業洞察"}>
+    : [31;1m     ^^^^^^^^^^^[0m
+ [2m39[0m |       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+ [2m40[0m |         <StatCard label={t("revenue")} value={formatCurrency(orders.reduce((s, o) => s + o.total, 0), currency)} delta="+18%" icon={TrendingUp} accent="indigo" />
+ [2m41[0m |         <StatCard label={t("agents")} value={formatNumber(agents.length)} icon={Users} accent="emerald" />
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/admin/analytics/page.tsx
+ ✓ Compiled /agent/settings in 241ms (1445 modules)
+ ✓ Compiled in 127ms (1099 modules)
+ ○ Compiling /admin/analytics ...
+ ✓ Compiled /admin/analytics in 502ms (1943 modules)
+ GET /admin/analytics 200 in 680ms
+ ✓ Compiled /admin/notifications in 52ms (849 modules)
+ GET /admin/notifications 200 in 119ms
+ ✓ Compiled /admin/employees in 59ms (856 modules)
+ GET /admin/employees 200 in 110ms
+ ✓ Compiled /admin/settings in 62ms (862 modules)
+ GET /admin/settings 200 in 114ms
+ ✓ Compiled /admin/audit-logs in 67ms (866 modules)
+ GET /admin/audit-logs 200 in 116ms
+ ✓ Compiled /admin/customer-service in 74ms (873 modules)
+ GET /admin/customer-service 200 in 127ms
+ ✓ Compiled /admin/operations in 75ms (879 modules)
+ GET /admin/operations 200 in 126ms
+ ✓ Compiled /agent/dashboard in 81ms (885 modules)
+ GET /agent/dashboard 200 in 134ms
+ ✓ Compiled /agent/catalog in 84ms (890 modules)
+ GET /agent/catalog 500 in 177ms
+ ⨯ lib/cart.tsx (62:19) @ useCart
+ ⨯ Error: useCart must be used inside CartProvider
+    at useCart (./lib/cart.tsx:71:21)
+    at CatalogPage (./app/agent/catalog/page.tsx:26:71)
+digest: "4290409761"
+[0m [90m 60 |[39m [36mexport[39m [36mfunction[39m useCart() {[0m
+[0m [90m 61 |[39m   [36mconst[39m ctx [33m=[39m useContext([33mCartContext[39m)[33m;[39m[0m
+[0m[31m[1m>[22m[39m[90m 62 |[39m   [36mif[39m ([33m![39mctx) [36mthrow[39m [36mnew[39m [33mError[39m([32m"useCart must be used inside CartProvider"[39m)[33m;[39m[0m
+[0m [90m    |[39m                   [31m[1m^[22m[39m[0m
+[0m [90m 63 |[39m   [36mreturn[39m ctx[33m;[39m[0m
+[0m [90m 64 |[39m }[0m
+[0m [90m 65 |[39m[0m
+ ✓ Compiled /agent/cart in 101ms (897 modules)
+ ⨯ lib/cart.tsx (62:19) @ useCart
+ ⨯ Error: useCart must be used inside CartProvider
+    at useCart (./lib/cart.tsx:71:21)
+    at CartPage (./app/agent/cart/page.tsx:25:103)
+digest: "515219702"
+[0m [90m 60 |[39m [36mexport[39m [36mfunction[39m useCart() {[0m
+[0m [90m 61 |[39m   [36mconst[39m ctx [33m=[39m useContext([33mCartContext[39m)[33m;[39m[0m
+[0m[31m[1m>[22m[39m[90m 62 |[39m   [36mif[39m ([33m![39mctx) [36mthrow[39m [36mnew[39m [33mError[39m([32m"useCart must be used inside CartProvider"[39m)[33m;[39m[0m
+[0m [90m    |[39m                   [31m[1m^[22m[39m[0m
+[0m [90m 63 |[39m   [36mreturn[39m ctx[33m;[39m[0m
+[0m [90m 64 |[39m }[0m
+[0m [90m 65 |[39m[0m
+ GET /agent/cart 500 in 166ms
+ ✓ Compiled /agent/orders in 93ms (901 modules)
+ GET /agent/orders 200 in 147ms
+ ✓ Compiled /agent/addresses in 101ms (908 modules)
+ GET /agent/addresses 200 in 160ms
+ ✓ Compiled /agent/settings in 146ms (913 modules)
+ GET /agent/settings 200 in 218ms
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Expected 'from', got '<eof>'
+   ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:1:1]
+ [2m1[0m | "use client";
+ [2m2[0m | 
+ [2m3[0m | import
+   : [31;1m^^^^^^[0m
+   `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ✓ Compiled in 123ms (1102 modules)
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Unterminated string constant
+   ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:2:1]
+ [2m2[0m | 
+ [2m3[0m | import { useState } from "react";
+ [2m4[0m | import { AgentLayout } from "@/components/Layout";
+ [2m5[0m | import { useApp } from "@/components
+   : [31;1m                       ^^^^^^^^^^^^^[0m
+   `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ✓ Compiled in 116ms (1102 modules)
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Expected '}', got '<eof>'
+   ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:6:1]
+ [2m6[0m | import { products as allProducts } from "@/lib/mockData";
+ [2m7[0m | import { formatCurrency, formatNumber } from "@/lib/utils";
+ [2m8[0m | import { useCart } from "@/lib/cart";
+ [2m9[0m | import {
+   : [31;1m       ^[0m
+   `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Expected '}', got '<eof>'
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:8:1]
+ [2m 8[0m | import { useCart } from "@/lib/cart";
+ [2m 9[0m | import { Search, Plus } from "lucide-react";
+ [2m10[0m | 
+ [2m11[0m | export default function CatalogPage() {
+    : [31;1m                                      ^[0m
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Expected ']', got '<eof>'
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:10:1]
+ [2m10[0m | 
+ [2m11[0m | export default function CatalogPage() {
+ [2m12[0m |   const { t, currency, lang, user } = useApp();
+ [2m13[0m |   const [q,
+    : [31;1m          ^[0m
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Unterminated string constant
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:11:1]
+ [2m11[0m | export default function CatalogPage() {
+ [2m12[0m |   const { t, currency, lang, user } = useApp();
+ [2m13[0m |   const [q, setQ] = useState("");
+ [2m14[0m |   const [cat, setCat] = useState("all
+    : [31;1m                                 ^^^^[0m
+    `----
+
+  [31mx[0m Unexpected eof
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:11:1]
+ [2m11[0m | export default function CatalogPage() {
+ [2m12[0m |   const { t, currency, lang, user } = useApp();
+ [2m13[0m |   const [q, setQ] = useState("");
+ [2m14[0m |   const [cat, setCat] = useState("all
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Unexpected eof
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:12:1]
+ [2m12[0m |   const { t, currency, lang, user } = useApp();
+ [2m13[0m |   const [q, setQ] = useState("");
+ [2m14[0m |   const [cat, setCat] = useState("all");
+ [2m15[0m |   const cats = ["all", ...Array.from(new Set(allProducts.map((p)
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Unexpected eof
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:13:1]
+ [2m13[0m |   const [q, setQ] = useState("");
+ [2m14[0m |   const [cat, setCat] = useState("all");
+ [2m15[0m |   const cats = ["all", ...Array.from(new Set(allProducts.map((p) => p.category)))];
+ [2m16[0m |   const priceKey = user?.level === "A" ?
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Unexpected eof
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:13:1]
+ [2m13[0m |   const [q, setQ] = useState("");
+ [2m14[0m |   const [cat, setCat] = useState("all");
+ [2m15[0m |   const cats = ["all", ...Array.from(new Set(allProducts.map((p) => p.category)))];
+ [2m16[0m |   const priceKey = user?.level === "A" ? "levelAPrice" : user?.level === "C" ? "levelCPrice" :
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Expected '}', got '<eof>'
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:15:1]
+ [2m15[0m |   const cats = ["all", ...Array.from(new Set(allProducts.map((p) => p.category)))];
+ [2m16[0m |   const priceKey = user?.level === "A" ? "levelAPrice" : user?.level === "C" ? "levelCPrice" : "levelBPrice";
+ [2m17[0m | 
+ [2m18[0m |   const filtered = allProducts.filter((p) => {
+    : [31;1m                                             ^[0m
+    `----
+
+  [31mx[0m Unexpected eof
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:15:1]
+ [2m15[0m |   const cats = ["all", ...Array.from(new Set(allProducts.map((p) => p.category)))];
+ [2m16[0m |   const priceKey = user?.level === "A" ? "levelAPrice" : user?.level === "C" ? "levelCPrice" : "levelBPrice";
+ [2m17[0m | 
+ [2m18[0m |   const filtered = allProducts.filter((p) => {
+    : [31;1m                                              ^[0m
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Expected '}', got '<eof>'
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:16:1]
+ [2m16[0m |   const priceKey = user?.level === "A" ? "levelAPrice" : user?.level === "C" ? "levelCPrice" : "levelBPrice";
+ [2m17[0m | 
+ [2m18[0m |   const filtered = allProducts.filter((p) => {
+ [2m19[0m |     const mq = !q || p.name.toLowerCase().includes(q.toLowerCase()) || p.sku.toLowerCase
+    : [31;1m                                                                             ^^^^^^^^^^^[0m
+    `----
+
+  [31mx[0m Unexpected eof
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:16:1]
+ [2m16[0m |   const priceKey = user?.level === "A" ? "levelAPrice" : user?.level === "C" ? "levelCPrice" : "levelBPrice";
+ [2m17[0m | 
+ [2m18[0m |   const filtered = allProducts.filter((p) => {
+ [2m19[0m |     const mq = !q || p.name.toLowerCase().includes(q.toLowerCase()) || p.sku.toLowerCase
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Expected '}', got '<eof>'
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:17:1]
+ [2m17[0m | 
+ [2m18[0m |   const filtered = allProducts.filter((p) => {
+ [2m19[0m |     const mq = !q || p.name.toLowerCase().includes(q.toLowerCase()) || p.sku.toLowerCase().includes(q.toLowerCase());
+ [2m20[0m |     const mc = cat === "all" || p.category === cat
+    : [31;1m                                               ^^^[0m
+    `----
+
+  [31mx[0m Unexpected eof
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:17:1]
+ [2m17[0m | 
+ [2m18[0m |   const filtered = allProducts.filter((p) => {
+ [2m19[0m |     const mq = !q || p.name.toLowerCase().includes(q.toLowerCase()) || p.sku.toLowerCase().includes(q.toLowerCase());
+ [2m20[0m |     const mc = cat === "all" || p.category === cat
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Unexpected token `Agent`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:22:1]
+ [2m22[0m |   });
+ [2m23[0m | 
+ [2m24[0m |   return (
+ [2m25[0m |     <Agent
+    : [31;1m     ^^^^^[0m
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Unexpected token `AgentLayout`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:22:1]
+ [2m22[0m |   });
+ [2m23[0m | 
+ [2m24[0m |   return (
+ [2m25[0m |     <AgentLayout title={t("product_catalog")} subtitle={`${formatNumber(filtered.length)} ${
+    : [31;1m     ^^^^^^^^^^^[0m
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Unexpected token `AgentLayout`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:22:1]
+ [2m22[0m |   });
+ [2m23[0m | 
+ [2m24[0m |   return (
+ [2m25[0m |     <AgentLayout title={t("product_catalog")} subtitle={`${formatNumber(filtered.length)} ${lang === "en" ? "products" : lang === "zh-CN" ? "产品
+    : [31;1m     ^^^^^^^^^^^[0m
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Unexpected token `AgentLayout`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:22:1]
+ [2m22[0m |   });
+ [2m23[0m | 
+ [2m24[0m |   return (
+ [2m25[0m |     <AgentLayout title={t("product_catalog")} subtitle={`${formatNumber(filtered.length)} ${lang === "en" ? "products" : lang === "zh-CN" ? "产品" : "產品"}`}>
+    : [31;1m     ^^^^^^^^^^^[0m
+ [2m26[0m |       <div className="flex flex-wrap items-center gap-
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Unexpected token `AgentLayout`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:22:1]
+ [2m22[0m |   });
+ [2m23[0m | 
+ [2m24[0m |   return (
+ [2m25[0m |     <AgentLayout title={t("product_catalog")} subtitle={`${formatNumber(filtered.length)} ${lang === "en" ? "products" : lang === "zh-CN" ? "产品" : "產品"}`}>
+    : [31;1m     ^^^^^^^^^^^[0m
+ [2m26[0m |       <div className="flex flex-wrap items-center gap-3 mb-5">
+ [2m27[0m |         <div className="flex-1 min-w-[220
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Unexpected token `AgentLayout`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:22:1]
+ [2m22[0m |   });
+ [2m23[0m | 
+ [2m24[0m |   return (
+ [2m25[0m |     <AgentLayout title={t("product_catalog")} subtitle={`${formatNumber(filtered.length)} ${lang === "en" ? "products" : lang === "zh-CN" ? "产品" : "產品"}`}>
+    : [31;1m     ^^^^^^^^^^^[0m
+ [2m26[0m |       <div className="flex flex-wrap items-center gap-3 mb-5">
+ [2m27[0m |         <div className="flex-1 min-w-[220px] relative">
+ [2m28[0m |           <Search className="w-4 h-4 absolute left-3
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Unexpected token `AgentLayout`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:22:1]
+ [2m22[0m |   });
+ [2m23[0m | 
+ [2m24[0m |   return (
+ [2m25[0m |     <AgentLayout title={t("product_catalog")} subtitle={`${formatNumber(filtered.length)} ${lang === "en" ? "products" : lang === "zh-CN" ? "产品" : "產品"}`}>
+    : [31;1m     ^^^^^^^^^^^[0m
+ [2m26[0m |       <div className="flex flex-wrap items-center gap-3 mb-5">
+ [2m27[0m |         <div className="flex-1 min-w-[220px] relative">
+ [2m28[0m |           <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Unexpected token `AgentLayout`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:22:1]
+ [2m22[0m |   });
+ [2m23[0m | 
+ [2m24[0m |   return (
+ [2m25[0m |     <AgentLayout title={t("product_catalog")} subtitle={`${formatNumber(filtered.length)} ${lang === "en" ? "products" : lang === "zh-CN" ? "产品" : "產品"}`}>
+    : [31;1m     ^^^^^^^^^^^[0m
+ [2m26[0m |       <div className="flex flex-wrap items-center gap-3 mb-5">
+ [2m27[0m |         <div className="flex-1 min-w-[220px] relative">
+ [2m28[0m |           <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Unexpected token `AgentLayout`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:22:1]
+ [2m22[0m |   });
+ [2m23[0m | 
+ [2m24[0m |   return (
+ [2m25[0m |     <AgentLayout title={t("product_catalog")} subtitle={`${formatNumber(filtered.length)} ${lang === "en" ? "products" : lang === "zh-CN" ? "产品" : "產品"}`}>
+    : [31;1m     ^^^^^^^^^^^[0m
+ [2m26[0m |       <div className="flex flex-wrap items-center gap-3 mb-5">
+ [2m27[0m |         <div className="flex-1 min-w-[220px] relative">
+ [2m28[0m |           <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Unexpected token `AgentLayout`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:22:1]
+ [2m22[0m |   });
+ [2m23[0m | 
+ [2m24[0m |   return (
+ [2m25[0m |     <AgentLayout title={t("product_catalog")} subtitle={`${formatNumber(filtered.length)} ${lang === "en" ? "products" : lang === "zh-CN" ? "产品" : "產品"}`}>
+    : [31;1m     ^^^^^^^^^^^[0m
+ [2m26[0m |       <div className="flex flex-wrap items-center gap-3 mb-5">
+ [2m27[0m |         <div className="flex-1 min-w-[220px] relative">
+ [2m28[0m |           <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Unexpected token `AgentLayout`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:22:1]
+ [2m22[0m |   });
+ [2m23[0m | 
+ [2m24[0m |   return (
+ [2m25[0m |     <AgentLayout title={t("product_catalog")} subtitle={`${formatNumber(filtered.length)} ${lang === "en" ? "products" : lang === "zh-CN" ? "产品" : "產品"}`}>
+    : [31;1m     ^^^^^^^^^^^[0m
+ [2m26[0m |       <div className="flex flex-wrap items-center gap-3 mb-5">
+ [2m27[0m |         <div className="flex-1 min-w-[220px] relative">
+ [2m28[0m |           <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Unexpected token `AgentLayout`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:22:1]
+ [2m22[0m |   });
+ [2m23[0m | 
+ [2m24[0m |   return (
+ [2m25[0m |     <AgentLayout title={t("product_catalog")} subtitle={`${formatNumber(filtered.length)} ${lang === "en" ? "products" : lang === "zh-CN" ? "产品" : "產品"}`}>
+    : [31;1m     ^^^^^^^^^^^[0m
+ [2m26[0m |       <div className="flex flex-wrap items-center gap-3 mb-5">
+ [2m27[0m |         <div className="flex-1 min-w-[220px] relative">
+ [2m28[0m |           <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Unexpected token `AgentLayout`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:22:1]
+ [2m22[0m |   });
+ [2m23[0m | 
+ [2m24[0m |   return (
+ [2m25[0m |     <AgentLayout title={t("product_catalog")} subtitle={`${formatNumber(filtered.length)} ${lang === "en" ? "products" : lang === "zh-CN" ? "产品" : "產品"}`}>
+    : [31;1m     ^^^^^^^^^^^[0m
+ [2m26[0m |       <div className="flex flex-wrap items-center gap-3 mb-5">
+ [2m27[0m |         <div className="flex-1 min-w-[220px] relative">
+ [2m28[0m |           <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Unexpected token `AgentLayout`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:22:1]
+ [2m22[0m |   });
+ [2m23[0m | 
+ [2m24[0m |   return (
+ [2m25[0m |     <AgentLayout title={t("product_catalog")} subtitle={`${formatNumber(filtered.length)} ${lang === "en" ? "products" : lang === "zh-CN" ? "产品" : "產品"}`}>
+    : [31;1m     ^^^^^^^^^^^[0m
+ [2m26[0m |       <div className="flex flex-wrap items-center gap-3 mb-5">
+ [2m27[0m |         <div className="flex-1 min-w-[220px] relative">
+ [2m28[0m |           <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Unexpected token `AgentLayout`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:22:1]
+ [2m22[0m |   });
+ [2m23[0m | 
+ [2m24[0m |   return (
+ [2m25[0m |     <AgentLayout title={t("product_catalog")} subtitle={`${formatNumber(filtered.length)} ${lang === "en" ? "products" : lang === "zh-CN" ? "产品" : "產品"}`}>
+    : [31;1m     ^^^^^^^^^^^[0m
+ [2m26[0m |       <div className="flex flex-wrap items-center gap-3 mb-5">
+ [2m27[0m |         <div className="flex-1 min-w-[220px] relative">
+ [2m28[0m |           <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Unexpected token `AgentLayout`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:22:1]
+ [2m22[0m |   });
+ [2m23[0m | 
+ [2m24[0m |   return (
+ [2m25[0m |     <AgentLayout title={t("product_catalog")} subtitle={`${formatNumber(filtered.length)} ${lang === "en" ? "products" : lang === "zh-CN" ? "产品" : "產品"}`}>
+    : [31;1m     ^^^^^^^^^^^[0m
+ [2m26[0m |       <div className="flex flex-wrap items-center gap-3 mb-5">
+ [2m27[0m |         <div className="flex-1 min-w-[220px] relative">
+ [2m28[0m |           <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Unexpected token `AgentLayout`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:22:1]
+ [2m22[0m |   });
+ [2m23[0m | 
+ [2m24[0m |   return (
+ [2m25[0m |     <AgentLayout title={t("product_catalog")} subtitle={`${formatNumber(filtered.length)} ${lang === "en" ? "products" : lang === "zh-CN" ? "产品" : "產品"}`}>
+    : [31;1m     ^^^^^^^^^^^[0m
+ [2m26[0m |       <div className="flex flex-wrap items-center gap-3 mb-5">
+ [2m27[0m |         <div className="flex-1 min-w-[220px] relative">
+ [2m28[0m |           <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Expected ',', got '<eof>'
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:38:1]
+ [2m38[0m |   );
+ [2m39[0m | }
+ [2m40[0m | 
+ [2m41[0m | function CatalogGrid({ items
+    : [31;1m                       ^^^^^[0m
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Unexpected eof
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:39:1]
+ [2m39[0m | }
+ [2m40[0m | 
+ [2m41[0m | function CatalogGrid({ items, priceKey, currency, t, lang }: {
+ [2m42[0m |   items: any[];
+    : [31;1m               ^[0m
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Unexpected eof
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:42:1]
+ [2m42[0m |   items: any[];
+ [2m43[0m |   priceKey: string;
+ [2m44[0m |   currency: string;
+ [2m45[0m |   t: any;
+    : [31;1m         ^[0m
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Trailing comma is not allowed
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:45:1]
+ [2m45[0m |   t: any;
+ [2m46[0m |   lang: string;
+ [2m47[0m | }) {
+ [2m48[0m |   const
+    `----
+
+  [31mx[0m Expected '}', got '<eof>'
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:45:1]
+ [2m45[0m |   t: any;
+ [2m46[0m |   lang: string;
+ [2m47[0m | }) {
+ [2m48[0m |   const
+    : [31;1m  ^^^^^[0m
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Unexpected token `div`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:47:1]
+ [2m47[0m | }) {
+ [2m48[0m |   const { add } = useCart();
+ [2m49[0m |   return (
+ [2m50[0m |     <div className="grid grid-col
+    : [31;1m     ^^^[0m
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Unexpected token `div`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:47:1]
+ [2m47[0m | }) {
+ [2m48[0m |   const { add } = useCart();
+ [2m49[0m |   return (
+ [2m50[0m |     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid
+    : [31;1m     ^^^[0m
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Unexpected token `div`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:47:1]
+ [2m47[0m | }) {
+ [2m48[0m |   const { add } = useCart();
+ [2m49[0m |   return (
+ [2m50[0m |     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+    : [31;1m     ^^^[0m
+ [2m51[0m |       {items.map((p) => {
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Unexpected token `div`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:47:1]
+ [2m47[0m | }) {
+ [2m48[0m |   const { add } = useCart();
+ [2m49[0m |   return (
+ [2m50[0m |     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+    : [31;1m     ^^^[0m
+ [2m51[0m |       {items.map((p) => {
+ [2m52[0m |         const price = (p as any)[priceKey] || p.wholesalePrice;
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Unexpected token `div`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:47:1]
+ [2m47[0m | }) {
+ [2m48[0m |   const { add } = useCart();
+ [2m49[0m |   return (
+ [2m50[0m |     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+    : [31;1m     ^^^[0m
+ [2m51[0m |       {items.map((p) => {
+ [2m52[0m |         const price = (p as any)[priceKey] || p.wholesalePrice;
+ [2m53[0m |         return (
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Unexpected token `div`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:47:1]
+ [2m47[0m | }) {
+ [2m48[0m |   const { add } = useCart();
+ [2m49[0m |   return (
+ [2m50[0m |     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+    : [31;1m     ^^^[0m
+ [2m51[0m |       {items.map((p) => {
+ [2m52[0m |         const price = (p as any)[priceKey] || p.wholesalePrice;
+ [2m53[0m |         return (
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Unexpected token `div`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:47:1]
+ [2m47[0m | }) {
+ [2m48[0m |   const { add } = useCart();
+ [2m49[0m |   return (
+ [2m50[0m |     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+    : [31;1m     ^^^[0m
+ [2m51[0m |       {items.map((p) => {
+ [2m52[0m |         const price = (p as any)[priceKey] || p.wholesalePrice;
+ [2m53[0m |         return (
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Unexpected token `div`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:47:1]
+ [2m47[0m | }) {
+ [2m48[0m |   const { add } = useCart();
+ [2m49[0m |   return (
+ [2m50[0m |     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+    : [31;1m     ^^^[0m
+ [2m51[0m |       {items.map((p) => {
+ [2m52[0m |         const price = (p as any)[priceKey] || p.wholesalePrice;
+ [2m53[0m |         return (
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Unexpected token `div`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:47:1]
+ [2m47[0m | }) {
+ [2m48[0m |   const { add } = useCart();
+ [2m49[0m |   return (
+ [2m50[0m |     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+    : [31;1m     ^^^[0m
+ [2m51[0m |       {items.map((p) => {
+ [2m52[0m |         const price = (p as any)[priceKey] || p.wholesalePrice;
+ [2m53[0m |         return (
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Unexpected token `div`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:47:1]
+ [2m47[0m | }) {
+ [2m48[0m |   const { add } = useCart();
+ [2m49[0m |   return (
+ [2m50[0m |     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+    : [31;1m     ^^^[0m
+ [2m51[0m |       {items.map((p) => {
+ [2m52[0m |         const price = (p as any)[priceKey] || p.wholesalePrice;
+ [2m53[0m |         return (
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Unexpected token `div`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:47:1]
+ [2m47[0m | }) {
+ [2m48[0m |   const { add } = useCart();
+ [2m49[0m |   return (
+ [2m50[0m |     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+    : [31;1m     ^^^[0m
+ [2m51[0m |       {items.map((p) => {
+ [2m52[0m |         const price = (p as any)[priceKey] || p.wholesalePrice;
+ [2m53[0m |         return (
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Unexpected token `div`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:47:1]
+ [2m47[0m | }) {
+ [2m48[0m |   const { add } = useCart();
+ [2m49[0m |   return (
+ [2m50[0m |     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+    : [31;1m     ^^^[0m
+ [2m51[0m |       {items.map((p) => {
+ [2m52[0m |         const price = (p as any)[priceKey] || p.wholesalePrice;
+ [2m53[0m |         return (
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Unexpected token `div`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:47:1]
+ [2m47[0m | }) {
+ [2m48[0m |   const { add } = useCart();
+ [2m49[0m |   return (
+ [2m50[0m |     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+    : [31;1m     ^^^[0m
+ [2m51[0m |       {items.map((p) => {
+ [2m52[0m |         const price = (p as any)[priceKey] || p.wholesalePrice;
+ [2m53[0m |         return (
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Unexpected token `div`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:47:1]
+ [2m47[0m | }) {
+ [2m48[0m |   const { add } = useCart();
+ [2m49[0m |   return (
+ [2m50[0m |     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+    : [31;1m     ^^^[0m
+ [2m51[0m |       {items.map((p) => {
+ [2m52[0m |         const price = (p as any)[priceKey] || p.wholesalePrice;
+ [2m53[0m |         return (
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Unexpected token `div`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:47:1]
+ [2m47[0m | }) {
+ [2m48[0m |   const { add } = useCart();
+ [2m49[0m |   return (
+ [2m50[0m |     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+    : [31;1m     ^^^[0m
+ [2m51[0m |       {items.map((p) => {
+ [2m52[0m |         const price = (p as any)[priceKey] || p.wholesalePrice;
+ [2m53[0m |         return (
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Unexpected token `div`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:47:1]
+ [2m47[0m | }) {
+ [2m48[0m |   const { add } = useCart();
+ [2m49[0m |   return (
+ [2m50[0m |     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+    : [31;1m     ^^^[0m
+ [2m51[0m |       {items.map((p) => {
+ [2m52[0m |         const price = (p as any)[priceKey] || p.wholesalePrice;
+ [2m53[0m |         return (
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Unexpected token `div`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:47:1]
+ [2m47[0m | }) {
+ [2m48[0m |   const { add } = useCart();
+ [2m49[0m |   return (
+ [2m50[0m |     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+    : [31;1m     ^^^[0m
+ [2m51[0m |       {items.map((p) => {
+ [2m52[0m |         const price = (p as any)[priceKey] || p.wholesalePrice;
+ [2m53[0m |         return (
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Unexpected token `div`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:47:1]
+ [2m47[0m | }) {
+ [2m48[0m |   const { add } = useCart();
+ [2m49[0m |   return (
+ [2m50[0m |     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+    : [31;1m     ^^^[0m
+ [2m51[0m |       {items.map((p) => {
+ [2m52[0m |         const price = (p as any)[priceKey] || p.wholesalePrice;
+ [2m53[0m |         return (
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Unexpected token `div`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:47:1]
+ [2m47[0m | }) {
+ [2m48[0m |   const { add } = useCart();
+ [2m49[0m |   return (
+ [2m50[0m |     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+    : [31;1m     ^^^[0m
+ [2m51[0m |       {items.map((p) => {
+ [2m52[0m |         const price = (p as any)[priceKey] || p.wholesalePrice;
+ [2m53[0m |         return (
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Unexpected token `div`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:47:1]
+ [2m47[0m | }) {
+ [2m48[0m |   const { add } = useCart();
+ [2m49[0m |   return (
+ [2m50[0m |     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+    : [31;1m     ^^^[0m
+ [2m51[0m |       {items.map((p) => {
+ [2m52[0m |         const price = (p as any)[priceKey] || p.wholesalePrice;
+ [2m53[0m |         return (
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Unexpected token `div`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:47:1]
+ [2m47[0m | }) {
+ [2m48[0m |   const { add } = useCart();
+ [2m49[0m |   return (
+ [2m50[0m |     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+    : [31;1m     ^^^[0m
+ [2m51[0m |       {items.map((p) => {
+ [2m52[0m |         const price = (p as any)[priceKey] || p.wholesalePrice;
+ [2m53[0m |         return (
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Unexpected token `div`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:47:1]
+ [2m47[0m | }) {
+ [2m48[0m |   const { add } = useCart();
+ [2m49[0m |   return (
+ [2m50[0m |     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+    : [31;1m     ^^^[0m
+ [2m51[0m |       {items.map((p) => {
+ [2m52[0m |         const price = (p as any)[priceKey] || p.wholesalePrice;
+ [2m53[0m |         return (
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ⨯ ./app/agent/catalog/page.tsx
+Error: 
+  [31mx[0m Unexpected token `div`. Expected jsx identifier
+    ,-[[36;1;4m/Users/mac/Documents/ture code/app/agent/catalog/page.tsx[0m:47:1]
+ [2m47[0m | }) {
+ [2m48[0m |   const { add } = useCart();
+ [2m49[0m |   return (
+ [2m50[0m |     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+    : [31;1m     ^^^[0m
+ [2m51[0m |       {items.map((p) => {
+ [2m52[0m |         const price = (p as any)[priceKey] || p.wholesalePrice;
+ [2m53[0m |         return (
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/agent/catalog/page.tsx
+ ✓ Compiled in 589ms (1103 modules)
+ ✓ Compiled in 118ms (1103 modules)
+ ✓ Compiled in 217ms (1103 modules)
+ ✓ Compiled in 130ms (1103 modules)
+ ✓ Compiled / in 320ms (295 modules)
+ GET / 200 in 408ms
+ ✓ Compiled /login in 37ms (301 modules)
+ GET /login 200 in 118ms
+ ✓ Compiled /admin/login in 43ms (307 modules)
+ GET /admin/login 200 in 108ms
+ ✓ Compiled /admin/dashboard in 303ms (858 modules)
+ GET /admin/dashboard 200 in 425ms
+ ✓ Compiled /admin/products in 77ms (869 modules)
+ GET /admin/products 200 in 129ms
+ ✓ Compiled /admin/inventory in 121ms (877 modules)
+ GET /admin/inventory 200 in 183ms
+ ✓ Compiled /admin/warehouse in 83ms (886 modules)
+ GET /admin/warehouse 200 in 143ms
+ ✓ Compiled /admin/agents in 88ms (895 modules)
+ GET /admin/agents 200 in 143ms
+ ✓ Compiled /admin/orders in 91ms (901 modules)
+ GET /admin/orders 200 in 151ms
+ ✓ Compiled /admin/shipping in 96ms (906 modules)
+ GET /admin/shipping 200 in 154ms
+ ✓ Compiled /admin/finance in 126ms (919 modules)
+ GET /admin/finance 200 in 281ms
+ ✓ Compiled /admin/analytics in 193ms (926 modules)
+ GET /admin/analytics 200 in 279ms
+ ✓ Compiled /admin/notifications in 115ms (932 modules)
+ GET /admin/notifications 200 in 177ms
+ ✓ Compiled /admin/employees in 117ms (937 modules)
+ GET /admin/employees 200 in 176ms
+ ✓ Compiled /admin/settings in 127ms (942 modules)
+ GET /admin/settings 200 in 187ms
+ ✓ Compiled /admin/audit-logs in 127ms (946 modules)
+ GET /admin/audit-logs 200 in 187ms
+ ✓ Compiled /admin/customer-service in 143ms (953 modules)
+ GET /admin/customer-service 200 in 205ms
+ ✓ Compiled /admin/operations in 149ms (958 modules)
+ GET /admin/operations 200 in 209ms
+ ✓ Compiled /agent/dashboard in 161ms (964 modules)
+ GET /agent/dashboard 200 in 227ms
+ ✓ Compiled /agent/catalog in 173ms (969 modules)
+ GET /agent/catalog 200 in 238ms
+ ✓ Compiled /agent/cart in 178ms (974 modules)
+ GET /agent/cart 200 in 242ms
+ ✓ Compiled /agent/orders in 177ms (978 modules)
+ GET /agent/orders 200 in 243ms
+ ✓ Compiled /agent/addresses in 182ms (984 modules)
+ GET /agent/addresses 200 in 264ms
+ ✓ Compiled /agent/settings in 187ms (989 modules)
+ GET /agent/settings 200 in 258ms
+ GET / 200 in 91ms
+ GET / 200 in 31ms
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 956ms (1401 modules)
+ GET /@vite/client 404 in 1068ms
+ GET / 200 in 75ms
+ GET /@vite/client 404 in 28ms
+ GET / 200 in 63ms
+ ✓ Compiled /login in 79ms (302 modules)
+ ✓ Compiled /agent/dashboard in 60ms (331 modules)
+ ✓ Compiled /agent/catalog in 145ms (337 modules)
+ ✓ Compiled /agent/cart in 173ms (344 modules)
+ ✓ Compiled /agent/addresses in 96ms (351 modules)
+ ✓ Compiled /agent/orders in 134ms (355 modules)
+ ✓ Compiled /admin/login in 115ms (360 modules)
+ ✓ Compiled /admin/dashboard in 482ms (888 modules)
+ ✓ Compiled /admin/products in 128ms (897 modules)
+ GET / 200 in 122ms
+ GET /admin/dashboard 200 in 185ms
+ ✓ Compiled /admin/agents in 369ms (877 modules)
+ ✓ Compiled /admin/orders in 120ms (879 modules)
+ ✓ Compiled /admin/shipping in 112ms (884 modules)
+ ✓ Compiled /admin/warehouse in 178ms (880 modules)
+ GET /admin/products 200 in 120ms
+ ✓ Compiled /admin/login in 255ms (887 modules)
+ ✓ Compiled /login in 333ms (363 modules)
+ ✓ Compiled /agent/dashboard in 161ms (361 modules)
+ ✓ Compiled /agent/catalog in 160ms (359 modules)
+ ✓ Compiled /agent/settings in 98ms (365 modules)
+ ✓ Compiled /agent/addresses in 138ms (358 modules)
+ ✓ Compiled /agent/orders in 101ms (362 modules)
+ ○ Compiling /admin/dashboard ...
+ ✓ Compiled /admin/dashboard in 697ms (869 modules)
+ ✓ Compiled /admin/employees in 212ms (875 modules)
+ ✓ Compiled /admin/inventory in 139ms (878 modules)
+ ✓ Compiled /admin/products in 106ms (875 modules)
+ ✓ Compiled /admin/agents in 128ms (883 modules)
+ ✓ Compiled /admin/warehouse in 182ms (887 modules)
+ ✓ Compiled /admin/shipping in 116ms (887 modules)
+ ✓ Compiled /admin/orders in 121ms (893 modules)
+ ✓ Compiled /admin/finance in 241ms (892 modules)
+ ✓ Compiled /admin/analytics in 196ms (899 modules)
+ ✓ Compiled /admin/employees in 117ms (895 modules)
+ ✓ Compiled /admin/audit-logs in 177ms (882 modules)
+ ✓ Compiled /admin/settings in 120ms (888 modules)
+ ✓ Compiled /admin/products in 133ms (897 modules)
+ ✓ Compiled /admin/warehouse in 129ms (895 modules)
+ ✓ Compiled /admin/agents in 127ms (892 modules)
+ ✓ Compiled /admin/dashboard in 150ms (887 modules)
+ ✓ Compiled /admin/login in 140ms (889 modules)
+ ✓ Compiled /login in 183ms (894 modules)
+ ✓ Compiled /agent/dashboard in 136ms (900 modules)
+ ✓ Compiled /agent/catalog in 183ms (905 modules)
+ ✓ Compiled /agent/orders in 137ms (909 modules)
+ ✓ Compiled /agent/cart in 145ms (915 modules)
+ ✓ Compiled /admin/orders in 178ms (882 modules)
+ ✓ Compiled /admin/agents in 141ms (886 modules)
+ ✓ Compiled /admin/warehouse in 126ms (888 modules)
+ ✓ Compiled /admin/inventory in 124ms (896 modules)
+ ✓ Compiled /admin/products in 139ms (888 modules)
+ ✓ Compiled /agent/catalog in 261ms (878 modules)
+ GET /agent/catalog 200 in 396ms
+ ✓ Compiled /login in 113ms (883 modules)
+ ✓ Compiled /_not-found in 482ms (1975 modules)
+ GET /@vite/client 404 in 564ms
+ ✓ Compiled /agent/dashboard in 245ms (890 modules)
+ ✓ Compiled /agent/cart in 258ms (874 modules)
+ ✓ Compiled /agent/orders in 193ms (871 modules)
+ ✓ Compiled /agent/addresses in 140ms (348 modules)
+ ✓ Compiled /agent/settings in 149ms (355 modules)
+ ✓ Compiled /login in 90ms (352 modules)
+ ✓ Compiled /admin/login in 283ms (359 modules)
+ ✓ Compiled /admin/dashboard in 492ms (887 modules)
+ ✓ Compiled /admin/products in 184ms (896 modules)
+ ✓ Compiled /admin/inventory in 167ms (903 modules)
+ ✓ Compiled /admin/warehouse in 105ms (356 modules)
+ ✓ Compiled /login in 149ms (357 modules)
+ ✓ Compiled /agent/dashboard in 91ms (363 modules)
+ ✓ Compiled /agent/catalog in 103ms (368 modules)
+ ○ Compiling /admin/dashboard ...
+ ✓ Compiled /admin/dashboard in 758ms (891 modules)
+ ✓ Compiled in 158ms (1103 modules)
+ ✓ Compiled in 949ms (1957 modules)
+ ✓ Compiled in 139ms (1103 modules)
+ ✓ Compiled in 333ms (1971 modules)
+ ✓ Compiled in 131ms (1103 modules)
+ ✓ Compiled in 308ms (1957 modules)
+ ✓ Compiled in 684ms (1102 modules)
+ ✓ Compiled in 510ms (1972 modules)
+ ✓ Compiled in 1194ms (1972 modules)
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ✓ Compiled in 1303ms (1972 modules)
+ GET /admin/dashboard 200 in 680ms
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ✓ Compiled /_not-found in 364ms (1961 modules)
+ GET /@vite/client 404 in 545ms
+ GET /admin/dashboard 200 in 426ms
+ GET /@vite/client 404 in 42ms
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ✓ Compiled in 719ms (1975 modules)
+ GET /admin/dashboard 200 in 500ms
+ GET /@vite/client 404 in 35ms
+ ⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ ✓ Compiled in 651ms (1975 modules)
+ GET /admin/login 200 in 476ms
+ GET /@vite/client 404 in 23ms
+ ✓ Compiled in 312ms (1975 modules)
+ ✓ Compiled in 145ms (1105 modules)
+ ✓ Compiled in 374ms (1975 modules)
+ ✓ Compiled in 357ms (1975 modules)
+ ✓ Compiled /api/products in 242ms (900 modules)
+ GET /api/products 200 in 321ms
+ ✓ Compiled /api/products/[id] in 103ms (902 modules)
+ DELETE /api/products/p1 400 in 482ms
+ GET /api/products 200 in 19ms
+ ✓ Compiled /api/credit in 125ms (904 modules)
+ GET /api/credit 200 in 165ms
+ ✓ Compiled / in 181ms (910 modules)
+ GET / 200 in 280ms
+ ✓ Compiled /login in 127ms (915 modules)
+ GET /login 200 in 211ms
+ GET /admin/login 200 in 34ms
+ GET /admin/dashboard 200 in 91ms
+ ✓ Compiled /admin/products in 162ms (925 modules)
+ GET /admin/products 200 in 234ms
+ ✓ Compiled /admin/credit in 370ms (2036 modules)
+ GET /admin/credit 200 in 450ms
+ ✓ Compiled /admin/inventory in 235ms (938 modules)
+ GET /admin/inventory 200 in 335ms
+ GET /admin/warehouse 200 in 35ms
+ ✓ Compiled /admin/agents in 176ms (946 modules)
+ GET /admin/agents 200 in 255ms
+ ✓ Compiled /admin/orders in 187ms (952 modules)
+ GET /admin/orders 200 in 269ms
+ ✓ Compiled /admin/shipping in 191ms (957 modules)
+ GET /admin/shipping 200 in 268ms
+ ○ Compiling /admin/finance ...
+ ✓ Compiled /admin/finance in 510ms (970 modules)
+ GET /admin/finance 200 in 646ms
+ ✓ Compiled /admin/analytics in 336ms (977 modules)
+ GET /admin/analytics 200 in 446ms
+ ✓ Compiled /admin/notifications in 230ms (983 modules)
+ GET /admin/notifications 200 in 315ms
+ ✓ Compiled /admin/employees in 238ms (988 modules)
+ GET /admin/employees 200 in 317ms
+ ✓ Compiled /admin/settings in 241ms (993 modules)
+ GET /admin/settings 200 in 322ms
+ ✓ Compiled /admin/audit-logs in 256ms (997 modules)
+ GET /admin/audit-logs 200 in 335ms
+ ✓ Compiled /admin/customer-service in 273ms (1004 modules)
+ GET /admin/customer-service 200 in 358ms
+ ✓ Compiled /admin/operations in 280ms (1009 modules)
+ GET /admin/operations 200 in 365ms
+ GET /agent/dashboard 200 in 37ms
+ GET /agent/catalog 200 in 39ms
+ ✓ Compiled /agent/cart in 419ms (1014 modules)
+ GET /agent/cart 200 in 510ms
+ ✓ Compiled /agent/orders in 307ms (1018 modules)
+ GET /agent/orders 200 in 395ms
+ ✓ Compiled /agent/addresses in 312ms (1024 modules)
+ GET /agent/addresses 200 in 399ms
+ ✓ Compiled /agent/settings in 319ms (1029 modules)
+ GET /agent/settings 200 in 406ms
+ GET / 200 in 63ms
+ GET / 200 in 48ms
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 594ms (1970 modules)
+ GET /@vite/client 404 in 696ms
+ ✓ Compiled /admin/agents in 136ms (876 modules)
+ ✓ Compiled /admin/credit in 195ms (881 modules)
+ ✓ Compiled /api/credit in 123ms (912 modules)
+ GET /api/credit 200 in 185ms
+ GET /api/credit 200 in 16ms
+ ✓ Compiled /admin/products in 230ms (916 modules)
+ ✓ Compiled /api/products in 122ms (918 modules)
+ GET /api/products 200 in 164ms
+ GET /api/products 200 in 21ms
+ POST /api/products 201 in 33ms
+ POST /api/products 201 in 41ms
+ ✓ Compiled /login in 170ms (917 modules)
+ ✓ Compiled /agent/dashboard in 223ms (922 modules)
+ GET /api/credit?agentId=a1 200 in 25ms
+ GET /api/credit?agentId=a1 200 in 17ms
+ ✓ Compiled /agent/catalog in 156ms (927 modules)
+ GET /api/products 200 in 68ms
+ GET /api/products 200 in 24ms
+ GET /api/products 200 in 37ms
+ GET /api/products 200 in 36ms
+ GET /api/products 200 in 36ms
+ GET /api/products 200 in 35ms
+ GET /api/products 200 in 34ms
+ GET /api/products 200 in 33ms
+ GET /api/credit?agentId=a1 200 in 21ms
+ GET /api/credit?agentId=a1 200 in 15ms
+ ✓ Compiled /agent/orders in 138ms (395 modules)
+ ✓ Compiled /agent/addresses in 147ms (402 modules)
+ ✓ Compiled /admin/dashboard in 151ms (910 modules)
+ ✓ Compiled /admin/products in 143ms (919 modules)
+ GET /api/products 200 in 41ms
+ GET /api/products 200 in 25ms
+ POST /api/products 200 in 37ms
+ GET /api/credit?agentId=a1 200 in 19ms
+ GET /api/credit?agentId=a1 200 in 16ms
+ GET /api/products 200 in 21ms
+ GET /api/products 200 in 16ms
+ GET /api/products 200 in 34ms
+ GET /api/products 200 in 36ms
+ GET /api/products 200 in 40ms
+ GET /api/products 200 in 39ms
+ GET /api/products 200 in 36ms
+ GET /api/products 200 in 34ms
+ GET /api/products 200 in 38ms
+ GET /api/products 200 in 30ms
+ GET /api/products 200 in 34ms
+ GET /api/products 200 in 34ms
+ GET /api/products 200 in 34ms
+ GET /api/products 200 in 35ms
+ GET /api/products 200 in 36ms
+ GET /api/products 200 in 37ms
+ GET /api/products 200 in 33ms
+ GET /api/products 200 in 35ms
+ GET /api/products 200 in 36ms
+ GET /api/products 200 in 37ms
+ GET /api/products 200 in 37ms
+ GET /api/products 200 in 36ms
+ GET /api/products 200 in 33ms
+ GET /api/products 200 in 36ms
+ GET /api/products 200 in 37ms
+ GET /api/products 200 in 36ms
+ GET /api/products 200 in 36ms
+ GET /api/products 200 in 37ms
+ GET /api/products 200 in 34ms
+ GET /api/products 200 in 34ms
+ GET /api/products 200 in 38ms
+ GET /api/products 200 in 34ms
+ GET /api/products 200 in 29ms
+ GET /api/products 200 in 35ms
+ GET /api/products 200 in 29ms
+ GET /api/products 200 in 35ms
+ GET /api/products 200 in 34ms
+ GET /api/products 200 in 36ms
+ GET /api/products 200 in 38ms
+ GET /api/products 200 in 36ms
+ GET /api/products 200 in 33ms
+ GET /api/products 200 in 36ms
+ GET /api/products 200 in 35ms
+ GET /api/products 200 in 37ms
+ GET /api/products 200 in 35ms
+ GET /api/products 200 in 37ms
+ GET /api/products 200 in 20ms
+ GET /api/products 200 in 36ms
+ GET /api/products 200 in 35ms
+ GET /api/products 200 in 38ms
+ GET /api/products 200 in 35ms
+ GET /api/products 200 in 32ms
+ GET /api/products 200 in 37ms
+ GET /api/products 200 in 38ms
+ GET /api/products 200 in 35ms
+ GET /api/products 200 in 36ms
+ GET /api/products 200 in 22ms
+ GET /api/products 200 in 31ms
+ GET /api/products 200 in 33ms
+ GET /api/products 200 in 28ms
+ GET /api/products 200 in 29ms
+ GET /api/credit 200 in 17ms
+ PUT /api/credit 200 in 18ms
+ GET /api/credit?agentId=a1 200 in 17ms
+ GET /api/products 200 in 30ms
+ GET /api/products 200 in 36ms
+ GET /api/products 200 in 28ms
+ GET /api/products 200 in 31ms
+ GET /api/products 200 in 18ms
+ ✓ Compiled /api/orders in 353ms (905 modules)
+ PUT /api/credit 200 in 19ms
+ POST /api/orders 201 in 429ms
+ GET /api/credit?agentId=a1 200 in 19ms
+ GET /api/products 200 in 37ms
+ GET /api/products 200 in 34ms
+ GET /api/products 200 in 37ms
+ GET /api/products 200 in 32ms
+ GET /api/products 200 in 21ms
+ GET /api/products 200 in 30ms
+ GET /api/products 200 in 30ms
+ GET /api/products 200 in 30ms
+ GET /api/products 200 in 31ms
+ GET /api/products 200 in 32ms
+ GET /api/products 200 in 32ms
+ GET /api/products 200 in 32ms
+ GET /api/products 200 in 39ms
+ GET /api/products 200 in 28ms
+ GET /api/products 200 in 30ms
+ GET /api/products 200 in 31ms
+ ✓ Compiled in 469ms (1107 modules)
+ GET /api/products 200 in 50ms
+ GET /api/products 200 in 32ms
+ GET /api/products 200 in 33ms
+ GET /api/products 200 in 59ms
+ GET /api/products 200 in 31ms
+ ✓ Compiled /admin/credit in 206ms (906 modules)
+ GET /admin/credit 200 in 310ms
+ GET /admin/products 200 in 38ms
+ ○ Compiling /agent/cart ...
+ ✓ Compiled /agent/cart in 532ms (914 modules)
+ GET /agent/cart 200 in 630ms
+ GET /agent/catalog 200 in 39ms
+ ✓ Compiled /agent/dashboard in 138ms (919 modules)
+ GET /agent/dashboard 200 in 223ms
+ GET /api/products 200 in 45ms
+ GET /api/products 200 in 35ms
+ GET /api/products 200 in 37ms
+ GET /api/products 200 in 30ms
+ GET /api/products 200 in 29ms
+ GET /api/products 200 in 33ms
+ ✓ Compiled / in 186ms (925 modules)
+ GET / 200 in 349ms
+ ✓ Compiled /_not-found in 360ms (2035 modules)
+ GET /@vite/client 404 in 453ms
+ ✓ Compiled /admin/agents in 206ms (934 modules)
+ ✓ Compiled /api/credit in 253ms (936 modules)
+ GET /api/credit 200 in 300ms
+ GET /api/credit 200 in 17ms
+ GET /api/credit 200 in 38ms
+ GET /api/credit?agentId=a1 200 in 20ms
+ GET /api/credit?agentId=a1 200 in 17ms
+ GET /api/products 200 in 20ms
+ GET /api/products 200 in 17ms
+ ✓ Compiled in 700ms (1457 modules)
+ GET /admin/credit 200 in 69ms
+ ✓ Compiled /api/credit in 87ms (381 modules)
+ PUT /api/credit 200 in 148ms
+ ✓ Compiled /login in 103ms (386 modules)
+ ✓ Compiled /admin/login in 118ms (393 modules)
+ ○ Compiling /admin/dashboard ...
+ ✓ Compiled /admin/dashboard in 952ms (922 modules)
+ GET /api/credit 200 in 47ms
+ GET /api/credit 200 in 29ms
+ GET /api/credit 200 in 39ms
+ ✓ Compiled / in 408ms (920 modules)
+ GET / 200 in 524ms
+ GET / 200 in 51ms
+ ✓ Compiled /_not-found in 435ms (2030 modules)
+ GET /@vite/client 404 in 546ms
+ GET /api/credit 200 in 24ms
+ GET /api/credit 200 in 17ms
+ GET /api/credit 200 in 36ms
+ ✓ Compiled in 453ms (1978 modules)
+ ✓ Compiled /api/credit in 708ms (1978 modules)
+ ✓ Compiled in 0ms (902 modules)
+ GET /api/credit 200 in 634ms
+ GET /api/credit 200 in 37ms
+ PUT /api/credit 200 in 18ms
+ GET /admin/credit 200 in 67ms
+ PUT /api/credit 200 in 53ms
+ GET /api/credit 200 in 31ms
+ PUT /api/credit 200 in 44ms
+ GET /api/credit 200 in 37ms
+ GET /api/credit 200 in 37ms
+ PUT /api/credit 200 in 36ms
+ GET /api/credit 200 in 36ms
+ PUT /api/credit 200 in 40ms
+ GET /api/credit 200 in 33ms
+ PUT /api/credit 200 in 41ms
+ GET /api/credit 200 in 37ms
+ ✓ Compiled /login in 332ms (907 modules)
+ ✓ Compiled /agent/dashboard in 239ms (912 modules)
+ GET /api/credit?agentId=a1 200 in 24ms
+ GET /api/credit?agentId=a1 200 in 16ms
+ ✓ Compiled /agent/catalog in 240ms (917 modules)
+ ✓ Compiled /api/products in 140ms (919 modules)
+ GET /api/products 200 in 187ms
+ GET /api/products 200 in 19ms
+ GET /api/products 200 in 33ms
+ GET /api/products 200 in 38ms
+ ✓ Compiled /admin/products in 285ms (921 modules)
+ GET /api/products 200 in 25ms
+ GET /api/products 200 in 21ms
+ ✓ Compiled /admin/inventory in 397ms (929 modules)
+ GET /api/products 200 in 37ms
+ GET /api/products 200 in 24ms
+ ✓ Compiled /admin/orders in 193ms (920 modules)
+ ✓ Compiled in 483ms (1107 modules)
+ ✓ Compiled in 188ms (1107 modules)
+ ✓ Compiled in 383ms (1454 modules)
+ ✓ Compiled in 231ms (1107 modules)
+ ✓ Compiled in 379ms (1454 modules)
+ ✓ Compiled in 296ms (1454 modules)
+ ✓ Compiled / in 260ms (356 modules)
+ GET / 200 in 367ms
+ ✓ Compiled /login in 129ms (361 modules)
+ GET /login 200 in 224ms
+ ✓ Compiled /admin/login in 251ms (367 modules)
+ GET /admin/login 200 in 340ms
+ ✓ Compiled /admin/credit in 415ms (374 modules)
+ GET /admin/credit 200 in 504ms
+ GET /admin/products 200 in 43ms
+ GET /admin/orders 200 in 41ms
+ ✓ Compiled /admin/warehouse in 228ms (383 modules)
+ GET /admin/warehouse 200 in 317ms
+ ✓ Compiled /admin/agents in 213ms (391 modules)
+ GET /admin/agents 200 in 322ms
+ GET /agent/catalog 200 in 41ms
+ ✓ Compiled /agent/cart in 184ms (396 modules)
+ GET /agent/cart 200 in 267ms
+ ✓ Compiled /agent/settings in 266ms (402 modules)
+ GET /agent/settings 200 in 356ms
+ ✓ Compiled /api/credit in 426ms (385 modules)
+ GET /api/credit 200 in 503ms
+ GET /api/credit 200 in 21ms
+ ✓ Compiled /admin/agents in 134ms (394 modules)
+ ✓ Compiled /api/products in 143ms (391 modules)
+ GET /api/products 200 in 206ms
+ GET /api/products 200 in 22ms
+ ✓ Compiled /admin/employees in 359ms (356 modules)
+ ✓ Compiled in 682ms (1457 modules)
+ ✓ Compiled in 163ms (1107 modules)
+ ✓ Compiled in 304ms (1443 modules)
+ ✓ Compiled /api/agents in 865ms (1457 modules)
+ ✓ Compiled in 1ms (381 modules)
+ GET /api/agents 200 in 682ms
+ GET /api/agents 200 in 30ms
+ ⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ ✓ Compiled in 666ms (1488 modules)
+ GET /admin/agents 200 in 371ms
+ ✓ Compiled /_not-found in 480ms (1498 modules)
+ GET /api/agents 200 in 553ms
+ GET /@vite/client 404 in 598ms
+ GET /api/agents 200 in 98ms
+ POST /api/agents 201 in 27ms
+ GET /api/agents?email=test@test.com&password=test123 200 in 20ms
+ GET /admin/products 200 in 50ms
+ GET /admin/agents 200 in 42ms
+ ○ Compiling /admin/credit ...
+ ✓ Compiled /admin/credit in 506ms (397 modules)
+ GET /admin/credit 200 in 613ms
+ ✓ Compiled /agent/catalog in 165ms (402 modules)
+ GET /agent/catalog 200 in 309ms
+ ✓ Compiled /login in 156ms (407 modules)
+ GET /login 200 in 246ms
+ ○ Compiling /admin/dashboard ...
+ ✓ Compiled /admin/dashboard in 954ms (936 modules)
+ GET /api/agents 200 in 32ms
+ GET /api/agents 200 in 22ms
+ POST /api/agents 201 in 54ms
+ ✓ Compiled /api/products in 356ms (919 modules)
+ GET /api/products 200 in 414ms
+ GET /api/products 200 in 23ms
+ ✓ Compiled /api/products in 699ms (1979 modules)
+ ✓ Compiled in 1ms (903 modules)
+ GET /api/products 200 in 542ms
+ ✓ Compiled in 429ms (2010 modules)
+ ✓ Compiled in 0ms (903 modules)
+ ✓ Compiled in 0ms (903 modules)
+ ✓ Compiled in 0ms (903 modules)
+ GET /api/products 200 in 560ms
+ ✓ Compiled in 736ms (2011 modules)
+ ✓ Compiled in 0ms (904 modules)
+ ✓ Compiled in 1ms (904 modules)
+ ✓ Compiled in 0ms (904 modules)
+ GET /api/products 200 in 870ms
+ GET /admin/products 200 in 80ms
+ POST /api/products 201 in 64ms
+ ✓ Compiled /api/agents in 428ms (906 modules)
+ GET /api/agents 200 in 493ms
+ GET /api/agents 200 in 26ms
+ POST /api/agents 400 in 40ms
+ DELETE /api/agents?agentId=a1781769596644 200 in 40ms
+ POST /api/agents 201 in 53ms
+ ✓ Compiled /login in 331ms (909 modules)
+ GET /api/agents?email=agent%40demo.com&password=agent123 200 in 27ms
+ ✓ Compiled /agent/dashboard in 431ms (914 modules)
+ ✓ Compiled /api/credit in 214ms (916 modules)
+ GET /api/credit?agentId=a1 200 in 264ms
+ GET /api/credit?agentId=a1 200 in 21ms
+ GET /api/agents?email=1374613947%40163.com&password=123456.. 401 in 44ms
+ GET /api/agents?email=1374613947%40163.com&password=123456.. 401 in 40ms
+ GET /api/agents?email=1374613947%40163.com&password=123456.. 401 in 41ms
+ GET /api/agents?email=1374613947%40163.com&password=123456.. 401 in 40ms
+ GET /api/agents?email=1374613947%40163.com&password=123456.. 401 in 39ms
+ GET /api/agents?email=1374613947%40163.com&password=123456.. 401 in 34ms
+ GET /api/agents?email=1374613947%40163.com&password=123456.. 401 in 31ms
+ GET /api/agents 200 in 23ms
+ GET /api/agents 200 in 24ms
+ GET /api/agents?email=13774613947%40163.com&password=agent123 401 in 45ms
+ GET /api/agents 200 in 47ms
+ GET /api/agents?email=test@test.com&password=test123 200 in 23ms
+ ✓ Compiled / in 338ms (387 modules)
+ GET / 200 in 453ms
+ GET /api/agents?email=13774613947@163.com&password=agent123 401 in 27ms
+ POST /api/agents 400 in 31ms
+ GET /api/agents?email=test@test.com&password=test123 200 in 22ms
+ GET /api/agents?email=test@test.com&password=wrong 401 in 23ms
+ ⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ ✓ Compiled in 1138ms (1494 modules)
+ GET /login 200 in 697ms
+ ✓ Compiled /_not-found in 279ms (1483 modules)
+ GET /@vite/client 404 in 363ms
+ GET / 200 in 55ms
+ GET /api/agents 200 in 26ms
+ GET /api/agents 200 in 21ms
+ GET /api/agents?email=13774613947@163.com&password=agent123 401 in 92ms
+ GET /api/agents?email=test@test.com&password=test123 200 in 23ms
+ GET /api/agents?email=13774613947@163.com&password=agent123 401 in 28ms
+ GET /api/agents?email=13774613947@163.com&password= 200 in 32ms
+ PUT /api/agents 200 in 41ms
+ GET /api/agents?email=13774613947@163.com&password=agent123 200 in 30ms
+ ✓ Compiled in 452ms (1107 modules)
+ ✓ Compiled in 215ms (1107 modules)
+ ✓ Compiled in 188ms (1107 modules)
+ ✓ Compiled in 530ms (1456 modules)
+ ✓ Compiled in 188ms (1107 modules)
+ ✓ Compiled in 251ms (1107 modules)
+ ✓ Compiled in 179ms (1107 modules)
+ ✓ Compiled / in 108ms (356 modules)
+ GET / 200 in 225ms
+ ✓ Compiled /api/agents in 273ms (389 modules)
+ POST /api/agents 201 in 353ms
+ GET /api/agents?email=newuser@test.com&password=password123 200 in 48ms
+ GET /api/agents?email=13774613947%40163.com&password=123456.. 401 in 75ms
+ GET /api/agents?email=13774613947%40163.com&password=agent123 401 in 44ms
+ GET /api/agents?email=13774613947%40163.com&password=agent123 401 in 44ms
+ GET /api/agents?email=13774613947%40163.com&password=agent123 401 in 40ms
+ GET /api/agents?email=13774613947%40163.com&password=agent123 401 in 39ms
+ GET /api/agents?email=13774613947%40163.com&password=agent123 401 in 34ms
+ GET /api/agents?email=13774613947%40163.com&password=agent123 401 in 31ms
+ GET /api/agents?email=13774613947%40163.com&password=agent123 401 in 30ms
+ GET /api/agents?email=13774613947%40163.com&password=agent123 401 in 31ms
+ GET /api/agents?email=13774613947%40163.com&password=agent123 401 in 39ms
+ GET /api/agents?email=13774613947%40163.com&password=agent123 401 in 38ms
+ GET /api/agents?email=13774613947%40163.com&password=agent123 401 in 32ms
+ ○ Compiling /admin/dashboard ...
+ ✓ Compiled /admin/dashboard in 1034ms (911 modules)
+ GET /api/agents 200 in 36ms
+ GET /api/agents 200 in 20ms
+ POST /api/agents 201 in 52ms
+ GET /api/agents?email=13774613947%40163.com&password=agent123 200 in 45ms
+ ✓ Compiled /api/credit in 455ms (904 modules)
+ GET /api/credit?agentId=a1781770838932 200 in 532ms
+ GET /api/credit?agentId=a1781770838932 200 in 126ms
+ ✓ Compiled /agent/catalog in 355ms (910 modules)
+ ✓ Compiled /api/products in 151ms (912 modules)
+ GET /api/products 200 in 216ms
+ GET /api/products 200 in 60ms
+ GET /api/products 200 in 40ms
+ GET /api/products 200 in 39ms
+ GET /api/products 200 in 43ms
+ GET /api/products 200 in 39ms
+ GET /api/products 200 in 37ms
+ GET /api/products 200 in 36ms
+ GET /api/products 200 in 43ms
+ GET /api/products 200 in 29ms
+ GET /api/products 200 in 39ms
+ GET /api/products 200 in 40ms
+ GET /api/products 200 in 48ms
+ GET /api/products 200 in 39ms
+ GET /api/products 200 in 52ms
+ GET /api/products 200 in 38ms
+ GET /api/products 200 in 40ms
+ GET /api/products 200 in 44ms
+ GET /api/products 200 in 26ms
+ GET /api/products 200 in 34ms
+ GET /api/products 200 in 46ms
+ GET /api/products 200 in 41ms
+ GET /api/products 200 in 42ms
+ GET /api/products 200 in 44ms
+ GET /api/products 200 in 32ms
+ GET /api/products 200 in 40ms
+ GET /api/products 200 in 34ms
+ GET /api/products 200 in 39ms
+ GET /api/products 200 in 40ms
+ GET /api/products 200 in 41ms
+ GET /api/products 200 in 40ms
+ GET /api/products 200 in 37ms
+ GET /api/products 200 in 40ms
+ GET /api/products 200 in 44ms
+ GET /api/products 200 in 40ms
+ GET /api/products 200 in 41ms
+ GET /api/products 200 in 38ms
+ GET /api/products 200 in 39ms
+ GET /api/products 200 in 42ms
+ GET /api/products 200 in 41ms
+ GET /api/products 200 in 35ms
+ GET /api/products 200 in 44ms
+ ✓ Compiled /admin/products in 228ms (912 modules)
+ GET /api/products 200 in 31ms
+ GET /api/products 200 in 32ms
+ POST /api/products 201 in 80ms
+ ✓ Compiled /api/agents in 249ms (906 modules)
+ GET /api/agents?email=13774613947%40163.com&password=agent123 200 in 318ms
+ ✓ Compiled /agent/dashboard in 134ms (911 modules)
+ ✓ Compiled /api/credit in 188ms (913 modules)
+ GET /api/credit?agentId=a1781770838932 200 in 241ms
+ GET /api/credit?agentId=a1781770838932 200 in 23ms
+ GET /api/products 200 in 33ms
+ GET /api/products 200 in 33ms
+ GET /api/products 200 in 48ms
+ GET /api/products 200 in 59ms
+ GET /api/products 200 in 53ms
+ GET /api/products 200 in 50ms
+ GET /api/products 200 in 46ms
+ GET /api/products 200 in 49ms
+ GET /api/products 200 in 43ms
+ GET /api/products 200 in 53ms
+ GET /api/products 200 in 47ms
+ GET /api/products 200 in 45ms
+ GET /api/products 200 in 44ms
+ GET /api/products 200 in 28ms
+ GET /api/products 200 in 45ms
+ GET /api/products 200 in 66ms
+ GET /api/products 200 in 38ms
+ GET /api/products 200 in 50ms
+ GET /api/products 200 in 54ms
+ GET /api/products 200 in 50ms
+ GET /api/products 200 in 46ms
+ GET /api/products 200 in 47ms
+ GET /api/products 200 in 46ms
+ ✓ Compiled in 819ms (2009 modules)
+ ✓ Compiled in 0ms (902 modules)
+ ✓ Compiled in 0ms (902 modules)
+ ✓ Compiled in 0ms (902 modules)
+ GET /api/products 200 in 863ms
+ GET /api/products 200 in 58ms
+ GET /api/products 200 in 48ms
+ GET /api/products 200 in 47ms
+ GET /api/products 200 in 45ms
+ GET /api/products 200 in 44ms
+ GET /api/products 200 in 44ms
+ GET /api/products 200 in 47ms
+ GET /api/products 200 in 43ms
+ GET /api/products 200 in 37ms
+ GET /api/products 200 in 43ms
+ GET /api/products 200 in 45ms
+ GET /api/products 200 in 47ms
+ GET /api/products 200 in 45ms
+ GET /api/products 200 in 52ms
+ GET /api/products 200 in 49ms
+ GET /api/products 200 in 45ms
+ GET /api/products 200 in 49ms
+ GET /api/products 200 in 42ms
+ GET /api/products 200 in 44ms
+ GET /api/products 200 in 78ms
+ GET /api/products 200 in 58ms
+ GET /api/products 200 in 48ms
+ GET /api/products 200 in 52ms
+ GET /api/products 200 in 48ms
+ GET /api/products 200 in 52ms
+ GET /api/products 200 in 49ms
+ GET /api/products 200 in 50ms
+ GET /api/products 200 in 42ms
+ GET /api/products 200 in 44ms
+ GET /api/products 200 in 45ms
+ GET /api/products 200 in 35ms
+ GET /api/products 200 in 46ms
+ GET /api/products 200 in 46ms
+ GET /api/products 200 in 37ms
+ GET /api/products 200 in 40ms
+ GET /api/products 200 in 46ms
+ GET /api/products 200 in 51ms
+ GET /api/products 200 in 51ms
+ GET /api/products 200 in 46ms
+ GET /api/products 200 in 46ms
+ GET /api/products 200 in 45ms
+ GET /api/products 200 in 46ms
+ GET /api/products 200 in 42ms
+ GET /agent/catalog 200 in 82ms
+ GET /api/products 200 in 48ms
+ GET /api/products 200 in 45ms
+ GET /api/products 200 in 33ms
+ GET /admin/products 200 in 50ms
+ GET /api/products 200 in 47ms
+ GET /api/products 200 in 41ms
+ GET /api/products 200 in 54ms
+ GET /api/products 200 in 47ms
+ GET /api/products 200 in 49ms
+ GET /api/products 200 in 45ms
+ GET /api/products 200 in 46ms
+ GET /api/products 200 in 51ms
+ GET /api/products 200 in 49ms
+ GET /api/products 200 in 51ms
+ GET /api/products 200 in 51ms
+ GET /api/products 200 in 57ms
+ ✓ Compiled /api/agents in 382ms (904 modules)
+ GET /api/agents?email=agent%40demo.com&password=agent123 200 in 453ms
+ ✓ Compiled /api/credit in 315ms (906 modules)
+ GET /api/credit?agentId=a1 404 in 369ms
+ GET /api/credit?agentId=a1 404 in 23ms
+ GET /api/products 200 in 34ms
+ GET /api/products 200 in 34ms
+ GET /api/products 200 in 48ms
+ GET /api/products 200 in 30ms
+ GET /api/products 200 in 50ms
+ GET /api/credit?agentId=a1 404 in 33ms
+ GET /api/credit?agentId=a1 404 in 23ms
+ ✓ Compiled /agent/orders in 235ms (910 modules)
+ GET /api/credit?agentId=a1 404 in 88ms
+ GET /api/credit?agentId=a1 404 in 20ms
+ GET /api/products 200 in 63ms
+ GET /api/products 200 in 35ms
+ GET /api/products 200 in 47ms
+ GET /api/products 200 in 46ms
+ GET /api/products 200 in 48ms
+ GET /api/products 200 in 44ms
+ GET /api/products 200 in 49ms
+ GET /api/products 200 in 46ms
+ GET /api/products 200 in 50ms
+ GET /api/products 200 in 47ms
+ GET /api/products 200 in 50ms
+ GET /api/products 200 in 46ms
+ GET /api/products 200 in 50ms
+ GET /api/products 200 in 52ms
+ GET /api/products 200 in 48ms
+ GET /api/products 200 in 50ms
+ GET /api/products 200 in 50ms
+ GET /api/products 200 in 50ms
+ GET /api/products 200 in 48ms
+ GET /api/products 200 in 45ms
+ GET /api/products 200 in 49ms
+ GET /api/products 200 in 62ms
+ GET /api/products 200 in 40ms
+ GET /api/products 200 in 47ms
+ GET /api/products 200 in 49ms
+ GET /api/products 200 in 48ms
+ GET /api/products 200 in 50ms
+ GET /api/products 200 in 33ms
+ GET /api/products 200 in 48ms
+ GET /api/products 200 in 52ms
+ GET /api/products 200 in 58ms
+ GET /api/products 200 in 40ms
+ GET /api/products 200 in 43ms
+ GET /api/products 200 in 44ms
+ GET /api/products 200 in 43ms
+ GET /api/products 200 in 44ms
+ GET /api/products 200 in 49ms
+ GET /api/products 200 in 47ms
+ GET /api/products 200 in 47ms
+ GET /api/products 200 in 48ms
+ GET /api/products 200 in 46ms
+ GET /api/products 200 in 45ms
+ GET /api/products 200 in 34ms
+ GET /api/products 200 in 50ms
+ GET /api/products 200 in 47ms
+ GET /api/products 200 in 49ms
+ GET /api/products 200 in 44ms
+ ○ Compiling /agent/cart ...
+ ✓ Compiled /agent/cart in 530ms (909 modules)
+ ✓ Compiled /agent/orders in 275ms (351 modules)
+ ✓ Compiled in 538ms (1452 modules)
+ ✓ Compiled /api/credit in 990ms (1456 modules)
+ ✓ Compiled in 0ms (382 modules)
+ GET /api/credit?agentId=a1 404 in 878ms
+ GET /api/credit?agentId=a1 404 in 39ms
+ ✓ Compiled in 194ms (1107 modules)
+ ✓ Compiled in 359ms (1107 modules)
+ ✓ Compiled /api/orders in 235ms (380 modules)
+ GET /api/orders 200 in 314ms
+ GET /agent/cart 200 in 89ms
+ ✓ Compiled /admin/orders in 450ms (386 modules)
+ GET /admin/orders 200 in 571ms
+ GET /agent/cart 200 in 88ms
+ ○ Compiling /api/credit ...
+ ✓ Compiled /api/credit in 583ms (1500 modules)
+ ✓ Compiled in 1ms (391 modules)
+ ✓ Compiled in 352ms (1486 modules)
+ GET /api/credit?agentId=a1 404 in 1259ms
+ GET /@vite/client 404 in 1314ms
+ GET /api/credit?agentId=a1 404 in 62ms
+ ✓ Compiled /api/agents in 304ms (393 modules)
+ GET /api/agents?email=agent%40demo.com&password=agent123 200 in 369ms
+ GET /api/credit?agentId=a1 404 in 30ms
+ GET /api/credit?agentId=a1 404 in 26ms
+ GET /api/credit?agentId=a1 404 in 39ms
+ GET /api/credit?agentId=a1 404 in 26ms
+ GET /api/credit?agentId=a1 404 in 36ms
+ GET /api/credit?agentId=a1 404 in 26ms
+ ○ Compiling /admin/login ...
+ ✓ Compiled /admin/login in 571ms (400 modules)
+ ○ Compiling /admin/dashboard ...
+ ✓ Compiled /admin/dashboard in 1175ms (929 modules)
+ ○ Compiling /admin/credit ...
+ ✓ Compiled /admin/credit in 635ms (927 modules)
+ GET /api/credit 200 in 36ms
+ GET /api/credit 200 in 27ms
+ GET /api/credit 200 in 59ms
+ GET /api/credit 200 in 57ms
+ ○ Compiling /admin/agents ...
+ ✓ Compiled /admin/agents in 580ms (925 modules)
+ GET /api/agents 200 in 42ms
+ GET /api/agents 200 in 27ms
+ POST /api/agents 400 in 49ms
+ GET /api/credit 200 in 37ms
+ GET /api/credit 200 in 26ms
+ GET /api/agents?email=agent%40demo.com&password=agent123 200 in 49ms
+ GET /api/credit?agentId=a1 404 in 30ms
+ GET /api/credit?agentId=a1 404 in 25ms
+ ○ Compiling /agent/catalog ...
+ ✓ Compiled /agent/catalog in 507ms (400 modules)
+ ✓ Compiled /api/products in 232ms (402 modules)
+ GET /api/products 200 in 304ms
+ GET /api/products 200 in 45ms
+ GET /api/products 200 in 42ms
+ GET /api/credit?agentId=a1 404 in 77ms
+ GET /api/credit?agentId=a1 404 in 25ms
+ GET /api/products 200 in 44ms
+ GET /api/products 200 in 37ms
+ GET /api/products 200 in 50ms
+ GET /api/credit?agentId=a1 404 in 38ms
+ GET /api/credit?agentId=a1 404 in 27ms
+ GET /api/products 200 in 77ms
+ GET /api/products 200 in 53ms
+ GET /api/credit?agentId=a1 404 in 53ms
+ ✓ Compiled in 769ms (1490 modules)
+ GET /api/credit?agentId=a1 404 in 64ms
+ ✓ Compiled in 475ms (1457 modules)
+[?25h

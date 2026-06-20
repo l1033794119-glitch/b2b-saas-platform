@@ -1,0 +1,26 @@
+[
+  {
+    "id": "emp_admin",
+    "name": "Administrator",
+    "email": "admin@company.com",
+    "password": "admin123",
+    "permissions": {
+      "dashboard": true,
+      "products": true,
+      "inventory": true,
+      "warehouse": true,
+      "agents": true,
+      "credit": true,
+      "orders": true,
+      "shipping": true,
+      "finance": true,
+      "analytics": true,
+      "notifications": true,
+      "employees": true,
+      "audit_logs": true,
+      "settings": true
+    },
+    "active": true,
+    "createdAt": "2025-01-01T00:00:00.000Z"
+  }
+]

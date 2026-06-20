@@ -1,0 +1,67 @@
+{
+  "a1781952414085": {
+    "agentId": "a1781952414085",
+    "company": "测试1",
+    "creditLimit": 10000,
+    "outstanding": 114,
+    "available": 9886,
+    "transactions": [
+      {
+        "id": "txn_1781955821937",
+        "type": "order_deduct",
+        "amount": -4,
+        "balance": 9886,
+        "note": "Shipping fee for ORD-1781955426952",
+        "time": "2026-06-20T11:43:41.937Z"
+      },
+      {
+        "id": "txn_1781955426940",
+        "type": "order_deduct",
+        "amount": -110,
+        "balance": 9890,
+        "note": "Order ORD-1781955426907",
+        "time": "2026-06-20T11:37:06.940Z"
+      },
+      {
+        "id": "txn_1781955150978",
+        "type": "admin_writeoff",
+        "amount": 305,
+        "balance": 10000,
+        "note": "已用额度清零",
+        "time": "2026-06-20T11:32:30.978Z"
+      },
+      {
+        "id": "txn_1781955123267",
+        "type": "order_deduct",
+        "amount": -10,
+        "balance": 9695,
+        "note": "Shipping fee for ORD-1781955071029",
+        "time": "2026-06-20T11:32:03.268Z"
+      },
+      {
+        "id": "txn_1781955071016",
+        "type": "order_deduct",
+        "amount": -110,
+        "balance": 9705,
+        "note": "Order ORD-1781955070987",
+        "time": "2026-06-20T11:31:11.016Z"
+      },
+      {
+        "id": "txn_1781954468710",
+        "type": "order_deduct",
+        "amount": -50,
+        "balance": 9815,
+        "note": "Shipping fee for ORD-1781952509835",
+        "time": "2026-06-20T11:21:08.710Z"
+      },
+      {
+        "id": "txn_1781952509831",
+        "type": "order_deduct",
+        "amount": -135,
+        "balance": 9865,
+        "note": "Order ORD-1781952509804",
+        "time": "2026-06-20T10:48:29.831Z"
+      }
+    ]
+  }
+}
