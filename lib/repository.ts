@@ -95,7 +95,7 @@ export async function getAllWarehouses(): Promise<Warehouse[]> {
   return getMemoryStore().warehouses;
 }
 
-export async function createWarehouse(warehouse: Omit<Warehouse, "stock" | "value"> & { id?: string }): Promise<Warehouse> {
+export async function createWarehouse(warehouse: Omit<Warehouse, "id" | "stock" | "value"> & { id?: string }): Promise<Warehouse> {
   const id = warehouse.id || `w${Date.now()}`;
   const now = new Date().toISOString();
 
