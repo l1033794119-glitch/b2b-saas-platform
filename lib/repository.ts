@@ -8,34 +8,28 @@ import {
   InventoryLog,
   Employee,
 } from "./types/supabase";
-import { supabase, isSupabaseConfigured } from "./supabase";
+import { query, queryOne, execute, isDatabaseConfigured } from "./db";
 
 // ============================================================
-// 数据访问层（统一接口，支持双模式存储）
-// - Supabase 模式：使用 PostgreSQL 数据库（生产环境/Vercel）
-// - 内存存储模式：使用进程内内存存储（Vercel 无文件系统写入权限）
+// 数据访问层（支持双模式存储）
+// - PostgreSQL 模式：使用本地 PostgreSQL 数据库
+// - 内存存储模式：使用进程内内存存储
 // ============================================================
 
-// 动态检查 Supabase 是否可用（每个请求都会检查）
-async function useSupabase(): Promise<boolean> {
-  if (!isSupabaseConfigured()) return false;
-  // 简单的连接测试 - 尝试读取一张表
+// 动态检查数据库是否可用
+async function useDatabase(): Promise<boolean> {
+  if (!await isDatabaseConfigured()) return false;
   try {
-    const { error } = await supabase.from("warehouses").select("id", { count: "exact" }).limit(1);
-    if (error) {
-      // 表不存在或连接问题 - 回退到内存存储
-      console.warn("⚠️  Supabase 连接失败，使用内存存储:", error.message);
-      return false;
-    }
-    return true;
+    const result = await query("SELECT 1");
+    return result.length >= 0;
   } catch (e: any) {
-    console.warn("⚠️  Supabase 异常，使用内存存储:", e?.message || String(e));
+    console.warn("⚠️  数据库连接失败，使用内存存储:", e?.message || String(e));
     return false;
   }
 }
 
 // ------------------------------------------------------------
-// 内存存储（Vercel Serverless 环境下的后备方案）
+// 内存存储（后备方案）
 // ------------------------------------------------------------
 interface MemoryStore {
   warehouses: Warehouse[];
@@ -47,7 +41,6 @@ interface MemoryStore {
   employees: Employee[];
 }
 
-// 在模块级别初始化内存存储 - 添加一些默认数据
 let memoryStore: MemoryStore;
 
 function getMemoryStore(): MemoryStore {
@@ -84,14 +77,15 @@ function getMemoryStore(): MemoryStore {
 // 仓库操作
 // ------------------------------------------------------------
 export async function getAllWarehouses(): Promise<Warehouse[]> {
-  if (await useSupabase()) {
-    const { data, error } = await supabase.from("warehouses").select("*").order("created_at", { ascending: false });
-    if (error) throw error;
+  if (await useDatabase()) {
+    const rows: any[] = await query("SELECT * FROM warehouses ORDER BY created_at DESC");
 
-    const warehouses = data as any[];
     const enriched: Warehouse[] = [];
-    for (const wh of warehouses) {
-      const { data: productsData } = await supabase.from("products").select("stock, cost_price").eq("warehouse_id", wh.id);
+    for (const wh of rows) {
+      const productsData: any[] = await query(
+        "SELECT stock, cost_price FROM products WHERE warehouse_id = $1",
+        [wh.id]
+      );
       const stock = (productsData || []).reduce((sum: number, p: any) => sum + (p.stock || 0), 0);
       const value = (productsData || []).reduce((sum: number, p: any) => sum + (p.stock || 0) * (p.cost_price || 0), 0);
       enriched.push({ id: wh.id, name: wh.name, location: wh.location, manager: wh.manager, stock, value });
@@ -101,15 +95,16 @@ export async function getAllWarehouses(): Promise<Warehouse[]> {
   return getMemoryStore().warehouses;
 }
 
-export async function createWarehouse(warehouse: Omit<Warehouse, "id" | "stock" | "value"> & { id?: string }): Promise<Warehouse> {
+export async function createWarehouse(warehouse: Omit<Warehouse, "stock" | "value"> & { id?: string }): Promise<Warehouse> {
   const id = warehouse.id || `w${Date.now()}`;
   const now = new Date().toISOString();
 
-  if (await useSupabase()) {
-    const { error } = await supabase
-      .from("warehouses")
-      .insert({ id, name: warehouse.name, location: warehouse.location, manager: warehouse.manager, created_at: now, updated_at: now });
-    if (error) throw error;
+  if (await useDatabase()) {
+    await execute(
+      `INSERT INTO warehouses (id, name, location, manager, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [id, warehouse.name, warehouse.location, warehouse.manager, now, now]
+    );
     return { id, name: warehouse.name, location: warehouse.location, manager: warehouse.manager, stock: 0, value: 0 };
   }
 
@@ -119,12 +114,9 @@ export async function createWarehouse(warehouse: Omit<Warehouse, "id" | "stock" 
 }
 
 export async function deleteWarehouse(id: string): Promise<{ success: boolean }> {
-  if (await useSupabase()) {
-    // 删除仓库的产品
-    await supabase.from("products").delete().eq("warehouse_id", id);
-    // 删除仓库
-    const { error } = await supabase.from("warehouses").delete().eq("id", id);
-    if (error) throw error;
+  if (await useDatabase()) {
+    await execute("DELETE FROM products WHERE warehouse_id = $1", [id]);
+    await execute("DELETE FROM warehouses WHERE id = $1", [id]);
     return { success: true };
   }
 
@@ -132,7 +124,6 @@ export async function deleteWarehouse(id: string): Promise<{ success: boolean }>
   const idx = store.warehouses.findIndex((w) => w.id === id);
   if (idx === -1) return { success: false };
   store.warehouses.splice(idx, 1);
-  // 同时删除相关产品
   store.products = store.products.filter((p) => p.warehouseId !== id);
   return { success: true };
 }
@@ -140,7 +131,7 @@ export async function deleteWarehouse(id: string): Promise<{ success: boolean }>
 // ------------------------------------------------------------
 // 产品操作
 // ------------------------------------------------------------
-function mapProductFromDb(p: any): Product {
+function mapProductFromRow(p: any): Product {
   return {
     id: p.id,
     sku: p.sku,
@@ -151,33 +142,32 @@ function mapProductFromDb(p: any): Product {
     images: p.images || [],
     description: p.description,
     descriptionZh: p.description_zh,
-    costPrice: p.cost_price,
-    wholesalePrice: p.wholesale_price,
-    retailPrice: p.retail_price,
-    stock: p.stock,
-    warehouse: p.warehouse_name,
+    costPrice: parseFloat(p.cost_price) || 0,
+    wholesalePrice: parseFloat(p.wholesale_price) || 0,
+    retailPrice: parseFloat(p.retail_price) || 0,
+    stock: p.stock || 0,
+    warehouse: p.warehouse_name || "",
     warehouseId: p.warehouse_id || "",
     status: p.status,
-    levelAPrice: p.level_a_price,
-    levelBPrice: p.level_b_price,
-    levelCPrice: p.level_c_price,
+    levelAPrice: parseFloat(p.level_a_price) || 0,
+    levelBPrice: parseFloat(p.level_b_price) || 0,
+    levelCPrice: parseFloat(p.level_c_price) || 0,
   };
 }
 
 export async function getAllProducts(): Promise<Product[]> {
-  if (await useSupabase()) {
-    const { data, error } = await supabase.from("products").select("*").order("created_at", { ascending: false });
-    if (error) throw error;
-    return (data || []).map(mapProductFromDb);
+  if (await useDatabase()) {
+    const rows: any[] = await query("SELECT * FROM products ORDER BY created_at DESC");
+    return rows.map(mapProductFromRow);
   }
   return getMemoryStore().products;
 }
 
 export async function getProductById(id: string): Promise<Product | null> {
-  if (await useSupabase()) {
-    const { data, error } = await supabase.from("products").select("*").eq("id", id).single();
-    if (error || !data) return null;
-    return mapProductFromDb(data);
+  if (await useDatabase()) {
+    const row: any = await queryOne("SELECT * FROM products WHERE id = $1", [id]);
+    if (!row) return null;
+    return mapProductFromRow(row);
   }
   return getMemoryStore().products.find((p) => p.id === id) || null;
 }
@@ -185,36 +175,39 @@ export async function getProductById(id: string): Promise<Product | null> {
 export async function createOrUpdateProduct(product: Product): Promise<Product> {
   const now = new Date().toISOString();
 
-  if (await useSupabase()) {
+  if (await useDatabase()) {
     const existing = await getProductById(product.id);
-    const dbProduct = {
-      sku: product.sku,
-      name: product.name,
-      name_zh: product.nameZh,
-      category: product.category,
-      brand: product.brand,
-      images: product.images,
-      description: product.description,
-      description_zh: product.descriptionZh,
-      cost_price: product.costPrice,
-      wholesale_price: product.wholesalePrice,
-      retail_price: product.retailPrice,
-      stock: product.stock,
-      warehouse_id: product.warehouseId,
-      warehouse_name: product.warehouse,
-      status: product.status,
-      level_a_price: product.levelAPrice,
-      level_b_price: product.levelBPrice,
-      level_c_price: product.levelCPrice,
-      updated_at: now,
-    };
 
     if (existing) {
-      const { error } = await supabase.from("products").update(dbProduct).eq("id", product.id);
-      if (error) throw error;
+      await execute(
+        `UPDATE products SET sku=$1, name=$2, name_zh=$3, category=$4, brand=$5,
+         images=$6, description=$7, description_zh=$8, cost_price=$9, wholesale_price=$10,
+         retail_price=$11, stock=$12, warehouse_id=$13, warehouse_name=$14, status=$15,
+         level_a_price=$16, level_b_price=$17, level_c_price=$18, updated_at=$19
+         WHERE id=$20`,
+        [
+          product.sku, product.name, product.nameZh, product.category, product.brand,
+          JSON.stringify(product.images), product.description, product.descriptionZh,
+          product.costPrice, product.wholesalePrice, product.retailPrice, product.stock,
+          product.warehouseId, product.warehouse, product.status, product.levelAPrice,
+          product.levelBPrice, product.levelCPrice, now, product.id
+        ]
+      );
     } else {
-      const { error } = await supabase.from("products").insert({ id: product.id, ...dbProduct, created_at: now });
-      if (error) throw error;
+      await execute(
+        `INSERT INTO products (id, sku, name, name_zh, category, brand, images, description,
+         description_zh, cost_price, wholesale_price, retail_price, stock, warehouse_id,
+         warehouse_name, status, level_a_price, level_b_price, level_c_price, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)`,
+        [
+          product.id, product.sku, product.name, product.nameZh, product.category,
+          product.brand, JSON.stringify(product.images), product.description,
+          product.descriptionZh, product.costPrice, product.wholesalePrice,
+          product.retailPrice, product.stock, product.warehouseId, product.warehouse,
+          product.status, product.levelAPrice, product.levelBPrice, product.levelCPrice,
+          now, now
+        ]
+      );
     }
     return product;
   }
@@ -230,14 +223,14 @@ export async function createOrUpdateProduct(product: Product): Promise<Product> 
 }
 
 export async function deleteProduct(id: string): Promise<{ success: boolean; deleted?: Product; cleanedLogs?: number }> {
-  if (await useSupabase()) {
-    const { data: productData } = await supabase.from("products").select("*").eq("id", id).single();
+  if (await useDatabase()) {
+    const productData: any = await queryOne("SELECT * FROM products WHERE id = $1", [id]);
     if (!productData) return { success: false };
 
-    await supabase.from("products").delete().eq("id", id);
-    await supabase.from("inventory_logs").delete().eq("product_id", id);
+    await execute("DELETE FROM products WHERE id = $1", [id]);
+    await execute("DELETE FROM inventory_logs WHERE product_id = $1", [id]);
 
-    return { success: true, deleted: mapProductFromDb(productData), cleanedLogs: 0 };
+    return { success: true, deleted: mapProductFromRow(productData), cleanedLogs: 0 };
   }
 
   const store = getMemoryStore();
@@ -251,9 +244,8 @@ export async function deleteProduct(id: string): Promise<{ success: boolean; del
 }
 
 export async function updateProductStock(productId: string, newStock: number): Promise<Product | null> {
-  if (await useSupabase()) {
-    const { error } = await supabase.from("products").update({ stock: newStock, updated_at: new Date().toISOString() }).eq("id", productId);
-    if (error) throw error;
+  if (await useDatabase()) {
+    await execute("UPDATE products SET stock = $1, updated_at = $2 WHERE id = $3", [newStock, new Date().toISOString(), productId]);
     return await getProductById(productId);
   }
 
@@ -267,7 +259,7 @@ export async function updateProductStock(productId: string, newStock: number): P
 // ------------------------------------------------------------
 // 代理商操作
 // ------------------------------------------------------------
-function mapAgentFromDb(a: any): Agent {
+function mapAgentFromRow(a: any): Agent {
   return {
     id: a.id,
     company: a.company,
@@ -277,37 +269,36 @@ function mapAgentFromDb(a: any): Agent {
     country: a.country,
     level: a.level,
     status: a.status,
-    creditLimit: a.credit_limit,
-    outstanding: a.outstanding,
-    availableCredit: a.credit_limit - a.outstanding,
+    creditLimit: parseFloat(a.credit_limit) || 0,
+    outstanding: parseFloat(a.outstanding) || 0,
+    availableCredit: (parseFloat(a.credit_limit) || 0) - (parseFloat(a.outstanding) || 0),
     joinDate: a.join_date,
   };
 }
 
 export async function getAllAgents(): Promise<Agent[]> {
-  if (await useSupabase()) {
-    const { data, error } = await supabase.from("agents").select("*").order("created_at", { ascending: false });
-    if (error) throw error;
-    return (data || []).map(mapAgentFromDb);
+  if (await useDatabase()) {
+    const rows: any[] = await query("SELECT * FROM agents ORDER BY created_at DESC");
+    return rows.map(mapAgentFromRow);
   }
   return getMemoryStore().agents;
 }
 
 export async function getAgentById(id: string): Promise<Agent | null> {
-  if (await useSupabase()) {
-    const { data, error } = await supabase.from("agents").select("*").eq("id", id).single();
-    if (error || !data) return null;
-    return mapAgentFromDb(data);
+  if (await useDatabase()) {
+    const row: any = await queryOne("SELECT * FROM agents WHERE id = $1", [id]);
+    if (!row) return null;
+    return mapAgentFromRow(row);
   }
-  return getMemoryStore().agents.find((a) => a.id === id) || null;
+  return getMemoryStore().agents.find((a: any) => a.id === id) || null;
 }
 
 export async function getAgentByEmail(email: string, password?: string): Promise<Agent | null> {
-  if (await useSupabase()) {
-    const { data, error } = await supabase.from("agents").select("*").eq("email", email).single();
-    if (error || !data) return null;
-    if (password && data.password !== password) return null;
-    return mapAgentFromDb(data);
+  if (await useDatabase()) {
+    const row: any = await queryOne("SELECT * FROM agents WHERE email = $1", [email]);
+    if (!row) return null;
+    if (password && row.password !== password) return null;
+    return mapAgentFromRow(row);
   }
   const store = getMemoryStore();
   return store.agents.find((a: any) => a.email === email && (password ? a.password === password : true)) || null;
@@ -321,27 +312,21 @@ export async function createAgent(agent: Omit<Agent, "id" | "availableCredit" | 
   const id = agent.id || `a${Date.now()}`;
   const now = new Date().toISOString();
 
-  if (await useSupabase()) {
-    const { error } = await supabase.from("agents").insert({
-      id,
-      company: agent.company,
-      contact: agent.contact,
-      email: agent.email,
-      password: agent.password || "agent123",
-      phone: agent.phone,
-      country: agent.country,
-      level: agent.level,
-      status: agent.status || "active",
-      credit_limit: agent.creditLimit,
-      outstanding: agent.outstanding || 0,
-      join_date: agent.joinDate || now,
-      created_at: now,
-      updated_at: now,
-    });
-    if (error) throw error;
+  if (await useDatabase()) {
+    await execute(
+      `INSERT INTO agents (id, company, contact, email, password, phone, country, level,
+       status, credit_limit, outstanding, join_date, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
+      [
+        id, agent.company, agent.contact || agent.company, agent.email,
+        agent.password || "agent123", agent.phone, agent.country, agent.level || "B",
+        agent.status || "active", agent.creditLimit, agent.outstanding || 0,
+        agent.joinDate || now.split("T")[0], now, now
+      ]
+    );
     return {
-      id, company: agent.company, contact: agent.contact, email: agent.email,
-      phone: agent.phone, country: agent.country, level: agent.level,
+      id, company: agent.company, contact: agent.contact || agent.company, email: agent.email,
+      phone: agent.phone, country: agent.country, level: agent.level || "B",
       status: agent.status || "active", creditLimit: agent.creditLimit,
       outstanding: agent.outstanding || 0, availableCredit: agent.creditLimit - (agent.outstanding || 0),
       joinDate: agent.joinDate || now,
@@ -365,22 +350,30 @@ export async function createAgent(agent: Omit<Agent, "id" | "availableCredit" | 
 }
 
 export async function updateAgent(id: string, updates: any): Promise<Agent | null> {
-  if (await useSupabase()) {
-    const dbUpdates: any = {};
-    if (updates.company) dbUpdates.company = updates.company;
-    if (updates.contact) dbUpdates.contact = updates.contact;
-    if (updates.email) dbUpdates.email = updates.email;
-    if (updates.phone) dbUpdates.phone = updates.phone;
-    if (updates.country) dbUpdates.country = updates.country;
-    if (updates.level) dbUpdates.level = updates.level;
-    if (updates.status) dbUpdates.status = updates.status;
-    if (updates.creditLimit !== undefined) dbUpdates.credit_limit = updates.creditLimit;
-    if (updates.outstanding !== undefined) dbUpdates.outstanding = updates.outstanding;
-    if (updates.password) dbUpdates.password = updates.password;
-    dbUpdates.updated_at = new Date().toISOString();
+  if (await useDatabase()) {
+    const setClauses: string[] = [];
+    const values: any[] = [];
+    let paramIndex = 1;
 
-    const { error } = await supabase.from("agents").update(dbUpdates).eq("id", id);
-    if (error) throw error;
+    if (updates.company !== undefined) { setClauses.push(`company = $${paramIndex++}`); values.push(updates.company); }
+    if (updates.contact !== undefined) { setClauses.push(`contact = $${paramIndex++}`); values.push(updates.contact); }
+    if (updates.email !== undefined) { setClauses.push(`email = $${paramIndex++}`); values.push(updates.email); }
+    if (updates.phone !== undefined) { setClauses.push(`phone = $${paramIndex++}`); values.push(updates.phone); }
+    if (updates.country !== undefined) { setClauses.push(`country = $${paramIndex++}`); values.push(updates.country); }
+    if (updates.level !== undefined) { setClauses.push(`level = $${paramIndex++}`); values.push(updates.level); }
+    if (updates.status !== undefined) { setClauses.push(`status = $${paramIndex++}`); values.push(updates.status); }
+    if (updates.creditLimit !== undefined) { setClauses.push(`credit_limit = $${paramIndex++}`); values.push(updates.creditLimit); }
+    if (updates.outstanding !== undefined) { setClauses.push(`outstanding = $${paramIndex++}`); values.push(updates.outstanding); }
+    if (updates.password !== undefined) { setClauses.push(`password = $${paramIndex++}`); values.push(updates.password); }
+
+    setClauses.push(`updated_at = $${paramIndex++}`);
+    values.push(new Date().toISOString());
+    values.push(id);
+
+    await execute(
+      `UPDATE agents SET ${setClauses.join(", ")} WHERE id = $${paramIndex}`,
+      values
+    );
     return await getAgentById(id);
   }
 
@@ -392,11 +385,9 @@ export async function updateAgent(id: string, updates: any): Promise<Agent | nul
 }
 
 export async function deleteAgent(id: string): Promise<{ success: boolean }> {
-  if (await useSupabase()) {
-    // 先删除信用交易记录，再删除代理商
-    await supabase.from("credit_transactions").delete().eq("agent_id", id);
-    const { error } = await supabase.from("agents").delete().eq("id", id);
-    if (error) throw error;
+  if (await useDatabase()) {
+    await execute("DELETE FROM credit_transactions WHERE agent_id = $1", [id]);
+    await execute("DELETE FROM agents WHERE id = $1", [id]);
     return { success: true };
   }
 
@@ -409,40 +400,54 @@ export async function deleteAgent(id: string): Promise<{ success: boolean }> {
 // ------------------------------------------------------------
 // 订单操作
 // ------------------------------------------------------------
-function mapOrderFromDb(o: any): Order {
+function mapOrderFromRow(o: any): Order {
   return {
-    id: o.id, orderNo: o.order_no, agentId: o.agent_id, items: o.items || [],
-    total: o.total, status: o.status, date: o.date, shippingAddress: o.shipping_address,
-    postalCode: o.postal_code, country: o.country, contactName: o.contact_name,
-    phone: o.phone, email: o.email, notes: o.notes, trackingNumber: o.tracking_number,
-    company: o.company, shippingFee: o.shipping_fee, shippedAt: o.shipped_at,
+    id: o.id,
+    orderNo: o.order_no,
+    agentId: o.agent_id,
+    items: o.items || [],
+    total: parseFloat(o.total) || 0,
+    status: o.status,
+    date: o.date,
+    shippingAddress: o.shipping_address || "",
+    postalCode: o.postal_code || "",
+    country: o.country || "",
+    contactName: o.contact_name || "",
+    phone: o.phone || "",
+    email: o.email || "",
+    notes: o.notes || "",
+    trackingNumber: o.tracking_number,
+    company: o.company,
+    shippingFee: o.shipping_fee ? parseFloat(o.shipping_fee) : null,
+    shippedAt: o.shipped_at,
     trackingImage: o.tracking_image,
   };
 }
 
 export async function getAllOrders(): Promise<Order[]> {
-  if (await useSupabase()) {
-    const { data, error } = await supabase.from("orders").select("*").order("date", { ascending: false });
-    if (error) throw error;
-    return (data || []).map(mapOrderFromDb);
+  if (await useDatabase()) {
+    const rows: any[] = await query("SELECT * FROM orders ORDER BY date DESC");
+    return rows.map(mapOrderFromRow);
   }
   return getMemoryStore().orders;
 }
 
 export async function getOrdersByAgentId(agentId: string): Promise<Order[]> {
-  if (await useSupabase()) {
-    const { data, error } = await supabase.from("orders").select("*").eq("agent_id", agentId).order("date", { ascending: false });
-    if (error) throw error;
-    return (data || []).map(mapOrderFromDb);
+  if (await useDatabase()) {
+    const rows: any[] = await query(
+      "SELECT * FROM orders WHERE agent_id = $1 ORDER BY date DESC",
+      [agentId]
+    );
+    return rows.map(mapOrderFromRow);
   }
   return getMemoryStore().orders.filter((o) => o.agentId === agentId);
 }
 
 export async function getOrderById(id: string): Promise<Order | null> {
-  if (await useSupabase()) {
-    const { data, error } = await supabase.from("orders").select("*").eq("id", id).single();
-    if (error || !data) return null;
-    return mapOrderFromDb(data);
+  if (await useDatabase()) {
+    const row: any = await queryOne("SELECT * FROM orders WHERE id = $1", [id]);
+    if (!row) return null;
+    return mapOrderFromRow(row);
   }
   return getMemoryStore().orders.find((o) => o.id === id) || null;
 }
@@ -451,19 +456,22 @@ export async function createOrder(order: any): Promise<Order> {
   const id = order.id || `ord_${Date.now()}`;
   const now = new Date().toISOString();
 
-  if (await useSupabase()) {
-    const { error } = await supabase.from("orders").insert({
-      id, order_no: order.orderNo, agent_id: order.agentId, items: order.items || [],
-      total: order.total, status: order.status || "pending_review", date: order.date || now,
-      shipping_address: order.shippingAddress || "", postal_code: order.postalCode || "",
-      country: order.country || "", contact_name: order.contactName || "",
-      phone: order.phone || "", email: order.email || "", notes: order.notes || "",
-      tracking_number: order.trackingNumber || null, company: order.company || null,
-      shipping_fee: order.shippingFee || null, shipped_at: order.shippedAt || null,
-      tracking_image: order.trackingImage || null,
-      created_at: now, updated_at: now,
-    });
-    if (error) throw error;
+  if (await useDatabase()) {
+    await execute(
+      `INSERT INTO orders (id, order_no, agent_id, items, total, status, date,
+       shipping_address, postal_code, country, contact_name, phone, email, notes,
+       tracking_number, company, shipping_fee, shipped_at, tracking_image, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)`,
+      [
+        id, order.orderNo, order.agentId, JSON.stringify(order.items || []),
+        order.total, order.status || "pending_review", order.date || now,
+        order.shippingAddress || "", order.postalCode || "", order.country || "",
+        order.contactName || "", order.phone || "", order.email || "",
+        order.notes || "", order.trackingNumber || null, order.company || null,
+        order.shippingFee || null, order.shippedAt || null, order.trackingImage || null,
+        now, now
+      ]
+    );
   } else {
     const store = getMemoryStore();
     store.orders.unshift({
@@ -491,29 +499,37 @@ export async function createOrder(order: any): Promise<Order> {
 }
 
 export async function updateOrder(id: string, updates: any): Promise<Order | null> {
-  if (await useSupabase()) {
-    const dbUpdates: any = {};
-    if (updates.orderNo) dbUpdates.order_no = updates.orderNo;
-    if (updates.agentId) dbUpdates.agent_id = updates.agentId;
-    if (updates.items) dbUpdates.items = updates.items;
-    if (updates.total !== undefined) dbUpdates.total = updates.total;
-    if (updates.status) dbUpdates.status = updates.status;
-    if (updates.shippingAddress) dbUpdates.shipping_address = updates.shippingAddress;
-    if (updates.postalCode !== undefined) dbUpdates.postal_code = updates.postalCode;
-    if (updates.country !== undefined) dbUpdates.country = updates.country;
-    if (updates.contactName !== undefined) dbUpdates.contact_name = updates.contactName;
-    if (updates.phone !== undefined) dbUpdates.phone = updates.phone;
-    if (updates.email !== undefined) dbUpdates.email = updates.email;
-    if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
-    if (updates.trackingNumber !== undefined) dbUpdates.tracking_number = updates.trackingNumber;
-    if (updates.company !== undefined) dbUpdates.company = updates.company;
-    if (updates.shippingFee !== undefined) dbUpdates.shipping_fee = updates.shippingFee;
-    if (updates.shippedAt !== undefined) dbUpdates.shipped_at = updates.shippedAt;
-    if (updates.trackingImage !== undefined) dbUpdates.tracking_image = updates.trackingImage;
-    dbUpdates.updated_at = new Date().toISOString();
+  if (await useDatabase()) {
+    const setClauses: string[] = [];
+    const values: any[] = [];
+    let paramIndex = 1;
 
-    const { error } = await supabase.from("orders").update(dbUpdates).eq("id", id);
-    if (error) throw error;
+    if (updates.orderNo !== undefined) { setClauses.push(`order_no = $${paramIndex++}`); values.push(updates.orderNo); }
+    if (updates.agentId !== undefined) { setClauses.push(`agent_id = $${paramIndex++}`); values.push(updates.agentId); }
+    if (updates.items !== undefined) { setClauses.push(`items = $${paramIndex++}`); values.push(JSON.stringify(updates.items)); }
+    if (updates.total !== undefined) { setClauses.push(`total = $${paramIndex++}`); values.push(updates.total); }
+    if (updates.status !== undefined) { setClauses.push(`status = $${paramIndex++}`); values.push(updates.status); }
+    if (updates.shippingAddress !== undefined) { setClauses.push(`shipping_address = $${paramIndex++}`); values.push(updates.shippingAddress); }
+    if (updates.postalCode !== undefined) { setClauses.push(`postal_code = $${paramIndex++}`); values.push(updates.postalCode); }
+    if (updates.country !== undefined) { setClauses.push(`country = $${paramIndex++}`); values.push(updates.country); }
+    if (updates.contactName !== undefined) { setClauses.push(`contact_name = $${paramIndex++}`); values.push(updates.contactName); }
+    if (updates.phone !== undefined) { setClauses.push(`phone = $${paramIndex++}`); values.push(updates.phone); }
+    if (updates.email !== undefined) { setClauses.push(`email = $${paramIndex++}`); values.push(updates.email); }
+    if (updates.notes !== undefined) { setClauses.push(`notes = $${paramIndex++}`); values.push(updates.notes); }
+    if (updates.trackingNumber !== undefined) { setClauses.push(`tracking_number = $${paramIndex++}`); values.push(updates.trackingNumber); }
+    if (updates.company !== undefined) { setClauses.push(`company = $${paramIndex++}`); values.push(updates.company); }
+    if (updates.shippingFee !== undefined) { setClauses.push(`shipping_fee = $${paramIndex++}`); values.push(updates.shippingFee); }
+    if (updates.shippedAt !== undefined) { setClauses.push(`shipped_at = $${paramIndex++}`); values.push(updates.shippedAt); }
+    if (updates.trackingImage !== undefined) { setClauses.push(`tracking_image = $${paramIndex++}`); values.push(updates.trackingImage); }
+
+    setClauses.push(`updated_at = $${paramIndex++}`);
+    values.push(new Date().toISOString());
+    values.push(id);
+
+    await execute(
+      `UPDATE orders SET ${setClauses.join(", ")} WHERE id = $${paramIndex}`,
+      values
+    );
     return await getOrderById(id);
   }
 
@@ -525,9 +541,8 @@ export async function updateOrder(id: string, updates: any): Promise<Order | nul
 }
 
 export async function deleteOrder(id: string): Promise<{ success: boolean }> {
-  if (await useSupabase()) {
-    const { error } = await supabase.from("orders").delete().eq("id", id);
-    if (error) throw error;
+  if (await useDatabase()) {
+    await execute("DELETE FROM orders WHERE id = $1", [id]);
     return { success: true };
   }
 
@@ -540,20 +555,24 @@ export async function deleteOrder(id: string): Promise<{ success: boolean }> {
 // 信用额度操作
 // ------------------------------------------------------------
 export async function getAllCredits(): Promise<CreditRecord[]> {
-  if (await useSupabase()) {
-    const { data: agentsData, error: agentsError } = await supabase.from("agents").select("*");
-    if (agentsError) throw agentsError;
+  if (await useDatabase()) {
+    const agentsRows: any[] = await query("SELECT * FROM agents");
 
     const credits: CreditRecord[] = [];
-    for (const agent of agentsData || []) {
-      const { data: transactions } = await supabase
-        .from("credit_transactions").select("*").eq("agent_id", agent.id).order("time", { ascending: false });
+    for (const agent of agentsRows || []) {
+      const transactionsRows: any[] = await query(
+        "SELECT * FROM credit_transactions WHERE agent_id = $1 ORDER BY time DESC",
+        [agent.id]
+      );
 
       credits.push({
-        agentId: agent.id, company: agent.company, creditLimit: agent.credit_limit,
-        outstanding: agent.outstanding, available: agent.credit_limit - agent.outstanding,
-        transactions: (transactions || []).map((t: any) => ({
-          id: t.id, type: t.type, amount: t.amount, balance: t.balance, note: t.note, time: t.time,
+        agentId: agent.id, company: agent.company,
+        creditLimit: parseFloat(agent.credit_limit) || 0,
+        outstanding: parseFloat(agent.outstanding) || 0,
+        available: (parseFloat(agent.credit_limit) || 0) - (parseFloat(agent.outstanding) || 0),
+        transactions: (transactionsRows || []).map((t: any) => ({
+          id: t.id, type: t.type, amount: parseFloat(t.amount) || 0,
+          balance: parseFloat(t.balance) || 0, note: t.note, time: t.time,
         })),
       });
     }
@@ -573,7 +592,7 @@ export async function getAllCredits(): Promise<CreditRecord[]> {
     } else {
       result.push({
         agentId: agent.id, company: agent.company, creditLimit: agent.creditLimit,
-        outstanding: agent.outstanding, available: agent.creditLimit - agent.outstanding,
+        outstanding: agent.outstanding || 0, available: agent.creditLimit - (agent.outstanding || 0),
         transactions: [],
       });
     }
@@ -582,18 +601,23 @@ export async function getAllCredits(): Promise<CreditRecord[]> {
 }
 
 export async function getCreditByAgentId(agentId: string): Promise<CreditRecord | null> {
-  if (await useSupabase()) {
-    const { data: agent } = await supabase.from("agents").select("*").eq("id", agentId).single();
+  if (await useDatabase()) {
+    const agent: any = await queryOne("SELECT * FROM agents WHERE id = $1", [agentId]);
     if (!agent) return null;
 
-    const { data: transactions } = await supabase
-      .from("credit_transactions").select("*").eq("agent_id", agentId).order("time", { ascending: false });
+    const transactionsRows: any[] = await query(
+      "SELECT * FROM credit_transactions WHERE agent_id = $1 ORDER BY time DESC",
+      [agentId]
+    );
 
     return {
-      agentId: agent.id, company: agent.company, creditLimit: agent.credit_limit,
-      outstanding: agent.outstanding, available: agent.credit_limit - agent.outstanding,
-      transactions: (transactions || []).map((t: any) => ({
-        id: t.id, type: t.type, amount: t.amount, balance: t.balance, note: t.note, time: t.time,
+      agentId: agent.id, company: agent.company,
+      creditLimit: parseFloat(agent.credit_limit) || 0,
+      outstanding: parseFloat(agent.outstanding) || 0,
+      available: (parseFloat(agent.credit_limit) || 0) - (parseFloat(agent.outstanding) || 0),
+      transactions: (transactionsRows || []).map((t: any) => ({
+        id: t.id, type: t.type, amount: parseFloat(t.amount) || 0,
+        balance: parseFloat(t.balance) || 0, note: t.note, time: t.time,
       })),
     };
   }
@@ -602,31 +626,44 @@ export async function getCreditByAgentId(agentId: string): Promise<CreditRecord 
 }
 
 export async function deductCredit(agentId: string, amount: number, note: string): Promise<CreditRecord> {
-  if (await useSupabase()) {
-    const { data: agent } = await supabase.from("agents").select("*").eq("id", agentId).single();
+  if (await useDatabase()) {
+    const agent: any = await queryOne("SELECT * FROM agents WHERE id = $1", [agentId]);
     if (!agent) throw new Error("Agent not found");
-    if (agent.credit_limit - agent.outstanding < amount) {
+
+    const creditLimit = parseFloat(agent.credit_limit) || 0;
+    const outstanding = parseFloat(agent.outstanding) || 0;
+    const available = creditLimit - outstanding;
+
+    if (available < amount) {
       throw new Error("Insufficient credit");
     }
 
-    const newOutstanding = agent.outstanding + amount;
-    const newAvailable = agent.credit_limit - newOutstanding;
+    const newOutstanding = outstanding + amount;
+    const newAvailable = creditLimit - newOutstanding;
 
-    await supabase.from("agents").update({ outstanding: newOutstanding, updated_at: new Date().toISOString() }).eq("id", agentId);
+    await execute(
+      "UPDATE agents SET outstanding = $1, updated_at = $2 WHERE id = $3",
+      [newOutstanding, new Date().toISOString(), agentId]
+    );
 
     const txnId = `txn_${Date.now()}`;
-    await supabase.from("credit_transactions").insert({
-      id: txnId, agent_id: agentId, type: "order_deduct", amount: -amount,
-      balance: newAvailable, note, time: new Date().toISOString(),
-    });
+    await execute(
+      `INSERT INTO credit_transactions (id, agent_id, type, amount, balance, note, time)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [txnId, agentId, "order_deduct", -amount, newAvailable, note, new Date().toISOString()]
+    );
 
-    const { data: transactions } = await supabase
-      .from("credit_transactions").select("*").eq("agent_id", agentId).order("time", { ascending: false });
+    const transactionsRows: any[] = await query(
+      "SELECT * FROM credit_transactions WHERE agent_id = $1 ORDER BY time DESC",
+      [agentId]
+    );
 
     return {
-      agentId, company: agent.company, creditLimit: agent.credit_limit, outstanding: newOutstanding,
-      available: newAvailable, transactions: (transactions || []).map((t: any) => ({
-        id: t.id, type: t.type, amount: t.amount, balance: t.balance, note: t.note, time: t.time,
+      agentId, company: agent.company, creditLimit,
+      outstanding: newOutstanding, available: newAvailable,
+      transactions: (transactionsRows || []).map((t: any) => ({
+        id: t.id, type: t.type, amount: parseFloat(t.amount) || 0,
+        balance: parseFloat(t.balance) || 0, note: t.note, time: t.time,
       })),
     };
   }
@@ -637,7 +674,8 @@ export async function deductCredit(agentId: string, amount: number, note: string
     const agent = store.agents.find((a: any) => a.id === agentId);
     if (!agent) throw new Error("Agent not found");
     record = {
-      agentId, company: agent.company, creditLimit: agent.creditLimit, outstanding: agent.outstanding || 0,
+      agentId, company: agent.company, creditLimit: agent.creditLimit,
+      outstanding: agent.outstanding || 0,
       available: agent.creditLimit - (agent.outstanding || 0), transactions: [],
     };
     store.credits[agentId] = record;
@@ -654,27 +692,38 @@ export async function deductCredit(agentId: string, amount: number, note: string
 }
 
 export async function repayCredit(agentId: string, amount: number, note: string): Promise<CreditRecord> {
-  if (await useSupabase()) {
-    const { data: agent } = await supabase.from("agents").select("*").eq("id", agentId).single();
+  if (await useDatabase()) {
+    const agent: any = await queryOne("SELECT * FROM agents WHERE id = $1", [agentId]);
     if (!agent) throw new Error("Agent not found");
 
-    const newOutstanding = Math.max(0, agent.outstanding - amount);
-    const newAvailable = agent.credit_limit - newOutstanding;
+    const outstanding = parseFloat(agent.outstanding) || 0;
+    const creditLimit = parseFloat(agent.credit_limit) || 0;
+    const newOutstanding = Math.max(0, outstanding - amount);
+    const newAvailable = creditLimit - newOutstanding;
 
-    await supabase.from("agents").update({ outstanding: newOutstanding, updated_at: new Date().toISOString() }).eq("id", agentId);
+    await execute(
+      "UPDATE agents SET outstanding = $1, updated_at = $2 WHERE id = $3",
+      [newOutstanding, new Date().toISOString(), agentId]
+    );
 
     const txnId = `txn_${Date.now()}`;
-    await supabase.from("credit_transactions").insert({
-      id: txnId, agent_id: agentId, type: "repayment", amount, balance: newAvailable, note, time: new Date().toISOString(),
-    });
+    await execute(
+      `INSERT INTO credit_transactions (id, agent_id, type, amount, balance, note, time)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [txnId, agentId, "repayment", amount, newAvailable, note, new Date().toISOString()]
+    );
 
-    const { data: transactions } = await supabase
-      .from("credit_transactions").select("*").eq("agent_id", agentId).order("time", { ascending: false });
+    const transactionsRows: any[] = await query(
+      "SELECT * FROM credit_transactions WHERE agent_id = $1 ORDER BY time DESC",
+      [agentId]
+    );
 
     return {
-      agentId, company: agent.company, creditLimit: agent.credit_limit, outstanding: newOutstanding,
-      available: newAvailable, transactions: (transactions || []).map((t: any) => ({
-        id: t.id, type: t.type, amount: t.amount, balance: t.balance, note: t.note, time: t.time,
+      agentId, company: agent.company, creditLimit,
+      outstanding: newOutstanding, available: newAvailable,
+      transactions: (transactionsRows || []).map((t: any) => ({
+        id: t.id, type: t.type, amount: parseFloat(t.amount) || 0,
+        balance: parseFloat(t.balance) || 0, note: t.note, time: t.time,
       })),
     };
   }
@@ -685,7 +734,8 @@ export async function repayCredit(agentId: string, amount: number, note: string)
     const agent = store.agents.find((a: any) => a.id === agentId);
     if (!agent) throw new Error("Agent not found");
     record = {
-      agentId, company: agent.company, creditLimit: agent.creditLimit, outstanding: agent.outstanding || 0,
+      agentId, company: agent.company, creditLimit: agent.creditLimit,
+      outstanding: agent.outstanding || 0,
       available: agent.creditLimit - (agent.outstanding || 0), transactions: [],
     };
     store.credits[agentId] = record;
@@ -694,32 +744,44 @@ export async function repayCredit(agentId: string, amount: number, note: string)
   record.outstanding = Math.max(0, record.outstanding - amount);
   record.available = record.creditLimit - record.outstanding;
   record.transactions.unshift({
-    id: `txn_${Date.now()}`, type: "repayment", amount, balance: record.available, note, time: new Date().toISOString(),
+    id: `txn_${Date.now()}`, type: "repayment", amount, balance: record.available,
+    note, time: new Date().toISOString(),
   });
   return record;
 }
 
 export async function setCreditLimit(agentId: string, newLimit: number, note: string): Promise<CreditRecord> {
-  if (await useSupabase()) {
-    const { data: agent } = await supabase.from("agents").select("*").eq("id", agentId).single();
+  if (await useDatabase()) {
+    const agent: any = await queryOne("SELECT * FROM agents WHERE id = $1", [agentId]);
     if (!agent) throw new Error("Agent not found");
 
-    await supabase.from("agents").update({ credit_limit: newLimit, updated_at: new Date().toISOString() }).eq("id", agentId);
-    const newAvailable = newLimit - agent.outstanding;
+    const outstanding = parseFloat(agent.outstanding) || 0;
+    const creditLimit = parseFloat(agent.credit_limit) || 0;
+    const newAvailable = newLimit - outstanding;
+
+    await execute(
+      "UPDATE agents SET credit_limit = $1, updated_at = $2 WHERE id = $3",
+      [newLimit, new Date().toISOString(), agentId]
+    );
 
     const txnId = `txn_${Date.now()}`;
-    await supabase.from("credit_transactions").insert({
-      id: txnId, agent_id: agentId, type: "admin_set_limit",
-      amount: newLimit - agent.credit_limit, balance: newAvailable, note, time: new Date().toISOString(),
-    });
+    await execute(
+      `INSERT INTO credit_transactions (id, agent_id, type, amount, balance, note, time)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [txnId, agentId, "admin_set_limit", newLimit - creditLimit, newAvailable, note, new Date().toISOString()]
+    );
 
-    const { data: transactions } = await supabase
-      .from("credit_transactions").select("*").eq("agent_id", agentId).order("time", { ascending: false });
+    const transactionsRows: any[] = await query(
+      "SELECT * FROM credit_transactions WHERE agent_id = $1 ORDER BY time DESC",
+      [agentId]
+    );
 
     return {
-      agentId, company: agent.company, creditLimit: newLimit, outstanding: agent.outstanding,
-      available: newAvailable, transactions: (transactions || []).map((t: any) => ({
-        id: t.id, type: t.type, amount: t.amount, balance: t.balance, note: t.note, time: t.time,
+      agentId, company: agent.company, creditLimit: newLimit,
+      outstanding, available: newAvailable,
+      transactions: (transactionsRows || []).map((t: any) => ({
+        id: t.id, type: t.type, amount: parseFloat(t.amount) || 0,
+        balance: parseFloat(t.balance) || 0, note: t.note, time: t.time,
       })),
     };
   }
@@ -730,7 +792,8 @@ export async function setCreditLimit(agentId: string, newLimit: number, note: st
     const agent = store.agents.find((a: any) => a.id === agentId);
     if (!agent) throw new Error("Agent not found");
     record = {
-      agentId, company: agent.company, creditLimit: newLimit, outstanding: agent.outstanding || 0,
+      agentId, company: agent.company, creditLimit: newLimit,
+      outstanding: agent.outstanding || 0,
       available: newLimit - (agent.outstanding || 0), transactions: [],
     };
     store.credits[agentId] = record;
@@ -749,13 +812,13 @@ export async function setCreditLimit(agentId: string, newLimit: number, note: st
 // 库存日志操作
 // ------------------------------------------------------------
 export async function getAllInventoryLogs(): Promise<InventoryLog[]> {
-  if (await useSupabase()) {
-    const { data, error } = await supabase.from("inventory_logs").select("*").order("time", { ascending: false });
-    if (error) throw error;
-    return (data || []).map((l: any) => ({
-      id: l.id, type: l.type, productId: l.product_id, productName: l.product_name, sku: l.sku,
-      warehouse: l.warehouse, qty: l.qty, stockBefore: l.stock_before, stockAfter: l.stock_after,
-      operator: l.operator, time: l.time, note: l.note, fromWarehouse: l.from_warehouse, toWarehouse: l.to_warehouse,
+  if (await useDatabase()) {
+    const rows: any[] = await query("SELECT * FROM inventory_logs ORDER BY time DESC");
+    return (rows || []).map((l: any) => ({
+      id: l.id, type: l.type, productId: l.product_id, productName: l.product_name,
+      sku: l.sku, warehouse: l.warehouse, qty: l.qty, stockBefore: l.stock_before,
+      stockAfter: l.stock_after, operator: l.operator, time: l.time, note: l.note,
+      fromWarehouse: l.from_warehouse, toWarehouse: l.to_warehouse,
     }));
   }
   return getMemoryStore().inventoryLogs;
@@ -765,14 +828,17 @@ export async function addInventoryLog(log: any): Promise<InventoryLog> {
   const id = log.id || `log_${Date.now()}`;
   const now = new Date().toISOString();
 
-  if (await useSupabase()) {
-    const { error } = await supabase.from("inventory_logs").insert({
-      id, type: log.type, product_id: log.productId, product_name: log.productName, sku: log.sku,
-      warehouse: log.warehouse, qty: log.qty, stock_before: log.stockBefore, stock_after: log.stockAfter,
-      operator: log.operator || "Admin", time: log.time || now, note: log.note || "",
-      from_warehouse: log.fromWarehouse, to_warehouse: log.toWarehouse,
-    });
-    if (error) throw error;
+  if (await useDatabase()) {
+    await execute(
+      `INSERT INTO inventory_logs (id, type, product_id, product_name, sku, warehouse,
+       qty, stock_before, stock_after, operator, time, note, from_warehouse, to_warehouse)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
+      [
+        id, log.type, log.productId, log.productName, log.sku, log.warehouse,
+        log.qty, log.stockBefore, log.stockAfter, log.operator || "Admin",
+        log.time || now, log.note || "", log.fromWarehouse, log.toWarehouse
+      ]
+    );
   } else {
     const store = getMemoryStore();
     store.inventoryLogs.unshift({
@@ -794,34 +860,40 @@ export async function addInventoryLog(log: any): Promise<InventoryLog> {
 // ------------------------------------------------------------
 // 员工操作
 // ------------------------------------------------------------
+function mapEmployeeFromRow(e: any): Employee {
+  return {
+    id: e.id,
+    name: e.name,
+    email: e.email,
+    permissions: e.permissions || {},
+    active: e.active,
+    createdAt: e.created_at,
+  };
+}
+
 export async function getAllEmployees(): Promise<Employee[]> {
-  if (await useSupabase()) {
-    const { data, error } = await supabase.from("employees").select("*").order("created_at", { ascending: false });
-    if (error) throw error;
-    return (data || []).map((e: any) => ({
-      id: e.id, name: e.name, email: e.email, permissions: e.permissions,
-      active: e.active, createdAt: e.created_at,
-    }));
+  if (await useDatabase()) {
+    const rows: any[] = await query("SELECT * FROM employees ORDER BY created_at DESC");
+    return rows.map(mapEmployeeFromRow);
   }
   return getMemoryStore().employees;
 }
 
 export async function getEmployeeById(id: string): Promise<Employee | null> {
-  if (await useSupabase()) {
-    const { data, error } = await supabase.from("employees").select("*").eq("id", id).single();
-    if (error || !data) return null;
-    const e: any = data;
-    return { id: e.id, name: e.name, email: e.email, permissions: e.permissions, active: e.active, createdAt: e.created_at };
+  if (await useDatabase()) {
+    const row: any = await queryOne("SELECT * FROM employees WHERE id = $1", [id]);
+    if (!row) return null;
+    return mapEmployeeFromRow(row);
   }
   return getMemoryStore().employees.find((e) => e.id === id) || null;
 }
 
 export async function getEmployeeByEmail(email: string, password?: string): Promise<Employee | null> {
-  if (await useSupabase()) {
-    const { data, error } = await supabase.from("employees").select("*").eq("email", email).single();
-    if (error || !data) return null;
-    if (password && data.password !== password) return null;
-    return { id: data.id, name: data.name, email: data.email, permissions: data.permissions, active: data.active, createdAt: data.created_at };
+  if (await useDatabase()) {
+    const row: any = await queryOne("SELECT * FROM employees WHERE email = $1", [email]);
+    if (!row) return null;
+    if (password && row.password !== password) return null;
+    return mapEmployeeFromRow(row);
   }
   const employees = getMemoryStore().employees as any[];
   return employees.find((e) => e.email === email && (password ? e.password === password : true)) || null;
@@ -832,31 +904,41 @@ export async function createEmployee(employee: any): Promise<Employee> {
   const now = new Date().toISOString();
   const active = employee.active !== false;
 
-  if (await useSupabase()) {
-    const { error } = await supabase.from("employees").insert({
-      id, name: employee.name, email: employee.email, password: employee.password || "admin123",
-      permissions: employee.permissions, active, created_at: now,
-    });
-    if (error) throw error;
+  if (await useDatabase()) {
+    await execute(
+      `INSERT INTO employees (id, name, email, password, permissions, active, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [
+        id, employee.name, employee.email, employee.password || "admin123",
+        JSON.stringify(employee.permissions || {}), active, now
+      ]
+    );
   } else {
     const store = getMemoryStore();
     store.employees.push({ id, name: employee.name, email: employee.email, password: employee.password || "admin123", permissions: employee.permissions, active, createdAt: now } as any);
   }
-  return { id, name: employee.name, email: employee.email, permissions: employee.permissions, active, createdAt: now };
+  return { id, name: employee.name, email: employee.email, permissions: employee.permissions || {}, active, createdAt: now };
 }
 
 export async function updateEmployee(id: string, updates: any): Promise<Employee | null> {
-  if (await useSupabase()) {
-    const dbUpdates: any = {};
-    if (updates.name) dbUpdates.name = updates.name;
-    if (updates.email) dbUpdates.email = updates.email;
-    if (updates.password) dbUpdates.password = updates.password;
-    if (updates.permissions) dbUpdates.permissions = updates.permissions;
-    if (updates.active !== undefined) dbUpdates.active = updates.active;
-    dbUpdates.updated_at = new Date().toISOString();
+  if (await useDatabase()) {
+    const setClauses: string[] = [];
+    const values: any[] = [];
+    let paramIndex = 1;
 
-    const { error } = await supabase.from("employees").update(dbUpdates).eq("id", id);
-    if (error) throw error;
+    if (updates.name !== undefined) { setClauses.push(`name = $${paramIndex++}`); values.push(updates.name); }
+    if (updates.email !== undefined) { setClauses.push(`email = $${paramIndex++}`); values.push(updates.email); }
+    if (updates.password !== undefined) { setClauses.push(`password = $${paramIndex++}`); values.push(updates.password); }
+    if (updates.permissions !== undefined) { setClauses.push(`permissions = $${paramIndex++}`); values.push(JSON.stringify(updates.permissions)); }
+    if (updates.active !== undefined) { setClauses.push(`active = $${paramIndex++}`); values.push(updates.active); }
+
+    if (setClauses.length > 0) {
+      values.push(id);
+      await execute(
+        `UPDATE employees SET ${setClauses.join(", ")} WHERE id = $${paramIndex}`,
+        values
+      );
+    }
     return await getEmployeeById(id);
   }
 
@@ -869,9 +951,8 @@ export async function updateEmployee(id: string, updates: any): Promise<Employee
 }
 
 export async function deleteEmployee(id: string): Promise<{ success: boolean }> {
-  if (await useSupabase()) {
-    const { error } = await supabase.from("employees").delete().eq("id", id);
-    if (error) throw error;
+  if (await useDatabase()) {
+    await execute("DELETE FROM employees WHERE id = $1", [id]);
     return { success: true };
   }
   const store = getMemoryStore();
@@ -884,7 +965,7 @@ export async function deleteEmployee(id: string): Promise<{ success: boolean }> 
 // 系统初始化
 // ------------------------------------------------------------
 export async function initializeSystem(): Promise<void> {
-  if (!await useSupabase()) return;
+  if (!await useDatabase()) return;
 
   try {
     const employees = await getAllEmployees();
