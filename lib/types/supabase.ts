@@ -391,6 +391,7 @@ export interface Order {
   company: string | null;
   shippingFee: number | null;
   shippedAt: string | null;
+  trackingImage: string | null;
 }
 
 export interface CreditRecord {

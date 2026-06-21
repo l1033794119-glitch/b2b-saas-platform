@@ -53,6 +53,7 @@ export interface Order {
   date: string;
   shippingAddress: string;
   trackingNumber?: string;
+  trackingImage?: string;
   carrier?: string;
   notes?: string;
 }

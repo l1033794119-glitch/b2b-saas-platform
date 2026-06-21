@@ -99,6 +99,7 @@ CREATE TABLE IF NOT EXISTS orders (
   company TEXT,
   shipping_fee NUMERIC(10, 2),
   shipped_at TEXT,
+  tracking_image TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

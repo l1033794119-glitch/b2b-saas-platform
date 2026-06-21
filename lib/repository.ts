@@ -416,6 +416,7 @@ function mapOrderFromDb(o: any): Order {
     postalCode: o.postal_code, country: o.country, contactName: o.contact_name,
     phone: o.phone, email: o.email, notes: o.notes, trackingNumber: o.tracking_number,
     company: o.company, shippingFee: o.shipping_fee, shippedAt: o.shipped_at,
+    trackingImage: o.tracking_image,
   };
 }
 
@@ -459,6 +460,7 @@ export async function createOrder(order: any): Promise<Order> {
       phone: order.phone || "", email: order.email || "", notes: order.notes || "",
       tracking_number: order.trackingNumber || null, company: order.company || null,
       shipping_fee: order.shippingFee || null, shipped_at: order.shippedAt || null,
+      tracking_image: order.trackingImage || null,
       created_at: now, updated_at: now,
     });
     if (error) throw error;
@@ -472,6 +474,7 @@ export async function createOrder(order: any): Promise<Order> {
       phone: order.phone || "", email: order.email || "", notes: order.notes || "",
       trackingNumber: order.trackingNumber || null, company: order.company || null,
       shippingFee: order.shippingFee || null, shippedAt: order.shippedAt || null,
+      trackingImage: order.trackingImage || null,
     });
   }
 
@@ -483,6 +486,7 @@ export async function createOrder(order: any): Promise<Order> {
     phone: order.phone || "", email: order.email || "", notes: order.notes || "",
     trackingNumber: order.trackingNumber || null, company: order.company || null,
     shippingFee: order.shippingFee || null, shippedAt: order.shippedAt || null,
+    trackingImage: order.trackingImage || null,
   };
 }
 
@@ -505,6 +509,7 @@ export async function updateOrder(id: string, updates: any): Promise<Order | nul
     if (updates.company !== undefined) dbUpdates.company = updates.company;
     if (updates.shippingFee !== undefined) dbUpdates.shipping_fee = updates.shippingFee;
     if (updates.shippedAt !== undefined) dbUpdates.shipped_at = updates.shippedAt;
+    if (updates.trackingImage !== undefined) dbUpdates.tracking_image = updates.trackingImage;
     dbUpdates.updated_at = new Date().toISOString();
 
     const { error } = await supabase.from("orders").update(dbUpdates).eq("id", id);

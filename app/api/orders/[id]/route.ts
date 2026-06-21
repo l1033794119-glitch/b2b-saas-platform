@@ -57,6 +57,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     if (body.phone !== undefined) updates.phone = body.phone;
     if (body.email !== undefined) updates.email = body.email;
     if (body.notes !== undefined) updates.notes = body.notes;
+    if (body.trackingImage !== undefined) updates.trackingImage = body.trackingImage;
 
     const updated = await updateOrder(params.id, updates);
     return NextResponse.json(updated);
