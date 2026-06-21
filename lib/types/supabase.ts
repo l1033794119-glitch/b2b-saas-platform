@@ -169,6 +169,7 @@ export interface Database {
           company: string | null;
           shipping_fee: number | null;
           shipped_at: string | null;
+          tracking_image: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -191,6 +192,7 @@ export interface Database {
           company?: string | null;
           shipping_fee?: number | null;
           shipped_at?: string | null;
+          tracking_image?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -213,6 +215,7 @@ export interface Database {
           company?: string | null;
           shipping_fee?: number | null;
           shipped_at?: string | null;
+          tracking_image?: string | null;
           created_at?: string;
           updated_at?: string;
         };
