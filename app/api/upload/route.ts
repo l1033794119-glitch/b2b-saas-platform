@@ -26,17 +26,20 @@ export async function POST(req: NextRequest) {
 
     const uploadDir = path.join(process.cwd(), "public", "uploads");
     if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
+      fs.mkdirSync(uploadDir, { recursive: true, mode: 0o755 });
     }
+    fs.chmodSync(uploadDir, 0o755);
 
     const timestamp = Date.now();
     const ext = file.type.split("/")[1];
     const fileName = `${timestamp}.${ext}`;
     const filePath = path.join(uploadDir, fileName);
 
-    fs.writeFileSync(filePath, buffer);
+    fs.writeFileSync(filePath, buffer, { mode: 0o644 });
+    fs.chmodSync(filePath, 0o644);
 
     const url = `/uploads/${fileName}`;
+    console.log("File uploaded successfully:", url, "Size:", file.size);
     return NextResponse.json({ url, fileName });
   } catch (error: any) {
     console.error("Upload error:", error);
