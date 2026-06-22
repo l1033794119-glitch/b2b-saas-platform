@@ -256,47 +256,6 @@ function ProductForm({ product, categories, warehouses, onSave, onClose, lang, t
     }
   };
 
-  const compressImage = (file: File): Promise<string> => {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement("canvas");
-          const ctx = canvas.getContext("2d");
-          if (!ctx) {
-            resolve(event.target?.result as string);
-            return;
-          }
-
-          const maxWidth = 800;
-          const maxHeight = 800;
-          let width = img.width;
-          let height = img.height;
-
-          if (width > maxWidth || height > maxHeight) {
-            if (width > height) {
-              height = (height * maxWidth) / width;
-              width = maxWidth;
-            } else {
-              width = (width * maxHeight) / height;
-              height = maxHeight;
-            }
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-          ctx.drawImage(img, 0, 0, width, height);
-
-          const compressed = canvas.toDataURL("image/jpeg", 0.7);
-          resolve(compressed);
-        };
-        img.src = event.target?.result as string;
-      };
-      reader.readAsDataURL(file);
-    });
-  };
-
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -316,23 +275,39 @@ function ProductForm({ product, categories, warehouses, onSave, onClose, lang, t
     }
 
     try {
-      const compressed = await compressImage(file);
-      setForm((f) => ({ ...f, images: [...(f.images || []), compressed] }));
-    } catch {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const base64 = event.target?.result as string;
-        if (base64) {
-          setForm((f) => ({ ...f, images: [...(f.images || []), base64] }));
-        }
-      };
-      reader.readAsDataURL(file);
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const result = await res.json();
+      if (res.ok && result.url) {
+        setForm((f) => ({ ...f, images: [...(f.images || []), result.url] }));
+      } else {
+        setUploadError(result.error || lang === "en" ? "Upload failed" : lang === "zh-CN" ? "上传失败" : "上傳失敗");
+      }
+    } catch (err) {
+      setUploadError(lang === "en" ? "Upload failed" : lang === "zh-CN" ? "上传失败" : "上傳失敗");
     }
     e.target.value = "";
   };
 
-  const removeImage = (idx: number) => {
-    setForm((f) => ({ ...f, images: (f.images || []).filter((_, i) => i !== idx) }));
+  const removeImage = async (idx: number) => {
+    const images = form.images || [];
+    const imageUrl = images[idx];
+    if (imageUrl && imageUrl.startsWith("/uploads/")) {
+      const fileName = imageUrl.replace("/uploads/", "");
+      try {
+        await fetch(`/api/upload?fileName=${encodeURIComponent(fileName)}`, {
+          method: "DELETE",
+        });
+      } catch {
+      }
+    }
+    setForm((f) => ({ ...f, images: images.filter((_, i) => i !== idx) }));
   };
 
   return (

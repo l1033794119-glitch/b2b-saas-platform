@@ -15,3 +15,4 @@ coverage/
 .idea/
 *.swp
 *.swo
+public/uploads/
