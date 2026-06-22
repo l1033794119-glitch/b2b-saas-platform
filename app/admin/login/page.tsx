@@ -13,37 +13,25 @@ export default function AdminLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [step, setStep] = useState<1 | 2>(1);
-  const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (user && step === 2) {
+    if (user) {
       router.push("/admin/dashboard");
     }
-  }, [user, step, router]);
+  }, [user, router]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    if (step === 1) {
-      setLoading(true);
-      const ok = await login(email, password, true);
-      setLoading(false);
-      if (!ok) {
-        setError(lang === "en" ? "Invalid admin credentials" : lang === "zh-CN" ? "管理员凭据无效" : "管理員憑證無效");
-        return;
-      }
-      setStep(2);
+    setLoading(true);
+    const ok = await login(email, password, true);
+    setLoading(false);
+    if (!ok) {
+      setError(lang === "en" ? "Invalid admin credentials" : lang === "zh-CN" ? "管理员凭据无效" : "管理員憑證無效");
       return;
     }
-    if (code.length !== 6) {
-      setError(lang === "en" ? "Please enter a valid 6-digit code" : lang === "zh-CN" ? "请输入6位验证码" : "請輸入6位驗證碼");
-      return;
-    }
-    if (user) {
-      router.push("/admin/dashboard");
-    }
+    router.push("/admin/dashboard");
   };
 
   const langs: Lang[] = ["en", "zh-CN", "zh-TW"];
@@ -114,38 +102,17 @@ export default function AdminLogin() {
               </div>
             </div>
             <h1 className="text-3xl font-bold mb-2">{t("welcome_back_admin")}</h1>
-            <p className="text-slate-500 mb-8">
-              {step === 1 ? t("sign_in_to_admin") : t("two_factor")}
-            </p>
+            <p className="text-slate-500 mb-8">{t("sign_in_to_admin")}</p>
 
             <form onSubmit={onSubmit} className="space-y-4">
-              {step === 1 ? (
-                <>
-                  <div>
-                    <label className="label">{t("email")}</label>
-                    <input type="email" className="input" value={email} onChange={(e) => setEmail(e.target.value)} required />
-                  </div>
-                  <div>
-                    <label className="label">{t("password")}</label>
-                    <input type="password" className="input" value={password} onChange={(e) => setPassword(e.target.value)} required />
-                  </div>
-                </>
-              ) : (
-                <div>
-                  <label className="label">{t("verification_code")}</label>
-                  <input
-                    type="text"
-                    placeholder="123456"
-                    maxLength={6}
-                    className="input text-center text-2xl tracking-[0.5em]"
-                    value={code}
-                    onChange={(e) => setCode(e.target.value.replace(/[^0-9]/g, ""))}
-                  />
-                  <div className="text-xs text-slate-500 mt-2">
-                    {lang === "en" ? "Demo: enter any 6-digit code" : lang === "zh-CN" ? "演示：输入任意6位数字" : "示範：輸入任意6位數字"}
-                  </div>
-                </div>
-              )}
+              <div>
+                <label className="label">{t("email")}</label>
+                <input type="email" className="input" value={email} onChange={(e) => setEmail(e.target.value)} required />
+              </div>
+              <div>
+                <label className="label">{t("password")}</label>
+                <input type="password" className="input" value={password} onChange={(e) => setPassword(e.target.value)} required />
+              </div>
 
               {error && (
                 <div className="text-sm text-red-600 bg-red-50 dark:bg-red-950/40 rounded-lg px-3 py-2 border border-red-200 dark:border-red-900">{error}</div>
