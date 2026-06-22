@@ -27,8 +27,8 @@ CREATE TABLE IF NOT EXISTS products (
   category VARCHAR(100) DEFAULT '',
   brand VARCHAR(100) DEFAULT '',
   images TEXT,
-  description TEXT DEFAULT '',
-  description_zh TEXT DEFAULT '',
+  description TEXT,
+  description_zh TEXT,
   cost_price DECIMAL(10, 2) DEFAULT 0,
   wholesale_price DECIMAL(10, 2) DEFAULT 0,
   retail_price DECIMAL(10, 2) DEFAULT 0,
@@ -74,13 +74,13 @@ CREATE TABLE IF NOT EXISTS orders (
   total DECIMAL(10, 2) DEFAULT 0,
   status VARCHAR(50) DEFAULT 'pending_review',
   date VARCHAR(20) NOT NULL,
-  shipping_address TEXT DEFAULT '',
+  shipping_address TEXT,
   postal_code VARCHAR(20) DEFAULT '',
   country VARCHAR(100) DEFAULT '',
   contact_name VARCHAR(255) DEFAULT '',
   phone VARCHAR(50) DEFAULT '',
   email VARCHAR(255) DEFAULT '',
-  notes TEXT DEFAULT '',
+  notes TEXT,
   tracking_number VARCHAR(100),
   company VARCHAR(255),
   shipping_fee DECIMAL(10, 2),
@@ -99,7 +99,7 @@ CREATE TABLE IF NOT EXISTS credit_transactions (
   type VARCHAR(50) NOT NULL,
   amount DECIMAL(10, 2) NOT NULL,
   balance DECIMAL(10, 2) NOT NULL,
-  note TEXT DEFAULT '',
+  note TEXT,
   time VARCHAR(20) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -118,7 +118,7 @@ CREATE TABLE IF NOT EXISTS inventory_logs (
   stock_after INT NOT NULL,
   operator VARCHAR(100) DEFAULT 'Admin',
   time VARCHAR(20) NOT NULL,
-  note TEXT DEFAULT '',
+  note TEXT,
   from_warehouse VARCHAR(100),
   to_warehouse VARCHAR(100)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
