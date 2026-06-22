@@ -16,8 +16,6 @@ CREATE TABLE IF NOT EXISTS warehouses (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE INDEX IF NOT EXISTS idx_warehouses_name ON warehouses(name);
-
 -- ============================================================
 -- 产品表
 -- ============================================================
@@ -45,11 +43,6 @@ CREATE TABLE IF NOT EXISTS products (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE INDEX IF NOT EXISTS idx_products_sku ON products(sku);
-CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);
-CREATE INDEX IF NOT EXISTS idx_products_warehouse_id ON products(warehouse_id);
-CREATE INDEX IF NOT EXISTS idx_products_status ON products(status);
-
 -- ============================================================
 -- 代理商表
 -- ============================================================
@@ -69,10 +62,6 @@ CREATE TABLE IF NOT EXISTS agents (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-CREATE INDEX IF NOT EXISTS idx_agents_email ON agents(email);
-CREATE INDEX IF NOT EXISTS idx_agents_status ON agents(status);
-CREATE INDEX IF NOT EXISTS idx_agents_level ON agents(level);
 
 -- ============================================================
 -- 订单表
@@ -101,11 +90,6 @@ CREATE TABLE IF NOT EXISTS orders (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE INDEX IF NOT EXISTS idx_orders_order_no ON orders(order_no);
-CREATE INDEX IF NOT EXISTS idx_orders_agent_id ON orders(agent_id);
-CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
-CREATE INDEX IF NOT EXISTS idx_orders_date ON orders(date);
-
 -- ============================================================
 -- 信用交易记录表
 -- ============================================================
@@ -118,9 +102,6 @@ CREATE TABLE IF NOT EXISTS credit_transactions (
   note TEXT DEFAULT '',
   time VARCHAR(20) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-CREATE INDEX IF NOT EXISTS idx_credit_transactions_agent_id ON credit_transactions(agent_id);
-CREATE INDEX IF NOT EXISTS idx_credit_transactions_time ON credit_transactions(time);
 
 -- ============================================================
 -- 库存操作日志表
@@ -142,10 +123,6 @@ CREATE TABLE IF NOT EXISTS inventory_logs (
   to_warehouse VARCHAR(100)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE INDEX IF NOT EXISTS idx_inventory_logs_product_id ON inventory_logs(product_id);
-CREATE INDEX IF NOT EXISTS idx_inventory_logs_time ON inventory_logs(time);
-CREATE INDEX IF NOT EXISTS idx_inventory_logs_type ON inventory_logs(type);
-
 -- ============================================================
 -- 员工表
 -- ============================================================
@@ -158,6 +135,3 @@ CREATE TABLE IF NOT EXISTS employees (
   active TINYINT(1) DEFAULT 1,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-CREATE INDEX IF NOT EXISTS idx_employees_email ON employees(email);
-CREATE INDEX IF NOT EXISTS idx_employees_active ON employees(active);
