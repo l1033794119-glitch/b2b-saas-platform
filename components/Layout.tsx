@@ -5,43 +5,30 @@ import { AdminSidebar, AgentSidebar, Topbar } from "./Sidebar";
 import { useApp } from "./AppProvider";
 import { useRouter, usePathname } from "next/navigation";
 
-function getCookie(name: string): string | null {
-  const nameEQ = name + "=";
-  const ca = document.cookie.split(";");
-  for (let i = 0; i < ca.length; i++) {
-    let c = ca[i];
-    while (c.charAt(0) === " ") c = c.substring(1, c.length);
-    if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
-  }
-  return null;
-}
-
 export function AdminLayout({ children, title, subtitle }:
   { children: React.ReactNode; title: string; subtitle?: string }) {
   const [open, setOpen] = useState(false);
   const { user } = useApp();
   const router = useRouter();
   const pathname = usePathname();
-  const hasChecked = useRef(false);
+  const hasRedirected = useRef(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const rememberToken = getCookie("remember_token");
-    const hasToken = !!rememberToken;
-    
-    const timer = setTimeout(() => {
+    const checkAuth = async () => {
+      await new Promise(resolve => setTimeout(resolve, 100));
       setIsLoading(false);
-      if (!user && !hasChecked.current && !hasToken) {
-        hasChecked.current = true;
+      if (!user && !hasRedirected.current) {
+        hasRedirected.current = true;
         router.push("/admin/login");
       }
-    }, 500);
-    return () => clearTimeout(timer);
+    };
+    checkAuth();
   }, [user, router]);
 
   useEffect(() => {
     if (user) {
-      hasChecked.current = false;
+      hasRedirected.current = false;
       setIsLoading(false);
     }
   }, [user]);
@@ -54,8 +41,7 @@ export function AdminLayout({ children, title, subtitle }:
     );
   }
 
-  const rememberToken = getCookie("remember_token");
-  if (!user && !rememberToken) return null;
+  if (!user) return null;
 
   return (
     <div className="flex min-h-screen bg-slate-50 dark:bg-[#0a0e17]">
@@ -77,26 +63,24 @@ export function AgentLayout({ children, title, subtitle }:
   const [open, setOpen] = useState(false);
   const { user } = useApp();
   const router = useRouter();
-  const hasChecked = useRef(false);
+  const hasRedirected = useRef(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const rememberToken = getCookie("remember_token");
-    const hasToken = !!rememberToken;
-    
-    const timer = setTimeout(() => {
+    const checkAuth = async () => {
+      await new Promise(resolve => setTimeout(resolve, 100));
       setIsLoading(false);
-      if (!user && !hasChecked.current && !hasToken) {
-        hasChecked.current = true;
+      if (!user && !hasRedirected.current) {
+        hasRedirected.current = true;
         router.push("/login");
       }
-    }, 500);
-    return () => clearTimeout(timer);
+    };
+    checkAuth();
   }, [user, router]);
 
   useEffect(() => {
     if (user) {
-      hasChecked.current = false;
+      hasRedirected.current = false;
       setIsLoading(false);
     }
   }, [user]);
@@ -109,8 +93,7 @@ export function AgentLayout({ children, title, subtitle }:
     );
   }
 
-  const rememberToken = getCookie("remember_token");
-  if (!user && !rememberToken) return null;
+  if (!user) return null;
 
   return (
     <div className="flex min-h-screen bg-slate-50 dark:bg-[#0a0e17]">

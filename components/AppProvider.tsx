@@ -37,11 +37,11 @@ interface AppContextValue {
 
 const AppContext = createContext<AppContextValue | null>(null);
 
-// Cookie 工具函数
 function setCookie(name: string, value: string, days: number = 30) {
   const expires = new Date();
   expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
-  document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/;SameSite=Lax`;
+  const encodedValue = encodeURIComponent(value);
+  document.cookie = `${name}=${encodedValue};expires=${expires.toUTCString()};path=/;SameSite=Lax`;
 }
 
 function getCookie(name: string): string | null {
@@ -50,7 +50,14 @@ function getCookie(name: string): string | null {
   for (let i = 0; i < ca.length; i++) {
     let c = ca[i];
     while (c.charAt(0) === " ") c = c.substring(1, c.length);
-    if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+    if (c.indexOf(nameEQ) === 0) {
+      const value = c.substring(nameEQ.length, c.length);
+      try {
+        return decodeURIComponent(value);
+      } catch {
+        return value;
+      }
+    }
   }
   return null;
 }
@@ -61,16 +68,25 @@ function deleteCookie(name: string) {
 
 function getUserFromStorage(): User | null {
   try {
-    // 优先从 cookie 读取 remember_token
+    const savedUser = localStorage.getItem("app.user");
+    if (savedUser) {
+      const parsed = JSON.parse(savedUser);
+      if (parsed && parsed.id) return parsed;
+    }
     const rememberToken = getCookie("remember_token");
     if (rememberToken) {
-      const savedUser = localStorage.getItem(`app.user.${rememberToken}`);
-      if (savedUser) return JSON.parse(savedUser);
+      const savedByToken = localStorage.getItem(`app.user.${rememberToken}`);
+      if (savedByToken) {
+        const parsed = JSON.parse(savedByToken);
+        if (parsed && parsed.id) {
+          localStorage.setItem("app.user", savedByToken);
+          return parsed;
+        }
+      }
     }
-    // 兼容旧方式
-    const savedUser = localStorage.getItem("app.user");
-    if (savedUser) return JSON.parse(savedUser);
-  } catch {}
+  } catch (e) {
+    console.error("getUserFromStorage error:", e);
+  }
   return null;
 }
 
