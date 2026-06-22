@@ -66,30 +66,6 @@ function deleteCookie(name: string) {
   document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;`;
 }
 
-function getUserFromStorage(): User | null {
-  try {
-    const savedUser = localStorage.getItem("app.user");
-    if (savedUser) {
-      const parsed = JSON.parse(savedUser);
-      if (parsed && parsed.id) return parsed;
-    }
-    const rememberToken = getCookie("remember_token");
-    if (rememberToken) {
-      const savedByToken = localStorage.getItem(`app.user.${rememberToken}`);
-      if (savedByToken) {
-        const parsed = JSON.parse(savedByToken);
-        if (parsed && parsed.id) {
-          localStorage.setItem("app.user", savedByToken);
-          return parsed;
-        }
-      }
-    }
-  } catch (e) {
-    console.error("getUserFromStorage error:", e);
-  }
-  return null;
-}
-
 function getLangFromStorage(): Lang {
   try {
     const savedLang = getCookie("app.lang") || localStorage.getItem("app.lang");
@@ -117,17 +93,30 @@ function getCurrencyFromStorage(): string {
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [lang, setLangState] = useState<Lang>(getLangFromStorage);
   const [theme, setTheme] = useState<"light" | "dark">(getThemeFromStorage);
-  const [user, setUser] = useState<User | null>(getUserFromStorage);
+  const [user, setUser] = useState<User | null>(null);
   const [currency, setCurrencyState] = useState<string>(getCurrencyFromStorage);
-  const isInitialized = useRef(false);
+  const [isSessionChecked, setIsSessionChecked] = useState(false);
 
-  // 初始化完成后设置状态
   useEffect(() => {
-    const storedUser = getUserFromStorage();
-    if (storedUser && !user) {
-      setUser(storedUser);
-    }
-    isInitialized.current = true;
+    const checkSession = async () => {
+      try {
+        const res = await fetch("/api/auth/session", {
+          method: "GET",
+          credentials: "include",
+        });
+        const data = await res.json();
+        if (data.authenticated && data.user) {
+          setUser(data.user);
+          localStorage.setItem("app.user", JSON.stringify(data.user));
+        }
+      } catch (error) {
+        console.error("Session check failed:", error);
+      } finally {
+        setIsSessionChecked(true);
+      }
+    };
+    
+    checkSession();
   }, []);
 
   useEffect(() => {
@@ -163,79 +152,36 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const login = async (email: string, password: string, admin = false): Promise<boolean> => {
-    if (admin) {
-      try {
-        const res = await fetch(
-          `/api/employees?email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`
-        );
-        const data = await res.json();
-        if (res.ok && data && data.id) {
-          const empUser: User = {
-            id: data.id,
-            name: data.name,
-            email: data.email,
-            role: "super_admin",
-            permissions: data.permissions,
-          };
-          setUser(empUser);
-          try {
-            // 生成唯一标识符并存储
-            const userToken = `admin_${data.id}_${Date.now()}`;
-            setCookie("remember_token", userToken, 30); // 30 天有效期
-            localStorage.setItem(`app.user.${userToken}`, JSON.stringify(empUser));
-            localStorage.setItem("app.user", JSON.stringify(empUser)); // 兼容旧方式
-          } catch {}
-          return true;
-        }
-        if (res.status === 403) {
-          return false;
-        }
-      } catch (e) {
-        console.error("Admin login failed:", e);
-      }
-      return false;
-    }
-
     try {
-      const res = await fetch(`/api/agents?email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`);
+      const res = await fetch("/api/auth/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ email, password, admin }),
+      });
+      
       const data = await res.json();
-      if (res.ok && data && data.id) {
-        const agentUser: User = {
-          id: data.id,
-          name: data.contact || data.company,
-          email: data.email,
-          role: "agent",
-          company: data.company,
-          country: data.country,
-          level: data.level,
-        };
-        setUser(agentUser);
-        try {
-          // 生成唯一标识符并存储
-          const userToken = `agent_${data.id}_${Date.now()}`;
-          setCookie("remember_token", userToken, 30);
-          localStorage.setItem(`app.user.${userToken}`, JSON.stringify(agentUser));
-          localStorage.setItem("app.user", JSON.stringify(agentUser));
-        } catch {}
+      if (data.success && data.user) {
+        setUser(data.user);
+        localStorage.setItem("app.user", JSON.stringify(data.user));
         return true;
       }
-    } catch (e) {
-      console.error("Agent login failed:", e);
+    } catch (error) {
+      console.error("Login failed:", error);
     }
-
     return false;
   };
 
-  const logout = () => {
-    setUser(null);
+  const logout = async () => {
     try {
-      const rememberToken = getCookie("remember_token");
-      if (rememberToken) {
-        localStorage.removeItem(`app.user.${rememberToken}`);
-        deleteCookie("remember_token");
-      }
-      localStorage.removeItem("app.user");
+      await fetch("/api/auth/session", {
+        method: "DELETE",
+        credentials: "include",
+      });
     } catch {}
+    
+    setUser(null);
+    localStorage.removeItem("app.user");
   };
 
   const value: AppContextValue = {
@@ -250,7 +196,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     currency,
     setCurrency,
   };
-  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+  
+  return (
+    <AppContext.Provider value={value}>
+      {isSessionChecked ? children : (
+        <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-[#0a0e17]">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600" />
+        </div>
+      )}
+    </AppContext.Provider>
+  );
 }
 
 export function useApp() {
