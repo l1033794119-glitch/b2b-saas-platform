@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Lang } from "@/lib/i18n";
 import { useApp, languageLabels } from "@/components/AppProvider";
 import { Globe, Lock, Shield } from "lucide-react";
 
 export default function AdminLogin() {
-  const { t, lang, setLang, login } = useApp();
+  const { t, lang, setLang, login, user } = useApp();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -16,6 +16,12 @@ export default function AdminLogin() {
   const [step, setStep] = useState<1 | 2>(1);
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (user && step === 2) {
+      router.push("/admin/dashboard");
+    }
+  }, [user, step, router]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,12 +37,13 @@ export default function AdminLogin() {
       setStep(2);
       return;
     }
-    // 2FA step (demo: accept any 6-digit)
     if (code.length !== 6) {
       setError(lang === "en" ? "Please enter a valid 6-digit code" : lang === "zh-CN" ? "请输入6位验证码" : "請輸入6位驗證碼");
       return;
     }
-    router.push("/admin/dashboard");
+    if (user) {
+      router.push("/admin/dashboard");
+    }
   };
 
   const langs: Lang[] = ["en", "zh-CN", "zh-TW"];

@@ -5,6 +5,17 @@ import { AdminSidebar, AgentSidebar, Topbar } from "./Sidebar";
 import { useApp } from "./AppProvider";
 import { useRouter, usePathname } from "next/navigation";
 
+function getCookie(name: string): string | null {
+  const nameEQ = name + "=";
+  const ca = document.cookie.split(";");
+  for (let i = 0; i < ca.length; i++) {
+    let c = ca[i];
+    while (c.charAt(0) === " ") c = c.substring(1, c.length);
+    if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+  }
+  return null;
+}
+
 export function AdminLayout({ children, title, subtitle }:
   { children: React.ReactNode; title: string; subtitle?: string }) {
   const [open, setOpen] = useState(false);
@@ -15,13 +26,16 @@ export function AdminLayout({ children, title, subtitle }:
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    const rememberToken = getCookie("remember_token");
+    const hasToken = !!rememberToken;
+    
     const timer = setTimeout(() => {
       setIsLoading(false);
-      if (!user && !hasChecked.current) {
+      if (!user && !hasChecked.current && !hasToken) {
         hasChecked.current = true;
         router.push("/admin/login");
       }
-    }, 200);
+    }, 500);
     return () => clearTimeout(timer);
   }, [user, router]);
 
@@ -40,7 +54,8 @@ export function AdminLayout({ children, title, subtitle }:
     );
   }
 
-  if (!user) return null;
+  const rememberToken = getCookie("remember_token");
+  if (!user && !rememberToken) return null;
 
   return (
     <div className="flex min-h-screen bg-slate-50 dark:bg-[#0a0e17]">
@@ -66,13 +81,16 @@ export function AgentLayout({ children, title, subtitle }:
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    const rememberToken = getCookie("remember_token");
+    const hasToken = !!rememberToken;
+    
     const timer = setTimeout(() => {
       setIsLoading(false);
-      if (!user && !hasChecked.current) {
+      if (!user && !hasChecked.current && !hasToken) {
         hasChecked.current = true;
         router.push("/login");
       }
-    }, 200);
+    }, 500);
     return () => clearTimeout(timer);
   }, [user, router]);
 
@@ -91,7 +109,8 @@ export function AgentLayout({ children, title, subtitle }:
     );
   }
 
-  if (!user) return null;
+  const rememberToken = getCookie("remember_token");
+  if (!user && !rememberToken) return null;
 
   return (
     <div className="flex min-h-screen bg-slate-50 dark:bg-[#0a0e17]">
