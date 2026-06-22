@@ -10,13 +10,6 @@ import {
 } from "./types/supabase";
 import { query, queryOne, execute, isDatabaseConfigured } from "./db";
 
-// ============================================================
-// 数据访问层（支持双模式存储）
-// - PostgreSQL 模式：使用本地 PostgreSQL 数据库
-// - 内存存储模式：使用进程内内存存储
-// ============================================================
-
-// 动态检查数据库是否可用
 async function useDatabase(): Promise<boolean> {
   if (!await isDatabaseConfigured()) return false;
   try {
@@ -28,9 +21,6 @@ async function useDatabase(): Promise<boolean> {
   }
 }
 
-// ------------------------------------------------------------
-// 内存存储（后备方案）
-// ------------------------------------------------------------
 interface MemoryStore {
   warehouses: Warehouse[];
   products: Product[];
@@ -73,9 +63,6 @@ function getMemoryStore(): MemoryStore {
   return memoryStore;
 }
 
-// ------------------------------------------------------------
-// 仓库操作
-// ------------------------------------------------------------
 export async function getAllWarehouses(): Promise<Warehouse[]> {
   if (await useDatabase()) {
     const rows: any[] = await query("SELECT * FROM warehouses ORDER BY created_at DESC");
@@ -83,7 +70,7 @@ export async function getAllWarehouses(): Promise<Warehouse[]> {
     const enriched: Warehouse[] = [];
     for (const wh of rows) {
       const productsData: any[] = await query(
-        "SELECT stock, cost_price FROM products WHERE warehouse_id = $1",
+        "SELECT stock, cost_price FROM products WHERE warehouse_id = ?",
         [wh.id]
       );
       const stock = (productsData || []).reduce((sum: number, p: any) => sum + (p.stock || 0), 0);
@@ -102,7 +89,7 @@ export async function createWarehouse(warehouse: Omit<Warehouse, "id" | "stock" 
   if (await useDatabase()) {
     await execute(
       `INSERT INTO warehouses (id, name, location, manager, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6)`,
+       VALUES (?, ?, ?, ?, ?, ?)`,
       [id, warehouse.name, warehouse.location, warehouse.manager, now, now]
     );
     return { id, name: warehouse.name, location: warehouse.location, manager: warehouse.manager, stock: 0, value: 0 };
@@ -115,8 +102,8 @@ export async function createWarehouse(warehouse: Omit<Warehouse, "id" | "stock" 
 
 export async function deleteWarehouse(id: string): Promise<{ success: boolean }> {
   if (await useDatabase()) {
-    await execute("DELETE FROM products WHERE warehouse_id = $1", [id]);
-    await execute("DELETE FROM warehouses WHERE id = $1", [id]);
+    await execute("DELETE FROM products WHERE warehouse_id = ?", [id]);
+    await execute("DELETE FROM warehouses WHERE id = ?", [id]);
     return { success: true };
   }
 
@@ -128,9 +115,15 @@ export async function deleteWarehouse(id: string): Promise<{ success: boolean }>
   return { success: true };
 }
 
-// ------------------------------------------------------------
-// 产品操作
-// ------------------------------------------------------------
+function parseJson(value: any): any {
+  if (!value || typeof value === "object") return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value;
+  }
+}
+
 function mapProductFromRow(p: any): Product {
   return {
     id: p.id,
@@ -139,7 +132,7 @@ function mapProductFromRow(p: any): Product {
     nameZh: p.name_zh,
     category: p.category,
     brand: p.brand,
-    images: p.images || [],
+    images: parseJson(p.images) || [],
     description: p.description,
     descriptionZh: p.description_zh,
     costPrice: parseFloat(p.cost_price) || 0,
@@ -165,7 +158,7 @@ export async function getAllProducts(): Promise<Product[]> {
 
 export async function getProductById(id: string): Promise<Product | null> {
   if (await useDatabase()) {
-    const row: any = await queryOne("SELECT * FROM products WHERE id = $1", [id]);
+    const row: any = await queryOne("SELECT * FROM products WHERE id = ?", [id]);
     if (!row) return null;
     return mapProductFromRow(row);
   }
@@ -180,11 +173,11 @@ export async function createOrUpdateProduct(product: Product): Promise<Product> 
 
     if (existing) {
       await execute(
-        `UPDATE products SET sku=$1, name=$2, name_zh=$3, category=$4, brand=$5,
-         images=$6, description=$7, description_zh=$8, cost_price=$9, wholesale_price=$10,
-         retail_price=$11, stock=$12, warehouse_id=$13, warehouse_name=$14, status=$15,
-         level_a_price=$16, level_b_price=$17, level_c_price=$18, updated_at=$19
-         WHERE id=$20`,
+        `UPDATE products SET sku=?, name=?, name_zh=?, category=?, brand=?,
+         images=?, description=?, description_zh=?, cost_price=?, wholesale_price=?,
+         retail_price=?, stock=?, warehouse_id=?, warehouse_name=?, status=?,
+         level_a_price=?, level_b_price=?, level_c_price=?, updated_at=?
+         WHERE id=?`,
         [
           product.sku, product.name, product.nameZh, product.category, product.brand,
           JSON.stringify(product.images), product.description, product.descriptionZh,
@@ -198,7 +191,7 @@ export async function createOrUpdateProduct(product: Product): Promise<Product> 
         `INSERT INTO products (id, sku, name, name_zh, category, brand, images, description,
          description_zh, cost_price, wholesale_price, retail_price, stock, warehouse_id,
          warehouse_name, status, level_a_price, level_b_price, level_c_price, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           product.id, product.sku, product.name, product.nameZh, product.category,
           product.brand, JSON.stringify(product.images), product.description,
@@ -224,11 +217,11 @@ export async function createOrUpdateProduct(product: Product): Promise<Product> 
 
 export async function deleteProduct(id: string): Promise<{ success: boolean; deleted?: Product; cleanedLogs?: number }> {
   if (await useDatabase()) {
-    const productData: any = await queryOne("SELECT * FROM products WHERE id = $1", [id]);
+    const productData: any = await queryOne("SELECT * FROM products WHERE id = ?", [id]);
     if (!productData) return { success: false };
 
-    await execute("DELETE FROM products WHERE id = $1", [id]);
-    await execute("DELETE FROM inventory_logs WHERE product_id = $1", [id]);
+    await execute("DELETE FROM products WHERE id = ?", [id]);
+    await execute("DELETE FROM inventory_logs WHERE product_id = ?", [id]);
 
     return { success: true, deleted: mapProductFromRow(productData), cleanedLogs: 0 };
   }
@@ -245,7 +238,7 @@ export async function deleteProduct(id: string): Promise<{ success: boolean; del
 
 export async function updateProductStock(productId: string, newStock: number): Promise<Product | null> {
   if (await useDatabase()) {
-    await execute("UPDATE products SET stock = $1, updated_at = $2 WHERE id = $3", [newStock, new Date().toISOString(), productId]);
+    await execute("UPDATE products SET stock = ?, updated_at = ? WHERE id = ?", [newStock, new Date().toISOString(), productId]);
     return await getProductById(productId);
   }
 
@@ -256,9 +249,6 @@ export async function updateProductStock(productId: string, newStock: number): P
   return store.products[idx];
 }
 
-// ------------------------------------------------------------
-// 代理商操作
-// ------------------------------------------------------------
 function mapAgentFromRow(a: any): Agent {
   return {
     id: a.id,
@@ -286,7 +276,7 @@ export async function getAllAgents(): Promise<Agent[]> {
 
 export async function getAgentById(id: string): Promise<Agent | null> {
   if (await useDatabase()) {
-    const row: any = await queryOne("SELECT * FROM agents WHERE id = $1", [id]);
+    const row: any = await queryOne("SELECT * FROM agents WHERE id = ?", [id]);
     if (!row) return null;
     return mapAgentFromRow(row);
   }
@@ -295,7 +285,7 @@ export async function getAgentById(id: string): Promise<Agent | null> {
 
 export async function getAgentByEmail(email: string, password?: string): Promise<Agent | null> {
   if (await useDatabase()) {
-    const row: any = await queryOne("SELECT * FROM agents WHERE email = $1", [email]);
+    const row: any = await queryOne("SELECT * FROM agents WHERE email = ?", [email]);
     if (!row) return null;
     if (password && row.password !== password) return null;
     return mapAgentFromRow(row);
@@ -316,7 +306,7 @@ export async function createAgent(agent: Omit<Agent, "id" | "availableCredit" | 
     await execute(
       `INSERT INTO agents (id, company, contact, email, password, phone, country, level,
        status, credit_limit, outstanding, join_date, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id, agent.company, agent.contact || agent.company, agent.email,
         agent.password || "agent123", agent.phone, agent.country, agent.level || "B",
@@ -353,25 +343,24 @@ export async function updateAgent(id: string, updates: any): Promise<Agent | nul
   if (await useDatabase()) {
     const setClauses: string[] = [];
     const values: any[] = [];
-    let paramIndex = 1;
 
-    if (updates.company !== undefined) { setClauses.push(`company = $${paramIndex++}`); values.push(updates.company); }
-    if (updates.contact !== undefined) { setClauses.push(`contact = $${paramIndex++}`); values.push(updates.contact); }
-    if (updates.email !== undefined) { setClauses.push(`email = $${paramIndex++}`); values.push(updates.email); }
-    if (updates.phone !== undefined) { setClauses.push(`phone = $${paramIndex++}`); values.push(updates.phone); }
-    if (updates.country !== undefined) { setClauses.push(`country = $${paramIndex++}`); values.push(updates.country); }
-    if (updates.level !== undefined) { setClauses.push(`level = $${paramIndex++}`); values.push(updates.level); }
-    if (updates.status !== undefined) { setClauses.push(`status = $${paramIndex++}`); values.push(updates.status); }
-    if (updates.creditLimit !== undefined) { setClauses.push(`credit_limit = $${paramIndex++}`); values.push(updates.creditLimit); }
-    if (updates.outstanding !== undefined) { setClauses.push(`outstanding = $${paramIndex++}`); values.push(updates.outstanding); }
-    if (updates.password !== undefined) { setClauses.push(`password = $${paramIndex++}`); values.push(updates.password); }
+    if (updates.company !== undefined) { setClauses.push("company = ?"); values.push(updates.company); }
+    if (updates.contact !== undefined) { setClauses.push("contact = ?"); values.push(updates.contact); }
+    if (updates.email !== undefined) { setClauses.push("email = ?"); values.push(updates.email); }
+    if (updates.phone !== undefined) { setClauses.push("phone = ?"); values.push(updates.phone); }
+    if (updates.country !== undefined) { setClauses.push("country = ?"); values.push(updates.country); }
+    if (updates.level !== undefined) { setClauses.push("level = ?"); values.push(updates.level); }
+    if (updates.status !== undefined) { setClauses.push("status = ?"); values.push(updates.status); }
+    if (updates.creditLimit !== undefined) { setClauses.push("credit_limit = ?"); values.push(updates.creditLimit); }
+    if (updates.outstanding !== undefined) { setClauses.push("outstanding = ?"); values.push(updates.outstanding); }
+    if (updates.password !== undefined) { setClauses.push("password = ?"); values.push(updates.password); }
 
-    setClauses.push(`updated_at = $${paramIndex++}`);
+    setClauses.push("updated_at = ?");
     values.push(new Date().toISOString());
     values.push(id);
 
     await execute(
-      `UPDATE agents SET ${setClauses.join(", ")} WHERE id = $${paramIndex}`,
+      `UPDATE agents SET ${setClauses.join(", ")} WHERE id = ?`,
       values
     );
     return await getAgentById(id);
@@ -386,8 +375,8 @@ export async function updateAgent(id: string, updates: any): Promise<Agent | nul
 
 export async function deleteAgent(id: string): Promise<{ success: boolean }> {
   if (await useDatabase()) {
-    await execute("DELETE FROM credit_transactions WHERE agent_id = $1", [id]);
-    await execute("DELETE FROM agents WHERE id = $1", [id]);
+    await execute("DELETE FROM credit_transactions WHERE agent_id = ?", [id]);
+    await execute("DELETE FROM agents WHERE id = ?", [id]);
     return { success: true };
   }
 
@@ -397,15 +386,12 @@ export async function deleteAgent(id: string): Promise<{ success: boolean }> {
   return { success: true };
 }
 
-// ------------------------------------------------------------
-// 订单操作
-// ------------------------------------------------------------
 function mapOrderFromRow(o: any): Order {
   return {
     id: o.id,
     orderNo: o.order_no,
     agentId: o.agent_id,
-    items: o.items || [],
+    items: parseJson(o.items) || [],
     total: parseFloat(o.total) || 0,
     status: o.status,
     date: o.date,
@@ -435,7 +421,7 @@ export async function getAllOrders(): Promise<Order[]> {
 export async function getOrdersByAgentId(agentId: string): Promise<Order[]> {
   if (await useDatabase()) {
     const rows: any[] = await query(
-      "SELECT * FROM orders WHERE agent_id = $1 ORDER BY date DESC",
+      "SELECT * FROM orders WHERE agent_id = ? ORDER BY date DESC",
       [agentId]
     );
     return rows.map(mapOrderFromRow);
@@ -445,7 +431,7 @@ export async function getOrdersByAgentId(agentId: string): Promise<Order[]> {
 
 export async function getOrderById(id: string): Promise<Order | null> {
   if (await useDatabase()) {
-    const row: any = await queryOne("SELECT * FROM orders WHERE id = $1", [id]);
+    const row: any = await queryOne("SELECT * FROM orders WHERE id = ?", [id]);
     if (!row) return null;
     return mapOrderFromRow(row);
   }
@@ -461,7 +447,7 @@ export async function createOrder(order: any): Promise<Order> {
       `INSERT INTO orders (id, order_no, agent_id, items, total, status, date,
        shipping_address, postal_code, country, contact_name, phone, email, notes,
        tracking_number, company, shipping_fee, shipped_at, tracking_image, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id, order.orderNo, order.agentId, JSON.stringify(order.items || []),
         order.total, order.status || "pending_review", order.date || now,
@@ -502,32 +488,31 @@ export async function updateOrder(id: string, updates: any): Promise<Order | nul
   if (await useDatabase()) {
     const setClauses: string[] = [];
     const values: any[] = [];
-    let paramIndex = 1;
 
-    if (updates.orderNo !== undefined) { setClauses.push(`order_no = $${paramIndex++}`); values.push(updates.orderNo); }
-    if (updates.agentId !== undefined) { setClauses.push(`agent_id = $${paramIndex++}`); values.push(updates.agentId); }
-    if (updates.items !== undefined) { setClauses.push(`items = $${paramIndex++}`); values.push(JSON.stringify(updates.items)); }
-    if (updates.total !== undefined) { setClauses.push(`total = $${paramIndex++}`); values.push(updates.total); }
-    if (updates.status !== undefined) { setClauses.push(`status = $${paramIndex++}`); values.push(updates.status); }
-    if (updates.shippingAddress !== undefined) { setClauses.push(`shipping_address = $${paramIndex++}`); values.push(updates.shippingAddress); }
-    if (updates.postalCode !== undefined) { setClauses.push(`postal_code = $${paramIndex++}`); values.push(updates.postalCode); }
-    if (updates.country !== undefined) { setClauses.push(`country = $${paramIndex++}`); values.push(updates.country); }
-    if (updates.contactName !== undefined) { setClauses.push(`contact_name = $${paramIndex++}`); values.push(updates.contactName); }
-    if (updates.phone !== undefined) { setClauses.push(`phone = $${paramIndex++}`); values.push(updates.phone); }
-    if (updates.email !== undefined) { setClauses.push(`email = $${paramIndex++}`); values.push(updates.email); }
-    if (updates.notes !== undefined) { setClauses.push(`notes = $${paramIndex++}`); values.push(updates.notes); }
-    if (updates.trackingNumber !== undefined) { setClauses.push(`tracking_number = $${paramIndex++}`); values.push(updates.trackingNumber); }
-    if (updates.company !== undefined) { setClauses.push(`company = $${paramIndex++}`); values.push(updates.company); }
-    if (updates.shippingFee !== undefined) { setClauses.push(`shipping_fee = $${paramIndex++}`); values.push(updates.shippingFee); }
-    if (updates.shippedAt !== undefined) { setClauses.push(`shipped_at = $${paramIndex++}`); values.push(updates.shippedAt); }
-    if (updates.trackingImage !== undefined) { setClauses.push(`tracking_image = $${paramIndex++}`); values.push(updates.trackingImage); }
+    if (updates.orderNo !== undefined) { setClauses.push("order_no = ?"); values.push(updates.orderNo); }
+    if (updates.agentId !== undefined) { setClauses.push("agent_id = ?"); values.push(updates.agentId); }
+    if (updates.items !== undefined) { setClauses.push("items = ?"); values.push(JSON.stringify(updates.items)); }
+    if (updates.total !== undefined) { setClauses.push("total = ?"); values.push(updates.total); }
+    if (updates.status !== undefined) { setClauses.push("status = ?"); values.push(updates.status); }
+    if (updates.shippingAddress !== undefined) { setClauses.push("shipping_address = ?"); values.push(updates.shippingAddress); }
+    if (updates.postalCode !== undefined) { setClauses.push("postal_code = ?"); values.push(updates.postalCode); }
+    if (updates.country !== undefined) { setClauses.push("country = ?"); values.push(updates.country); }
+    if (updates.contactName !== undefined) { setClauses.push("contact_name = ?"); values.push(updates.contactName); }
+    if (updates.phone !== undefined) { setClauses.push("phone = ?"); values.push(updates.phone); }
+    if (updates.email !== undefined) { setClauses.push("email = ?"); values.push(updates.email); }
+    if (updates.notes !== undefined) { setClauses.push("notes = ?"); values.push(updates.notes); }
+    if (updates.trackingNumber !== undefined) { setClauses.push("tracking_number = ?"); values.push(updates.trackingNumber); }
+    if (updates.company !== undefined) { setClauses.push("company = ?"); values.push(updates.company); }
+    if (updates.shippingFee !== undefined) { setClauses.push("shipping_fee = ?"); values.push(updates.shippingFee); }
+    if (updates.shippedAt !== undefined) { setClauses.push("shipped_at = ?"); values.push(updates.shippedAt); }
+    if (updates.trackingImage !== undefined) { setClauses.push("tracking_image = ?"); values.push(updates.trackingImage); }
 
-    setClauses.push(`updated_at = $${paramIndex++}`);
+    setClauses.push("updated_at = ?");
     values.push(new Date().toISOString());
     values.push(id);
 
     await execute(
-      `UPDATE orders SET ${setClauses.join(", ")} WHERE id = $${paramIndex}`,
+      `UPDATE orders SET ${setClauses.join(", ")} WHERE id = ?`,
       values
     );
     return await getOrderById(id);
@@ -542,7 +527,7 @@ export async function updateOrder(id: string, updates: any): Promise<Order | nul
 
 export async function deleteOrder(id: string): Promise<{ success: boolean }> {
   if (await useDatabase()) {
-    await execute("DELETE FROM orders WHERE id = $1", [id]);
+    await execute("DELETE FROM orders WHERE id = ?", [id]);
     return { success: true };
   }
 
@@ -551,9 +536,6 @@ export async function deleteOrder(id: string): Promise<{ success: boolean }> {
   return { success: true };
 }
 
-// ------------------------------------------------------------
-// 信用额度操作
-// ------------------------------------------------------------
 export async function getAllCredits(): Promise<CreditRecord[]> {
   if (await useDatabase()) {
     const agentsRows: any[] = await query("SELECT * FROM agents");
@@ -561,7 +543,7 @@ export async function getAllCredits(): Promise<CreditRecord[]> {
     const credits: CreditRecord[] = [];
     for (const agent of agentsRows || []) {
       const transactionsRows: any[] = await query(
-        "SELECT * FROM credit_transactions WHERE agent_id = $1 ORDER BY time DESC",
+        "SELECT * FROM credit_transactions WHERE agent_id = ? ORDER BY time DESC",
         [agent.id]
       );
 
@@ -602,11 +584,11 @@ export async function getAllCredits(): Promise<CreditRecord[]> {
 
 export async function getCreditByAgentId(agentId: string): Promise<CreditRecord | null> {
   if (await useDatabase()) {
-    const agent: any = await queryOne("SELECT * FROM agents WHERE id = $1", [agentId]);
+    const agent: any = await queryOne("SELECT * FROM agents WHERE id = ?", [agentId]);
     if (!agent) return null;
 
     const transactionsRows: any[] = await query(
-      "SELECT * FROM credit_transactions WHERE agent_id = $1 ORDER BY time DESC",
+      "SELECT * FROM credit_transactions WHERE agent_id = ? ORDER BY time DESC",
       [agentId]
     );
 
@@ -627,7 +609,7 @@ export async function getCreditByAgentId(agentId: string): Promise<CreditRecord 
 
 export async function deductCredit(agentId: string, amount: number, note: string): Promise<CreditRecord> {
   if (await useDatabase()) {
-    const agent: any = await queryOne("SELECT * FROM agents WHERE id = $1", [agentId]);
+    const agent: any = await queryOne("SELECT * FROM agents WHERE id = ?", [agentId]);
     if (!agent) throw new Error("Agent not found");
 
     const creditLimit = parseFloat(agent.credit_limit) || 0;
@@ -642,19 +624,19 @@ export async function deductCredit(agentId: string, amount: number, note: string
     const newAvailable = creditLimit - newOutstanding;
 
     await execute(
-      "UPDATE agents SET outstanding = $1, updated_at = $2 WHERE id = $3",
+      "UPDATE agents SET outstanding = ?, updated_at = ? WHERE id = ?",
       [newOutstanding, new Date().toISOString(), agentId]
     );
 
     const txnId = `txn_${Date.now()}`;
     await execute(
       `INSERT INTO credit_transactions (id, agent_id, type, amount, balance, note, time)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [txnId, agentId, "order_deduct", -amount, newAvailable, note, new Date().toISOString()]
     );
 
     const transactionsRows: any[] = await query(
-      "SELECT * FROM credit_transactions WHERE agent_id = $1 ORDER BY time DESC",
+      "SELECT * FROM credit_transactions WHERE agent_id = ? ORDER BY time DESC",
       [agentId]
     );
 
@@ -693,7 +675,7 @@ export async function deductCredit(agentId: string, amount: number, note: string
 
 export async function repayCredit(agentId: string, amount: number, note: string): Promise<CreditRecord> {
   if (await useDatabase()) {
-    const agent: any = await queryOne("SELECT * FROM agents WHERE id = $1", [agentId]);
+    const agent: any = await queryOne("SELECT * FROM agents WHERE id = ?", [agentId]);
     if (!agent) throw new Error("Agent not found");
 
     const outstanding = parseFloat(agent.outstanding) || 0;
@@ -702,19 +684,19 @@ export async function repayCredit(agentId: string, amount: number, note: string)
     const newAvailable = creditLimit - newOutstanding;
 
     await execute(
-      "UPDATE agents SET outstanding = $1, updated_at = $2 WHERE id = $3",
+      "UPDATE agents SET outstanding = ?, updated_at = ? WHERE id = ?",
       [newOutstanding, new Date().toISOString(), agentId]
     );
 
     const txnId = `txn_${Date.now()}`;
     await execute(
       `INSERT INTO credit_transactions (id, agent_id, type, amount, balance, note, time)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [txnId, agentId, "repayment", amount, newAvailable, note, new Date().toISOString()]
     );
 
     const transactionsRows: any[] = await query(
-      "SELECT * FROM credit_transactions WHERE agent_id = $1 ORDER BY time DESC",
+      "SELECT * FROM credit_transactions WHERE agent_id = ? ORDER BY time DESC",
       [agentId]
     );
 
@@ -752,7 +734,7 @@ export async function repayCredit(agentId: string, amount: number, note: string)
 
 export async function setCreditLimit(agentId: string, newLimit: number, note: string): Promise<CreditRecord> {
   if (await useDatabase()) {
-    const agent: any = await queryOne("SELECT * FROM agents WHERE id = $1", [agentId]);
+    const agent: any = await queryOne("SELECT * FROM agents WHERE id = ?", [agentId]);
     if (!agent) throw new Error("Agent not found");
 
     const outstanding = parseFloat(agent.outstanding) || 0;
@@ -760,19 +742,19 @@ export async function setCreditLimit(agentId: string, newLimit: number, note: st
     const newAvailable = newLimit - outstanding;
 
     await execute(
-      "UPDATE agents SET credit_limit = $1, updated_at = $2 WHERE id = $3",
+      "UPDATE agents SET credit_limit = ?, updated_at = ? WHERE id = ?",
       [newLimit, new Date().toISOString(), agentId]
     );
 
     const txnId = `txn_${Date.now()}`;
     await execute(
       `INSERT INTO credit_transactions (id, agent_id, type, amount, balance, note, time)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [txnId, agentId, "admin_set_limit", newLimit - creditLimit, newAvailable, note, new Date().toISOString()]
     );
 
     const transactionsRows: any[] = await query(
-      "SELECT * FROM credit_transactions WHERE agent_id = $1 ORDER BY time DESC",
+      "SELECT * FROM credit_transactions WHERE agent_id = ? ORDER BY time DESC",
       [agentId]
     );
 
@@ -808,9 +790,6 @@ export async function setCreditLimit(agentId: string, newLimit: number, note: st
   return record;
 }
 
-// ------------------------------------------------------------
-// 库存日志操作
-// ------------------------------------------------------------
 export async function getAllInventoryLogs(): Promise<InventoryLog[]> {
   if (await useDatabase()) {
     const rows: any[] = await query("SELECT * FROM inventory_logs ORDER BY time DESC");
@@ -832,7 +811,7 @@ export async function addInventoryLog(log: any): Promise<InventoryLog> {
     await execute(
       `INSERT INTO inventory_logs (id, type, product_id, product_name, sku, warehouse,
        qty, stock_before, stock_after, operator, time, note, from_warehouse, to_warehouse)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id, log.type, log.productId, log.productName, log.sku, log.warehouse,
         log.qty, log.stockBefore, log.stockAfter, log.operator || "Admin",
@@ -857,15 +836,12 @@ export async function addInventoryLog(log: any): Promise<InventoryLog> {
   };
 }
 
-// ------------------------------------------------------------
-// 员工操作
-// ------------------------------------------------------------
 function mapEmployeeFromRow(e: any): Employee {
   return {
     id: e.id,
     name: e.name,
     email: e.email,
-    permissions: e.permissions || {},
+    permissions: parseJson(e.permissions) || {},
     active: e.active,
     createdAt: e.created_at,
   };
@@ -881,7 +857,7 @@ export async function getAllEmployees(): Promise<Employee[]> {
 
 export async function getEmployeeById(id: string): Promise<Employee | null> {
   if (await useDatabase()) {
-    const row: any = await queryOne("SELECT * FROM employees WHERE id = $1", [id]);
+    const row: any = await queryOne("SELECT * FROM employees WHERE id = ?", [id]);
     if (!row) return null;
     return mapEmployeeFromRow(row);
   }
@@ -890,7 +866,7 @@ export async function getEmployeeById(id: string): Promise<Employee | null> {
 
 export async function getEmployeeByEmail(email: string, password?: string): Promise<Employee | null> {
   if (await useDatabase()) {
-    const row: any = await queryOne("SELECT * FROM employees WHERE email = $1", [email]);
+    const row: any = await queryOne("SELECT * FROM employees WHERE email = ?", [email]);
     if (!row) return null;
     if (password && row.password !== password) return null;
     return mapEmployeeFromRow(row);
@@ -907,7 +883,7 @@ export async function createEmployee(employee: any): Promise<Employee> {
   if (await useDatabase()) {
     await execute(
       `INSERT INTO employees (id, name, email, password, permissions, active, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
         id, employee.name, employee.email, employee.password || "admin123",
         JSON.stringify(employee.permissions || {}), active, now
@@ -924,18 +900,17 @@ export async function updateEmployee(id: string, updates: any): Promise<Employee
   if (await useDatabase()) {
     const setClauses: string[] = [];
     const values: any[] = [];
-    let paramIndex = 1;
 
-    if (updates.name !== undefined) { setClauses.push(`name = $${paramIndex++}`); values.push(updates.name); }
-    if (updates.email !== undefined) { setClauses.push(`email = $${paramIndex++}`); values.push(updates.email); }
-    if (updates.password !== undefined) { setClauses.push(`password = $${paramIndex++}`); values.push(updates.password); }
-    if (updates.permissions !== undefined) { setClauses.push(`permissions = $${paramIndex++}`); values.push(JSON.stringify(updates.permissions)); }
-    if (updates.active !== undefined) { setClauses.push(`active = $${paramIndex++}`); values.push(updates.active); }
+    if (updates.name !== undefined) { setClauses.push("name = ?"); values.push(updates.name); }
+    if (updates.email !== undefined) { setClauses.push("email = ?"); values.push(updates.email); }
+    if (updates.password !== undefined) { setClauses.push("password = ?"); values.push(updates.password); }
+    if (updates.permissions !== undefined) { setClauses.push("permissions = ?"); values.push(JSON.stringify(updates.permissions)); }
+    if (updates.active !== undefined) { setClauses.push("active = ?"); values.push(updates.active); }
 
     if (setClauses.length > 0) {
       values.push(id);
       await execute(
-        `UPDATE employees SET ${setClauses.join(", ")} WHERE id = $${paramIndex}`,
+        `UPDATE employees SET ${setClauses.join(", ")} WHERE id = ?`,
         values
       );
     }
@@ -952,7 +927,7 @@ export async function updateEmployee(id: string, updates: any): Promise<Employee
 
 export async function deleteEmployee(id: string): Promise<{ success: boolean }> {
   if (await useDatabase()) {
-    await execute("DELETE FROM employees WHERE id = $1", [id]);
+    await execute("DELETE FROM employees WHERE id = ?", [id]);
     return { success: true };
   }
   const store = getMemoryStore();
@@ -961,9 +936,6 @@ export async function deleteEmployee(id: string): Promise<{ success: boolean }> 
   return { success: store.employees.length !== employees.length };
 }
 
-// ------------------------------------------------------------
-// 系统初始化
-// ------------------------------------------------------------
 export async function initializeSystem(): Promise<void> {
   if (!await useDatabase()) return;
 
@@ -985,5 +957,4 @@ export async function initializeSystem(): Promise<void> {
   }
 }
 
-// 首次加载时初始化
 initializeSystem().catch(() => {});

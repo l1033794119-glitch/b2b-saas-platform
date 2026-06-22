@@ -1,23 +1,20 @@
 -- ============================================================
 -- B2B SaaS 平台数据库架构
--- 目标数据库：PostgreSQL (Supabase)
--- 创建日期：2026-06-20
+-- 目标数据库：MySQL
+-- 创建日期：2026-06-22
 -- ============================================================
-
--- 启用扩展
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- ============================================================
 -- 仓库表
 -- ============================================================
 CREATE TABLE IF NOT EXISTS warehouses (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  location TEXT NOT NULL,
-  manager TEXT NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
+  id VARCHAR(100) PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  location VARCHAR(255) NOT NULL,
+  manager VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE INDEX IF NOT EXISTS idx_warehouses_name ON warehouses(name);
 
@@ -25,28 +22,28 @@ CREATE INDEX IF NOT EXISTS idx_warehouses_name ON warehouses(name);
 -- 产品表
 -- ============================================================
 CREATE TABLE IF NOT EXISTS products (
-  id TEXT PRIMARY KEY,
-  sku TEXT NOT NULL UNIQUE,
-  name TEXT NOT NULL,
-  name_zh TEXT DEFAULT '',
-  category TEXT DEFAULT '',
-  brand TEXT DEFAULT '',
-  images TEXT[] DEFAULT '{}',
+  id VARCHAR(100) PRIMARY KEY,
+  sku VARCHAR(100) NOT NULL UNIQUE,
+  name VARCHAR(255) NOT NULL,
+  name_zh VARCHAR(255) DEFAULT '',
+  category VARCHAR(100) DEFAULT '',
+  brand VARCHAR(100) DEFAULT '',
+  images TEXT,
   description TEXT DEFAULT '',
   description_zh TEXT DEFAULT '',
-  cost_price NUMERIC(10, 2) DEFAULT 0,
-  wholesale_price NUMERIC(10, 2) DEFAULT 0,
-  retail_price NUMERIC(10, 2) DEFAULT 0,
-  stock INTEGER DEFAULT 0,
-  warehouse_id TEXT REFERENCES warehouses(id) ON DELETE SET NULL,
-  warehouse_name TEXT DEFAULT '',
-  status TEXT DEFAULT 'active',
-  level_a_price NUMERIC(10, 2) DEFAULT 0,
-  level_b_price NUMERIC(10, 2) DEFAULT 0,
-  level_c_price NUMERIC(10, 2) DEFAULT 0,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
+  cost_price DECIMAL(10, 2) DEFAULT 0,
+  wholesale_price DECIMAL(10, 2) DEFAULT 0,
+  retail_price DECIMAL(10, 2) DEFAULT 0,
+  stock INT DEFAULT 0,
+  warehouse_id VARCHAR(100),
+  warehouse_name VARCHAR(255) DEFAULT '',
+  status VARCHAR(50) DEFAULT 'active',
+  level_a_price DECIMAL(10, 2) DEFAULT 0,
+  level_b_price DECIMAL(10, 2) DEFAULT 0,
+  level_c_price DECIMAL(10, 2) DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE INDEX IF NOT EXISTS idx_products_sku ON products(sku);
 CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);
@@ -57,21 +54,21 @@ CREATE INDEX IF NOT EXISTS idx_products_status ON products(status);
 -- 代理商表
 -- ============================================================
 CREATE TABLE IF NOT EXISTS agents (
-  id TEXT PRIMARY KEY,
-  company TEXT NOT NULL,
-  contact TEXT DEFAULT '',
-  email TEXT NOT NULL UNIQUE,
-  password TEXT NOT NULL,
-  phone TEXT DEFAULT '',
-  country TEXT DEFAULT '',
-  level TEXT DEFAULT 'B',
-  status TEXT DEFAULT 'active',
-  credit_limit NUMERIC(10, 2) DEFAULT 0,
-  outstanding NUMERIC(10, 2) DEFAULT 0,
-  join_date TEXT DEFAULT CURRENT_DATE,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
+  id VARCHAR(100) PRIMARY KEY,
+  company VARCHAR(255) NOT NULL,
+  contact VARCHAR(255) DEFAULT '',
+  email VARCHAR(255) NOT NULL UNIQUE,
+  password VARCHAR(255) NOT NULL,
+  phone VARCHAR(50) DEFAULT '',
+  country VARCHAR(100) DEFAULT '',
+  level VARCHAR(10) DEFAULT 'B',
+  status VARCHAR(50) DEFAULT 'active',
+  credit_limit DECIMAL(10, 2) DEFAULT 0,
+  outstanding DECIMAL(10, 2) DEFAULT 0,
+  join_date VARCHAR(20),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE INDEX IF NOT EXISTS idx_agents_email ON agents(email);
 CREATE INDEX IF NOT EXISTS idx_agents_status ON agents(status);
@@ -81,28 +78,28 @@ CREATE INDEX IF NOT EXISTS idx_agents_level ON agents(level);
 -- 订单表
 -- ============================================================
 CREATE TABLE IF NOT EXISTS orders (
-  id TEXT PRIMARY KEY,
-  order_no TEXT NOT NULL UNIQUE,
-  agent_id TEXT NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
-  items JSONB DEFAULT '[]'::jsonb,
-  total NUMERIC(10, 2) DEFAULT 0,
-  status TEXT DEFAULT 'pending_review',
-  date TEXT NOT NULL,
+  id VARCHAR(100) PRIMARY KEY,
+  order_no VARCHAR(100) NOT NULL UNIQUE,
+  agent_id VARCHAR(100) NOT NULL,
+  items TEXT,
+  total DECIMAL(10, 2) DEFAULT 0,
+  status VARCHAR(50) DEFAULT 'pending_review',
+  date VARCHAR(20) NOT NULL,
   shipping_address TEXT DEFAULT '',
-  postal_code TEXT DEFAULT '',
-  country TEXT DEFAULT '',
-  contact_name TEXT DEFAULT '',
-  phone TEXT DEFAULT '',
-  email TEXT DEFAULT '',
+  postal_code VARCHAR(20) DEFAULT '',
+  country VARCHAR(100) DEFAULT '',
+  contact_name VARCHAR(255) DEFAULT '',
+  phone VARCHAR(50) DEFAULT '',
+  email VARCHAR(255) DEFAULT '',
   notes TEXT DEFAULT '',
-  tracking_number TEXT,
-  company TEXT,
-  shipping_fee NUMERIC(10, 2),
-  shipped_at TEXT,
+  tracking_number VARCHAR(100),
+  company VARCHAR(255),
+  shipping_fee DECIMAL(10, 2),
+  shipped_at VARCHAR(20),
   tracking_image TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE INDEX IF NOT EXISTS idx_orders_order_no ON orders(order_no);
 CREATE INDEX IF NOT EXISTS idx_orders_agent_id ON orders(agent_id);
@@ -113,14 +110,14 @@ CREATE INDEX IF NOT EXISTS idx_orders_date ON orders(date);
 -- 信用交易记录表
 -- ============================================================
 CREATE TABLE IF NOT EXISTS credit_transactions (
-  id TEXT PRIMARY KEY,
-  agent_id TEXT NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
-  type TEXT NOT NULL,
-  amount NUMERIC(10, 2) NOT NULL,
-  balance NUMERIC(10, 2) NOT NULL,
+  id VARCHAR(100) PRIMARY KEY,
+  agent_id VARCHAR(100) NOT NULL,
+  type VARCHAR(50) NOT NULL,
+  amount DECIMAL(10, 2) NOT NULL,
+  balance DECIMAL(10, 2) NOT NULL,
   note TEXT DEFAULT '',
-  time TEXT NOT NULL
-);
+  time VARCHAR(20) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE INDEX IF NOT EXISTS idx_credit_transactions_agent_id ON credit_transactions(agent_id);
 CREATE INDEX IF NOT EXISTS idx_credit_transactions_time ON credit_transactions(time);
@@ -129,21 +126,21 @@ CREATE INDEX IF NOT EXISTS idx_credit_transactions_time ON credit_transactions(t
 -- 库存操作日志表
 -- ============================================================
 CREATE TABLE IF NOT EXISTS inventory_logs (
-  id TEXT PRIMARY KEY,
-  type TEXT NOT NULL,
-  product_id TEXT NOT NULL,
-  product_name TEXT NOT NULL,
-  sku TEXT DEFAULT '',
-  warehouse TEXT,
-  qty INTEGER NOT NULL,
-  stock_before INTEGER NOT NULL,
-  stock_after INTEGER NOT NULL,
-  operator TEXT DEFAULT 'Admin',
-  time TEXT NOT NULL,
+  id VARCHAR(100) PRIMARY KEY,
+  type VARCHAR(50) NOT NULL,
+  product_id VARCHAR(100) NOT NULL,
+  product_name VARCHAR(255) NOT NULL,
+  sku VARCHAR(100) DEFAULT '',
+  warehouse VARCHAR(100),
+  qty INT NOT NULL,
+  stock_before INT NOT NULL,
+  stock_after INT NOT NULL,
+  operator VARCHAR(100) DEFAULT 'Admin',
+  time VARCHAR(20) NOT NULL,
   note TEXT DEFAULT '',
-  from_warehouse TEXT,
-  to_warehouse TEXT
-);
+  from_warehouse VARCHAR(100),
+  to_warehouse VARCHAR(100)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE INDEX IF NOT EXISTS idx_inventory_logs_product_id ON inventory_logs(product_id);
 CREATE INDEX IF NOT EXISTS idx_inventory_logs_time ON inventory_logs(time);
@@ -153,65 +150,14 @@ CREATE INDEX IF NOT EXISTS idx_inventory_logs_type ON inventory_logs(type);
 -- 员工表
 -- ============================================================
 CREATE TABLE IF NOT EXISTS employees (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  email TEXT NOT NULL UNIQUE,
-  password TEXT NOT NULL,
-  permissions JSONB DEFAULT '{}'::jsonb,
-  active BOOLEAN DEFAULT TRUE,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
+  id VARCHAR(100) PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  email VARCHAR(255) NOT NULL UNIQUE,
+  password VARCHAR(255) NOT NULL,
+  permissions TEXT,
+  active TINYINT(1) DEFAULT 1,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE INDEX IF NOT EXISTS idx_employees_email ON employees(email);
 CREATE INDEX IF NOT EXISTS idx_employees_active ON employees(active);
-
--- ============================================================
--- Row Level Security (RLS) 策略
--- 在生产环境中启用此功能以增强安全性
--- ============================================================
-
--- ALTER TABLE warehouses ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE products ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE agents ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE credit_transactions ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE inventory_logs ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE employees ENABLE ROW LEVEL SECURITY;
-
--- ============================================================
--- 数据完整性约束
--- ============================================================
-ALTER TABLE products DROP CONSTRAINT IF EXISTS products_stock_check;
-ALTER TABLE products ADD CONSTRAINT products_stock_check CHECK (stock >= 0);
-
-ALTER TABLE agents DROP CONSTRAINT IF EXISTS agents_credit_limit_check;
-ALTER TABLE agents ADD CONSTRAINT agents_credit_limit_check CHECK (credit_limit >= 0);
-
-ALTER TABLE agents DROP CONSTRAINT IF EXISTS agents_outstanding_check;
-ALTER TABLE agents ADD CONSTRAINT agents_outstanding_check CHECK (outstanding >= 0);
-
-ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_total_check;
-ALTER TABLE orders ADD CONSTRAINT orders_total_check CHECK (total >= 0);
-
--- ============================================================
--- 更新时间触发器（自动更新 updated_at）
--- ============================================================
-CREATE OR REPLACE FUNCTION update_modified_column()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at = CURRENT_TIMESTAMP;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-DROP TRIGGER IF EXISTS update_warehouses_modtime ON warehouses;
-CREATE TRIGGER update_warehouses_modtime BEFORE UPDATE ON warehouses FOR EACH ROW EXECUTE FUNCTION update_modified_column();
-
-DROP TRIGGER IF EXISTS update_products_modtime ON products;
-CREATE TRIGGER update_products_modtime BEFORE UPDATE ON products FOR EACH ROW EXECUTE FUNCTION update_modified_column();
-
-DROP TRIGGER IF EXISTS update_agents_modtime ON agents;
-CREATE TRIGGER update_agents_modtime BEFORE UPDATE ON agents FOR EACH ROW EXECUTE FUNCTION update_modified_column();
-
-DROP TRIGGER IF EXISTS update_orders_modtime ON orders;
-CREATE TRIGGER update_orders_modtime BEFORE UPDATE ON orders FOR EACH ROW EXECUTE FUNCTION update_modified_column();
