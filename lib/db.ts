@@ -34,10 +34,6 @@ function getPool(): Pool {
 
   pool = createPool(dbConfig);
 
-  pool.on("error", (err) => {
-    console.error("❌ MySQL 连接池错误:", err.message);
-  });
-
   return pool;
 }
 
