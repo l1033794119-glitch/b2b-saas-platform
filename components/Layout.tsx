@@ -12,24 +12,33 @@ export function AdminLayout({ children, title, subtitle }:
   const router = useRouter();
   const pathname = usePathname();
   const hasChecked = useRef(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // 延迟检查，确保 AppProvider 已经完成状态初始化
     const timer = setTimeout(() => {
+      setIsLoading(false);
       if (!user && !hasChecked.current) {
         hasChecked.current = true;
         router.push("/admin/login");
       }
-    }, 100);
+    }, 200);
     return () => clearTimeout(timer);
   }, [user, router]);
 
-  // 如果用户已登录，重置检查标记
   useEffect(() => {
     if (user) {
       hasChecked.current = false;
+      setIsLoading(false);
     }
   }, [user]);
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-[#0a0e17]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600" />
+      </div>
+    );
+  }
 
   if (!user) return null;
 
@@ -54,24 +63,33 @@ export function AgentLayout({ children, title, subtitle }:
   const { user } = useApp();
   const router = useRouter();
   const hasChecked = useRef(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // 延迟检查，确保 AppProvider 已经完成状态初始化
     const timer = setTimeout(() => {
+      setIsLoading(false);
       if (!user && !hasChecked.current) {
         hasChecked.current = true;
         router.push("/login");
       }
-    }, 100);
+    }, 200);
     return () => clearTimeout(timer);
   }, [user, router]);
 
-  // 如果用户已登录，重置检查标记
   useEffect(() => {
     if (user) {
       hasChecked.current = false;
+      setIsLoading(false);
     }
   }, [user]);
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-[#0a0e17]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600" />
+      </div>
+    );
+  }
 
   if (!user) return null;
 
