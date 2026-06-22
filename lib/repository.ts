@@ -10,6 +10,11 @@ import {
 } from "./types/supabase";
 import { query, queryOne, execute, isDatabaseConfigured } from "./db";
 
+function formatMySQLDate(date: Date = new Date()): string {
+  const d = new Date(date);
+  return d.toISOString().replace("T", " ").substring(0, 19);
+}
+
 async function useDatabase(): Promise<boolean> {
   if (!await isDatabaseConfigured()) return false;
   try {
@@ -55,7 +60,7 @@ function getMemoryStore(): MemoryStore {
             analytics: true, notifications: true, employees: true, audit_logs: true, settings: true,
           },
           active: true,
-          createdAt: new Date().toISOString(),
+          createdAt: formatMySQLDate(),
         },
       ],
     };
@@ -84,7 +89,7 @@ export async function getAllWarehouses(): Promise<Warehouse[]> {
 
 export async function createWarehouse(warehouse: Omit<Warehouse, "id" | "stock" | "value"> & { id?: string }): Promise<Warehouse> {
   const id = warehouse.id || `w${Date.now()}`;
-  const now = new Date().toISOString();
+  const now = formatMySQLDate();
 
   if (await useDatabase()) {
     await execute(
@@ -166,7 +171,7 @@ export async function getProductById(id: string): Promise<Product | null> {
 }
 
 export async function createOrUpdateProduct(product: Product): Promise<Product> {
-  const now = new Date().toISOString();
+  const now = formatMySQLDate();
 
   if (await useDatabase()) {
     const existing = await getProductById(product.id);
@@ -238,7 +243,7 @@ export async function deleteProduct(id: string): Promise<{ success: boolean; del
 
 export async function updateProductStock(productId: string, newStock: number): Promise<Product | null> {
   if (await useDatabase()) {
-    await execute("UPDATE products SET stock = ?, updated_at = ? WHERE id = ?", [newStock, new Date().toISOString(), productId]);
+    await execute("UPDATE products SET stock = ?, updated_at = ? WHERE id = ?", [newStock, formatMySQLDate(), productId]);
     return await getProductById(productId);
   }
 
@@ -300,7 +305,7 @@ export async function createAgent(agent: Omit<Agent, "id" | "availableCredit" | 
   joinDate?: string;
 }): Promise<Agent> {
   const id = agent.id || `a${Date.now()}`;
-  const now = new Date().toISOString();
+  const now = formatMySQLDate();
 
   if (await useDatabase()) {
     await execute(
@@ -356,7 +361,7 @@ export async function updateAgent(id: string, updates: any): Promise<Agent | nul
     if (updates.password !== undefined) { setClauses.push("password = ?"); values.push(updates.password); }
 
     setClauses.push("updated_at = ?");
-    values.push(new Date().toISOString());
+    values.push(formatMySQLDate());
     values.push(id);
 
     await execute(
@@ -440,7 +445,7 @@ export async function getOrderById(id: string): Promise<Order | null> {
 
 export async function createOrder(order: any): Promise<Order> {
   const id = order.id || `ord_${Date.now()}`;
-  const now = new Date().toISOString();
+  const now = formatMySQLDate();
 
   if (await useDatabase()) {
     await execute(
@@ -508,7 +513,7 @@ export async function updateOrder(id: string, updates: any): Promise<Order | nul
     if (updates.trackingImage !== undefined) { setClauses.push("tracking_image = ?"); values.push(updates.trackingImage); }
 
     setClauses.push("updated_at = ?");
-    values.push(new Date().toISOString());
+    values.push(formatMySQLDate());
     values.push(id);
 
     await execute(
@@ -625,14 +630,14 @@ export async function deductCredit(agentId: string, amount: number, note: string
 
     await execute(
       "UPDATE agents SET outstanding = ?, updated_at = ? WHERE id = ?",
-      [newOutstanding, new Date().toISOString(), agentId]
+      [newOutstanding, formatMySQLDate(), agentId]
     );
 
     const txnId = `txn_${Date.now()}`;
     await execute(
       `INSERT INTO credit_transactions (id, agent_id, type, amount, balance, note, time)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [txnId, agentId, "order_deduct", -amount, newAvailable, note, new Date().toISOString()]
+      [txnId, agentId, "order_deduct", -amount, newAvailable, note, formatMySQLDate()]
     );
 
     const transactionsRows: any[] = await query(
@@ -668,7 +673,7 @@ export async function deductCredit(agentId: string, amount: number, note: string
   record.available = record.creditLimit - record.outstanding;
   record.transactions.unshift({
     id: `txn_${Date.now()}`, type: "order_deduct", amount: -amount, balance: record.available,
-    note, time: new Date().toISOString(),
+    note, time: formatMySQLDate(),
   });
   return record;
 }
@@ -685,14 +690,14 @@ export async function repayCredit(agentId: string, amount: number, note: string)
 
     await execute(
       "UPDATE agents SET outstanding = ?, updated_at = ? WHERE id = ?",
-      [newOutstanding, new Date().toISOString(), agentId]
+      [newOutstanding, formatMySQLDate(), agentId]
     );
 
     const txnId = `txn_${Date.now()}`;
     await execute(
       `INSERT INTO credit_transactions (id, agent_id, type, amount, balance, note, time)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [txnId, agentId, "repayment", amount, newAvailable, note, new Date().toISOString()]
+      [txnId, agentId, "repayment", amount, newAvailable, note, formatMySQLDate()]
     );
 
     const transactionsRows: any[] = await query(
@@ -727,7 +732,7 @@ export async function repayCredit(agentId: string, amount: number, note: string)
   record.available = record.creditLimit - record.outstanding;
   record.transactions.unshift({
     id: `txn_${Date.now()}`, type: "repayment", amount, balance: record.available,
-    note, time: new Date().toISOString(),
+    note, time: formatMySQLDate(),
   });
   return record;
 }
@@ -743,14 +748,14 @@ export async function setCreditLimit(agentId: string, newLimit: number, note: st
 
     await execute(
       "UPDATE agents SET credit_limit = ?, updated_at = ? WHERE id = ?",
-      [newLimit, new Date().toISOString(), agentId]
+      [newLimit, formatMySQLDate(), agentId]
     );
 
     const txnId = `txn_${Date.now()}`;
     await execute(
       `INSERT INTO credit_transactions (id, agent_id, type, amount, balance, note, time)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [txnId, agentId, "admin_set_limit", newLimit - creditLimit, newAvailable, note, new Date().toISOString()]
+      [txnId, agentId, "admin_set_limit", newLimit - creditLimit, newAvailable, note, formatMySQLDate()]
     );
 
     const transactionsRows: any[] = await query(
@@ -785,7 +790,7 @@ export async function setCreditLimit(agentId: string, newLimit: number, note: st
   record.available = newLimit - record.outstanding;
   record.transactions.unshift({
     id: `txn_${Date.now()}`, type: "admin_set_limit", amount: newLimit - record.creditLimit,
-    balance: record.available, note, time: new Date().toISOString(),
+    balance: record.available, note, time: formatMySQLDate(),
   });
   return record;
 }
@@ -805,7 +810,7 @@ export async function getAllInventoryLogs(): Promise<InventoryLog[]> {
 
 export async function addInventoryLog(log: any): Promise<InventoryLog> {
   const id = log.id || `log_${Date.now()}`;
-  const now = new Date().toISOString();
+  const now = formatMySQLDate();
 
   if (await useDatabase()) {
     await execute(
@@ -877,7 +882,7 @@ export async function getEmployeeByEmail(email: string, password?: string): Prom
 
 export async function createEmployee(employee: any): Promise<Employee> {
   const id = employee.id || `emp_${Date.now()}`;
-  const now = new Date().toISOString();
+  const now = formatMySQLDate();
   const active = employee.active !== false;
 
   if (await useDatabase()) {
