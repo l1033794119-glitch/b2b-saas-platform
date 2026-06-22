@@ -38,26 +38,48 @@ interface AppContextValue {
 
 const AppContext = createContext<AppContextValue | null>(null);
 
+function getUserFromStorage(): User | null {
+  try {
+    const savedUser = localStorage.getItem("app.user");
+    if (savedUser) return JSON.parse(savedUser);
+  } catch {}
+  return null;
+}
+
+function getLangFromStorage(): Lang {
+  try {
+    const savedLang = localStorage.getItem("app.lang") as Lang;
+    if (savedLang) return savedLang;
+  } catch {}
+  return "en";
+}
+
+function getThemeFromStorage(): "light" | "dark" {
+  try {
+    const savedTheme = localStorage.getItem("app.theme");
+    if (savedTheme === "dark") return "dark";
+  } catch {}
+  return "light";
+}
+
+function getCurrencyFromStorage(): string {
+  try {
+    const savedCurrency = localStorage.getItem("app.currency");
+    if (savedCurrency) return savedCurrency;
+  } catch {}
+  return "GBP";
+}
+
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  const [lang, setLangState] = useState<Lang>("en");
-  const [theme, setTheme] = useState<"light" | "dark">("light");
-  const [user, setUser] = useState<User | null>(null);
-  const [currency, setCurrencyState] = useState<string>("GBP");
+  const [lang, setLangState] = useState<Lang>(getLangFromStorage);
+  const [theme, setTheme] = useState<"light" | "dark">(getThemeFromStorage);
+  const [user, setUser] = useState<User | null>(getUserFromStorage);
+  const [currency, setCurrencyState] = useState<string>(getCurrencyFromStorage);
 
   useEffect(() => {
-    try {
-      const savedLang = localStorage.getItem("app.lang") as Lang;
-      if (savedLang) setLangState(savedLang);
-      const savedTheme = localStorage.getItem("app.theme");
-      if (savedTheme === "dark") {
-        setTheme("dark");
-        document.documentElement.classList.add("dark");
-      }
-      const savedCurrency = localStorage.getItem("app.currency");
-      if (savedCurrency) setCurrencyState(savedCurrency);
-      const savedUser = localStorage.getItem("app.user");
-      if (savedUser) setUser(JSON.parse(savedUser));
-    } catch {}
+    if (theme === "dark") {
+      document.documentElement.classList.add("dark");
+    }
   }, []);
 
   const setLang = (l: Lang) => {
