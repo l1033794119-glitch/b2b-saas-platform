@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState, useRef } from "react";
 import { Lang, languageLabels, translate } from "@/lib/i18n";
 
 type Role =
@@ -19,7 +19,6 @@ export interface User {
   company?: string;
   country?: string;
   level?: "A" | "B" | "C";
-  // 菜单权限：key 为菜单项标识，true = 有权限
   permissions?: Record<string, boolean>;
 }
 
@@ -38,8 +37,37 @@ interface AppContextValue {
 
 const AppContext = createContext<AppContextValue | null>(null);
 
+// Cookie 工具函数
+function setCookie(name: string, value: string, days: number = 30) {
+  const expires = new Date();
+  expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
+  document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/;SameSite=Lax`;
+}
+
+function getCookie(name: string): string | null {
+  const nameEQ = name + "=";
+  const ca = document.cookie.split(";");
+  for (let i = 0; i < ca.length; i++) {
+    let c = ca[i];
+    while (c.charAt(0) === " ") c = c.substring(1, c.length);
+    if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+  }
+  return null;
+}
+
+function deleteCookie(name: string) {
+  document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;`;
+}
+
 function getUserFromStorage(): User | null {
   try {
+    // 优先从 cookie 读取 remember_token
+    const rememberToken = getCookie("remember_token");
+    if (rememberToken) {
+      const savedUser = localStorage.getItem(`app.user.${rememberToken}`);
+      if (savedUser) return JSON.parse(savedUser);
+    }
+    // 兼容旧方式
     const savedUser = localStorage.getItem("app.user");
     if (savedUser) return JSON.parse(savedUser);
   } catch {}
@@ -48,15 +76,15 @@ function getUserFromStorage(): User | null {
 
 function getLangFromStorage(): Lang {
   try {
-    const savedLang = localStorage.getItem("app.lang") as Lang;
-    if (savedLang) return savedLang;
+    const savedLang = getCookie("app.lang") || localStorage.getItem("app.lang");
+    if (savedLang) return savedLang as Lang;
   } catch {}
   return "en";
 }
 
 function getThemeFromStorage(): "light" | "dark" {
   try {
-    const savedTheme = localStorage.getItem("app.theme");
+    const savedTheme = getCookie("app.theme") || localStorage.getItem("app.theme");
     if (savedTheme === "dark") return "dark";
   } catch {}
   return "light";
@@ -64,7 +92,7 @@ function getThemeFromStorage(): "light" | "dark" {
 
 function getCurrencyFromStorage(): string {
   try {
-    const savedCurrency = localStorage.getItem("app.currency");
+    const savedCurrency = getCookie("app.currency") || localStorage.getItem("app.currency");
     if (savedCurrency) return savedCurrency;
   } catch {}
   return "GBP";
@@ -75,6 +103,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<"light" | "dark">(getThemeFromStorage);
   const [user, setUser] = useState<User | null>(getUserFromStorage);
   const [currency, setCurrencyState] = useState<string>(getCurrencyFromStorage);
+  const isInitialized = useRef(false);
+
+  // 初始化完成后设置状态
+  useEffect(() => {
+    const storedUser = getUserFromStorage();
+    if (storedUser && !user) {
+      setUser(storedUser);
+    }
+    isInitialized.current = true;
+  }, []);
 
   useEffect(() => {
     if (theme === "dark") {
@@ -84,23 +122,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const setLang = (l: Lang) => {
     setLangState(l);
-    try { localStorage.setItem("app.lang", l); } catch {}
+    try {
+      setCookie("app.lang", l, 365);
+      localStorage.setItem("app.lang", l);
+    } catch {}
   };
+
   const toggleTheme = () => {
     const next = theme === "light" ? "dark" : "light";
     setTheme(next);
     try {
+      setCookie("app.theme", next, 365);
       localStorage.setItem("app.theme", next);
       document.documentElement.classList.toggle("dark", next === "dark");
     } catch {}
   };
+
   const setCurrency = (c: string) => {
     setCurrencyState(c);
-    try { localStorage.setItem("app.currency", c); } catch {}
+    try {
+      setCookie("app.currency", c, 365);
+      localStorage.setItem("app.currency", c);
+    } catch {}
   };
 
   const login = async (email: string, password: string, admin = false): Promise<boolean> => {
-    // Admin login - use employees API
     if (admin) {
       try {
         const res = await fetch(
@@ -116,11 +162,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             permissions: data.permissions,
           };
           setUser(empUser);
-          try { localStorage.setItem("app.user", JSON.stringify(empUser)); } catch {}
+          try {
+            // 生成唯一标识符并存储
+            const userToken = `admin_${data.id}_${Date.now()}`;
+            setCookie("remember_token", userToken, 30); // 30 天有效期
+            localStorage.setItem(`app.user.${userToken}`, JSON.stringify(empUser));
+            localStorage.setItem("app.user", JSON.stringify(empUser)); // 兼容旧方式
+          } catch {}
           return true;
         }
         if (res.status === 403) {
-          return false; // account disabled
+          return false;
         }
       } catch (e) {
         console.error("Admin login failed:", e);
@@ -128,7 +180,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return false;
     }
 
-    // Agent login - use agents API
     try {
       const res = await fetch(`/api/agents?email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`);
       const data = await res.json();
@@ -143,7 +194,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           level: data.level,
         };
         setUser(agentUser);
-        try { localStorage.setItem("app.user", JSON.stringify(agentUser)); } catch {}
+        try {
+          // 生成唯一标识符并存储
+          const userToken = `agent_${data.id}_${Date.now()}`;
+          setCookie("remember_token", userToken, 30);
+          localStorage.setItem(`app.user.${userToken}`, JSON.stringify(agentUser));
+          localStorage.setItem("app.user", JSON.stringify(agentUser));
+        } catch {}
         return true;
       }
     } catch (e) {
@@ -155,7 +212,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const logout = () => {
     setUser(null);
-    try { localStorage.removeItem("app.user"); } catch {}
+    try {
+      const rememberToken = getCookie("remember_token");
+      if (rememberToken) {
+        localStorage.removeItem(`app.user.${rememberToken}`);
+        deleteCookie("remember_token");
+      }
+      localStorage.removeItem("app.user");
+    } catch {}
   };
 
   const value: AppContextValue = {
