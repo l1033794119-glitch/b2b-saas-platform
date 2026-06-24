@@ -66,6 +66,7 @@ export default function OrdersPage() {
   const [selected, setSelected] = useState<string | null>(null);
   const [showShipModal, setShowShipModal] = useState(false);
   const [shipInfo, setShipInfo] = useState({ trackingNumber: "", trackingImage: "", shippingFee: "" });
+  const [updating, setUpdating] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
 
   const handleTrackingImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
