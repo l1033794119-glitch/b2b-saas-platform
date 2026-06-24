@@ -57,12 +57,15 @@ export async function PUT(req: NextRequest) {
         break;
 
       case "clear_outstanding":
-        result = await repayCredit(agentId, 0, note || "Outstanding cleared");
-        // 对于清零，我们直接设置 outstanding=0，这里调用 repayCredit 但 amount 传 0 可能不工作
-        // 改为直接调用 setCreditLimit 并设置新额度来间接清理
-        const credit = await getCreditByAgentId(agentId);
-        if (credit) {
-          result = await setCreditLimit(agentId, credit.creditLimit, note || "Outstanding cleared");
+        const creditInfo = await getCreditByAgentId(agentId);
+        if (!creditInfo) {
+          return NextResponse.json({ error: "Agent credit record not found" }, { status: 404 });
+        }
+        const outstandingAmount = parseFloat(creditInfo.outstanding as any) || 0;
+        if (outstandingAmount <= 0) {
+          result = creditInfo;
+        } else {
+          result = await repayCredit(agentId, outstandingAmount, note || "Outstanding cleared");
         }
         break;
 
