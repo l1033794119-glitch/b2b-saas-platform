@@ -66,7 +66,33 @@ export default function OrdersPage() {
   const [selected, setSelected] = useState<string | null>(null);
   const [showShipModal, setShowShipModal] = useState(false);
   const [shipInfo, setShipInfo] = useState({ trackingNumber: "", trackingImage: "", shippingFee: "" });
-  const [updating, setUpdating] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+
+  const handleTrackingImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingImage(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setShipInfo({ ...shipInfo, trackingImage: data.url });
+      } else {
+        alert(lang === "en" ? "Upload failed" : lang === "zh-CN" ? "上传失败" : "上傳失敗");
+      }
+    } catch (error) {
+      console.error("Upload failed:", error);
+      alert(lang === "en" ? "Upload failed" : lang === "zh-CN" ? "上传失败" : "上傳失敗");
+    } finally {
+      setUploadingImage(false);
+    }
+  };
 
   const fetchOrders = async () => {
     try {
@@ -482,21 +508,12 @@ export default function OrdersPage() {
                         accept="image/*"
                         className="hidden"
                         id="tracking-upload"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            const reader = new FileReader();
-                            reader.onload = (ev) => {
-                              setShipInfo({ ...shipInfo, trackingImage: ev.target?.result as string });
-                            };
-                            reader.readAsDataURL(file);
-                          }
-                        }}
+                        onChange={handleTrackingImageUpload}
                       />
                       <label htmlFor="tracking-upload" className="cursor-pointer">
                         <Upload className="w-8 h-8 mx-auto text-slate-400 mb-2" />
                         <div className="text-sm text-slate-500">
-                          {lang === "en" ? "Click to upload tracking image" : lang === "zh-CN" ? "点击上传运单图片" : "點擊上傳運單圖片"}
+                          {uploadingImage ? (lang === "en" ? "Uploading..." : lang === "zh-CN" ? "上传中..." : "上傳中...") : (lang === "en" ? "Click to upload tracking image" : lang === "zh-CN" ? "点击上传运单图片" : "點擊上傳運單圖片")}
                         </div>
                       </label>
                     </>

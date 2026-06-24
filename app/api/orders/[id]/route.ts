@@ -45,13 +45,15 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       if (!order.shippingFee && parseFloat(body.shippingFee) > 0) {
         try {
           await deductCredit(order.agentId, parseFloat(body.shippingFee), `Shipping fee for order ${order.orderNo}`);
-          updates.shippedAt = body.shippedAt || formatMySQLDate();
         } catch (err: any) {
-            console.error("Failed to deduct shipping fee:", err);
-          }
-      } else {
-        updates.shippedAt = body.shippedAt || formatMySQLDate();
+          console.error("Failed to deduct shipping fee:", err);
+        }
       }
+    }
+
+    // 如果状态变为已发货，设置发货时间
+    if (body.status === "shipped") {
+      updates.shippedAt = body.shippedAt || formatMySQLDate();
     }
 
     // 保留原有的订单信息更新
