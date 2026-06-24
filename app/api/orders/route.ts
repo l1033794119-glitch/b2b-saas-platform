@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAllOrders, getOrdersByAgentId, createOrder, getProductById, updateProductStock } from "@/lib/repository";
 
+function formatMySQLDate(date: Date = new Date()): string {
+  const d = new Date(date);
+  return d.toISOString().replace("T", " ").substring(0, 19);
+}
+
 // GET - 获取所有订单或按代理商筛选
 export async function GET(req: NextRequest) {
   try {
@@ -89,7 +94,7 @@ export async function POST(req: NextRequest) {
       items: items || [],
       total: total || 0,
       status: "pending_review",
-      date: new Date().toISOString(),
+      date: formatMySQLDate(),
       shippingAddress: shippingAddress || "",
       postalCode: postalCode || "",
       country: country || "",

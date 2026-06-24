@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getOrderById, updateOrder, deleteOrder, deductCredit, addInventoryLog, getProductById } from "@/lib/repository";
 
+function formatMySQLDate(date: Date = new Date()): string {
+  const d = new Date(date);
+  return d.toISOString().replace("T", " ").substring(0, 19);
+}
+
 // GET - 获取单个订单详情
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -40,7 +45,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       if (!order.shippingFee && parseFloat(body.shippingFee) > 0) {
         try {
           await deductCredit(order.agentId, parseFloat(body.shippingFee), `Shipping fee for order ${order.orderNo}`);
-          updates.shippedAt = body.shippedAt || new Date().toISOString();
+          updates.shippedAt = body.shippedAt || formatMySQLDate();
         } catch (err: any) {
             console.error("Failed to deduct shipping fee:", err);
           }
