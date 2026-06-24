@@ -161,7 +161,6 @@ export default function OrdersPage() {
           trackingNumber: shipInfo.trackingNumber,
           trackingImage: shipInfo.trackingImage,
           shippingFee: fee,
-          shippedAt: new Date().toISOString(),
         }),
       });
       if (res.ok) {

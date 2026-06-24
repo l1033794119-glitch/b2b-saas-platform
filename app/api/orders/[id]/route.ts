@@ -50,7 +50,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
             console.error("Failed to deduct shipping fee:", err);
           }
       } else {
-        updates.shippedAt = body.shippedAt || new Date().toISOString();
+        updates.shippedAt = body.shippedAt || formatMySQLDate();
       }
     }
 
