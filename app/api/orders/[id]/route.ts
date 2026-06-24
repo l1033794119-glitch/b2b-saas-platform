@@ -37,18 +37,9 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       company: body.company,
     };
 
-    // 运费处理：如果提供 shippingFee 且订单状态变为已发货（shipped），则从代理商信用额度中扣减运费
+    // 运费处理：只更新运费金额，不重复扣减（前端已经处理了扣减）
     if (body.shippingFee !== undefined && body.shippingFee !== null) {
       updates.shippingFee = parseFloat(body.shippingFee);
-
-      // 如果之前没有运费记录，且现在发货则扣减运费
-      if (!order.shippingFee && parseFloat(body.shippingFee) > 0) {
-        try {
-          await deductCredit(order.agentId, parseFloat(body.shippingFee), `Shipping fee for order ${order.orderNo}`);
-        } catch (err: any) {
-          console.error("Failed to deduct shipping fee:", err);
-        }
-      }
     }
 
     // 如果状态变为已发货，设置发货时间
