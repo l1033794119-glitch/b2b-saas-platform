@@ -124,12 +124,24 @@ export default function OrdersPage() {
   useEffect(() => {
     fetchOrders();
     fetchAgents();
-    const interval = setInterval(fetchOrders, 5000);
-    return () => clearInterval(interval);
   }, []);
+
+  // 防止自动刷新时覆盖正在更新的订单
+  const [updatingOrderIds, setUpdatingOrderIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // 如果有订单正在更新，跳过这次刷新
+      if (updatingOrderIds.size === 0) {
+        fetchOrders();
+      }
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [updatingOrderIds]);
 
   const updateOrderStatus = async (id: string, status: string, extra?: Partial<Order>) => {
     setUpdating(true);
+    setUpdatingOrderIds((prev) => new Set(prev).add(id));
     try {
       const res = await fetch(`/api/orders/${id}`, {
         method: "PUT",
@@ -137,13 +149,20 @@ export default function OrdersPage() {
         body: JSON.stringify({ status, ...extra }),
       });
       if (res.ok) {
-        setData(data.map((o) => o.id === id ? { ...o, status, ...extra } : o));
-        if (selected === id) setSelected(id);
+        const updated = await res.json();
+        const updatedOrder = { ...data.find((o) => o.id === id), ...updated };
+        setData(data.map((o) => o.id === id ? updatedOrder : o));
+        if (selected === id) setSelected(updatedOrder);
       }
     } catch (error) {
       console.error("Failed to update order:", error);
     } finally {
       setUpdating(false);
+      setUpdatingOrderIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
     }
   };
 
@@ -153,10 +172,11 @@ export default function OrdersPage() {
 
   const handleShip = async () => {
     if (!shipInfo.trackingNumber.trim()) return;
+    const orderId = selected!;
     setUpdating(true);
+    setUpdatingOrderIds((prev) => new Set(prev).add(orderId));
     try {
       const fee = parseFloat(shipInfo.shippingFee) || 0;
-      const orderId = selected!;
       const currentOrder = data.find((o) => o.id === orderId);
 
       // 如果有运费，先从代理商信用额度中扣除
@@ -175,6 +195,11 @@ export default function OrdersPage() {
           const err = await creditRes.json();
           alert(lang === "en" ? "Failed to deduct shipping fee: " : lang === "zh-CN" ? "运费扣除失败: " : "運費扣除失敗: ") + (err.error || "Unknown error");
           setUpdating(false);
+          setUpdatingOrderIds((prev) => {
+            const next = new Set(prev);
+            next.delete(orderId);
+            return next;
+          });
           return;
         }
       }
@@ -192,7 +217,9 @@ export default function OrdersPage() {
       });
       if (res.ok) {
         const updated = await res.json();
-        setData(data.map((o) => o.id === orderId ? updated : o));
+        const updatedOrder = { ...currentOrder, ...updated };
+        setData(data.map((o) => o.id === orderId ? updatedOrder : o));
+        if (selected === orderId) setSelected(updatedOrder);
       }
       setShowShipModal(false);
       setShipInfo({ trackingNumber: "", trackingImage: "", shippingFee: "" });
@@ -200,6 +227,11 @@ export default function OrdersPage() {
       console.error("Shipping failed:", error);
     } finally {
       setUpdating(false);
+      setUpdatingOrderIds((prev) => {
+        const next = new Set(prev);
+        next.delete(orderId);
+        return next;
+      });
     }
   };
 
