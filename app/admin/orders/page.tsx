@@ -507,9 +507,9 @@ export default function OrdersPage() {
                             const err = await res.json();
                             alert(lang === "en" ? "Failed: " : lang === "zh-CN" ? "操作失败: " : "操作失敗: " + (err.error || "Unknown error"));
                           }
-                        } catch (error) {
-                          console.error("Confirm error:", error);
-                          alert(lang === "en" ? "Operation failed, please try again" : lang === "zh-CN" ? "操作失败，请重试" : "操作失敗，請重試");
+                        } catch (error: any) {
+                          console.error("Confirm error:", error, error?.message, error?.stack);
+                          alert(lang === "en" ? "Operation failed: " : lang === "zh-CN" ? "操作失败: " : "操作失敗: " + (error.message || JSON.stringify(error)));
                         } finally {
                           setUpdating(false);
                         }
