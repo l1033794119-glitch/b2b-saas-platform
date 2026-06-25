@@ -155,6 +155,7 @@ export default function ProductsPage() {
           lang={lang}
           t={t}
           currency={currency}
+          saving={saving}
         />
       )}
 
@@ -218,7 +219,7 @@ export default function ProductsPage() {
   );
 }
 
-function ProductForm({ product, categories, warehouses, onSave, onClose, lang, t, currency }: {
+function ProductForm({ product, categories, warehouses, onSave, onClose, lang, t, currency, saving }: {
   product: Partial<Product> | null;
   categories: string[];
   warehouses: Warehouse[];
@@ -227,6 +228,7 @@ function ProductForm({ product, categories, warehouses, onSave, onClose, lang, t
   lang: string;
   t: any;
   currency: string;
+  saving: boolean;
 }) {
   const [form, setForm] = useState<Partial<Product>>(() => {
     const defaultWh = warehouses[0];
