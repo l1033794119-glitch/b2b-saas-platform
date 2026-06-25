@@ -43,8 +43,11 @@ interface FilterOption {
 }
 
 const statusConfig: Record<string, { labelEn: string; labelZhCN: string; labelZhTW: string; color: string }> = {
-  pending: { labelEn: "Unshipped", labelZhCN: "未发货", labelZhTW: "未發貨", color: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400" },
+  pending_approval: { labelEn: "Pending Approval", labelZhCN: "待审批", labelZhTW: "待審批", color: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400" },
+  pending_qrcode: { labelEn: "Pending QR Code", labelZhCN: "待上传二维码", labelZhTW: "待上傳二維碼", color: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400" },
+  pending_shipment: { labelEn: "Pending Shipment", labelZhCN: "待发货", labelZhTW: "待發貨", color: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400" },
   shipped: { labelEn: "Shipped", labelZhCN: "已发货", labelZhTW: "已發貨", color: "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-400" },
+  completed: { labelEn: "Completed", labelZhCN: "已完成", labelZhTW: "已完成", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400" },
 };
 
 export default function MyOrdersPage() {
@@ -65,8 +68,11 @@ export default function MyOrdersPage() {
   const getStatusFilterOptions = (): FilterOption[] => {
     return [
       { label: lang === "en" ? "All Status" : lang === "zh-CN" ? "全部状态" : "全部狀態", value: "all" },
-      { label: lang === "en" ? "Unshipped" : lang === "zh-CN" ? "未发货" : "未發貨", value: "pending" },
+      { label: lang === "en" ? "Pending Approval" : lang === "zh-CN" ? "待审批" : "待審批", value: "pending_approval" },
+      { label: lang === "en" ? "Pending QR Code" : lang === "zh-CN" ? "待上传二维码" : "待上傳二維碼", value: "pending_qrcode" },
+      { label: lang === "en" ? "Pending Shipment" : lang === "zh-CN" ? "待发货" : "待發貨", value: "pending_shipment" },
       { label: lang === "en" ? "Shipped" : lang === "zh-CN" ? "已发货" : "已發貨", value: "shipped" },
+      { label: lang === "en" ? "Completed" : lang === "zh-CN" ? "已完成" : "已完成", value: "completed" },
     ];
   };
 
@@ -507,6 +513,32 @@ export default function MyOrdersPage() {
                     <span className="font-semibold">{lang === "en" ? "Total" : lang === "zh-CN" ? "总计" : "總計"}</span>
                     <span className="text-lg font-bold text-indigo-600">{formatCurrency(selected.total + (selected.shippingFee || 0), currency)}</span>
                   </div>
+
+                  {/* Action Buttons */}
+                  {selected.status === "shipped" && (
+                    <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                      <button
+                        onClick={() => {
+                          if (confirm(lang === "en" ? "Are you sure you want to mark this order as completed?" : lang === "zh-CN" ? "确定要完成此订单吗？" : "確定要完成此訂單嗎？")) {
+                            fetch(`/api/orders/${selected.id}`, {
+                              method: "PUT",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ status: "completed" }),
+                            }).then((res) => {
+                              if (res.ok) {
+                                setOrders(orders.map((o) => o.id === selected.id ? { ...o, status: "completed" } : o));
+                                setSelected({ ...selected, status: "completed" });
+                              }
+                            });
+                          }
+                        }}
+                        className="w-full btn-primary flex items-center justify-center gap-2"
+                      >
+                        <Check className="w-4 h-4" />
+                        {lang === "en" ? "Complete Order" : lang === "zh-CN" ? "完成订单" : "完成訂單"}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

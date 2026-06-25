@@ -229,7 +229,7 @@ export default function DashboardPage() {
     .filter((o: any) => o.shippingFee && o.shippingFee > 0)
     .reduce((sum: number, o: any) => sum + (o.shippingFee || 0), 0);
   const pendingOrdersCount = filteredOrders.filter((o: any) =>
-    o.status === "pending" || o.status === "pending_payment"
+    o.status === "pending_approval" || o.status === "pending_qrcode" || o.status === "pending_shipment" || o.status === "pending_payment"
   ).length;
   const shippedOrdersCount = filteredOrders.filter((o: any) =>
     o.status === "shipped"
@@ -328,8 +328,11 @@ export default function DashboardPage() {
   const getStatusFilterLabel = () => {
     const labels: Record<string, string> = {
       all: lang === "en" ? "All Status" : lang === "zh-CN" ? "全部状态" : "全部狀態",
-      pending: lang === "en" ? "Unshipped" : lang === "zh-CN" ? "未发货" : "未發貨",
+      pending_approval: lang === "en" ? "Pending Approval" : lang === "zh-CN" ? "待审批" : "待審批",
+      pending_qrcode: lang === "en" ? "Pending QR Code" : lang === "zh-CN" ? "待上传二维码" : "待上傳二維碼",
+      pending_shipment: lang === "en" ? "Pending Shipment" : lang === "zh-CN" ? "待发货" : "待發貨",
       shipped: lang === "en" ? "Shipped" : lang === "zh-CN" ? "已发货" : "已發貨",
+      completed: lang === "en" ? "Completed" : lang === "zh-CN" ? "已完成" : "已完成",
     };
     return labels[statusFilter];
   };
@@ -407,11 +410,14 @@ export default function DashboardPage() {
             </button>
             {showStatusDropdown && (
               <div className="absolute top-full left-0 mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg z-10 min-w-[160px] py-1">
-                {["all", "pending", "shipped"].map((option) => {
+                {["all", "pending_approval", "pending_qrcode", "pending_shipment", "shipped", "completed"].map((option) => {
                   const labels: Record<string, string> = {
                     all: lang === "en" ? "All Status" : lang === "zh-CN" ? "全部状态" : "全部狀態",
-                    pending: lang === "en" ? "Unshipped" : lang === "zh-CN" ? "未发货" : "未發貨",
+                    pending_approval: lang === "en" ? "Pending Approval" : lang === "zh-CN" ? "待审批" : "待審批",
+                    pending_qrcode: lang === "en" ? "Pending QR Code" : lang === "zh-CN" ? "待上传二维码" : "待上傳二維碼",
+                    pending_shipment: lang === "en" ? "Pending Shipment" : lang === "zh-CN" ? "待发货" : "待發貨",
                     shipped: lang === "en" ? "Shipped" : lang === "zh-CN" ? "已发货" : "已發貨",
+                    completed: lang === "en" ? "Completed" : lang === "zh-CN" ? "已完成" : "已完成",
                   };
                   return (
                     <button

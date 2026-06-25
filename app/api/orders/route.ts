@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
       agentId,
       items: items || [],
       total: total || 0,
-      status: "pending",
+      status: "pending_approval",
       date: formatMySQLDate(),
       shippingAddress: shippingAddress || "",
       postalCode: postalCode || "",

@@ -5,7 +5,7 @@ import { AdminLayout } from "@/components/Layout";
 import { PageCard, StatusBadge } from "@/components/Sidebar";
 import { useApp } from "@/components/AppProvider";
 import { formatCurrency, formatNumber } from "@/lib/utils";
-import { Eye, Truck, FileText, Search, X, Phone, Mail, User, MapPin, Package, Image, Upload } from "lucide-react";
+import { Eye, Truck, FileText, Search, X, Phone, Mail, User, MapPin, Package, Image, Upload, Check, AlertCircle } from "lucide-react";
 
 interface OrderItem {
   productId: string;
@@ -48,8 +48,11 @@ interface Agent {
 
 const statuses = [
   { id: "all", labelEn: "All", labelZhCN: "全部", labelZhTW: "全部" },
-  { id: "pending", labelEn: "Unshipped", labelZhCN: "未发货", labelZhTW: "未發貨" },
+  { id: "pending_approval", labelEn: "Pending Approval", labelZhCN: "待审批", labelZhTW: "待審批" },
+  { id: "pending_qrcode", labelEn: "Pending QR Code", labelZhCN: "待上传二维码", labelZhTW: "待上傳二維碼" },
+  { id: "pending_shipment", labelEn: "Pending Shipment", labelZhCN: "待发货", labelZhTW: "待發貨" },
   { id: "shipped", labelEn: "Shipped", labelZhCN: "已发货", labelZhTW: "已發貨" },
+  { id: "completed", labelEn: "Completed", labelZhCN: "已完成", labelZhTW: "已完成" },
 ];
 
 export default function OrdersPage() {
@@ -384,11 +387,63 @@ export default function OrdersPage() {
                 {selectedOrder.country && <span>{selectedOrder.country}</span>}
               </div>
 
+              {/* QR Code Upload Section - Show when pending_qrcode */}
+              {selectedOrder.status === "pending_qrcode" && (
+                <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-950/30 rounded-xl">
+                  <div className="text-xs text-amber-600 mb-2 flex items-center gap-1">
+                    <AlertCircle className="w-4 h-4" />
+                    {lang === "en" ? "Please upload payment QR code" : lang === "zh-CN" ? "请上传支付二维码" : "請上傳支付二維碼"}
+                  </div>
+                  <div className="border-2 border-dashed border-amber-300 dark:border-amber-700 rounded-xl p-4 text-center hover:border-amber-500 transition-colors">
+                    {shipInfo.trackingImage ? (
+                      <div className="relative">
+                        <img src={shipInfo.trackingImage} alt="QR Code" className="max-h-40 mx-auto rounded-lg" />
+                        <button
+                          onClick={() => setShipInfo({ ...shipInfo, trackingImage: "" })}
+                          className="absolute top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          id="qr-upload"
+                          onChange={handleTrackingImageUpload}
+                        />
+                        <label htmlFor="qr-upload" className="cursor-pointer">
+                          <Upload className="w-8 h-8 mx-auto text-amber-400 mb-2" />
+                          <div className="text-sm text-amber-600">
+                            {uploadingImage ? (lang === "en" ? "Uploading..." : lang === "zh-CN" ? "上传中..." : "上傳中...") : (lang === "en" ? "Click to upload QR code" : lang === "zh-CN" ? "点击上传二维码" : "點擊上傳二維碼")}
+                          </div>
+                        </label>
+                      </>
+                    )}
+                  </div>
+                  {shipInfo.trackingImage && (
+                    <button
+                      onClick={() => {
+                        updateOrderStatus(selectedOrder.id, "pending_shipment", { trackingImage: shipInfo.trackingImage });
+                        setShipInfo({ trackingNumber: "", trackingImage: "", shippingFee: "" });
+                      }}
+                      disabled={updating}
+                      className="mt-3 w-full btn-primary flex items-center justify-center gap-2"
+                    >
+                      <Check className="w-4 h-4" />
+                      {lang === "en" ? "Confirm & Continue to Ship" : lang === "zh-CN" ? "确认并继续发货" : "確認並繼續發貨"}
+                    </button>
+                  )}
+                </div>
+              )}
+
               {/* Tracking Image */}
-              {selectedOrder.trackingImage && (
+              {selectedOrder.trackingImage && selectedOrder.status !== "pending_qrcode" && (
                 <div className="mt-4">
-                  <div className="text-xs text-slate-500 mb-2">{lang === "en" ? "Tracking Image" : lang === "zh-CN" ? "运单图片" : "運單圖片"}</div>
-                  <img src={selectedOrder.trackingImage} alt="Tracking" className="max-w-xs rounded-lg border border-slate-200 dark:border-slate-700" />
+                  <div className="text-xs text-slate-500 mb-2">{lang === "en" ? "QR Code" : lang === "zh-CN" ? "二维码" : "二維碼"}</div>
+                  <img src={selectedOrder.trackingImage} alt="QR Code" className="max-w-xs rounded-lg border border-slate-200 dark:border-slate-700" />
                 </div>
               )}
             </div>
@@ -447,8 +502,19 @@ export default function OrdersPage() {
 
           {/* Action Buttons */}
           <div className="flex flex-wrap gap-2">
-            {/* 未发货 → 发货 */}
-            {selectedOrder.status === "pending" && (
+            {/* 待审批 → 审批通过 → 待上传二维码 */}
+            {selectedOrder.status === "pending_approval" && (
+              <button onClick={() => {
+                if (confirm(lang === "en" ? "Approve this order?" : lang === "zh-CN" ? "审批通过此订单？" : "審批通過此訂單？")) {
+                  updateOrderStatus(selectedOrder.id, "pending_qrcode");
+                }
+              }} disabled={updating} className="btn-primary flex items-center gap-2">
+                <Check className="w-4 h-4" /> {lang === "en" ? "审批通过" : lang === "zh-CN" ? "审批通过" : "審批通過"}
+              </button>
+            )}
+
+            {/* 待发货 → 发货 */}
+            {selectedOrder.status === "pending_shipment" && (
               <button onClick={() => setShowShipModal(true)} disabled={updating} className="btn-primary flex items-center gap-2">
                 <Truck className="w-4 h-4" /> {lang === "en" ? "发货" : lang === "zh-CN" ? "发货" : "發貨"}
               </button>
