@@ -9,7 +9,7 @@ import { Truck, Package } from "lucide-react";
 
 export default function ShippingPage() {
   const { t, currency, lang } = useApp();
-  const shippable = orders.filter((o) => o.status === "processing" || o.status === "shipped" || o.status === "approved");
+  const shippable = orders.filter((o) => o.status === "processing" || o.status === "shipped" || o.status === "pending");
   const carriers = ["Royal Mail", "Evri", "DPD", "UPS", "DHL"];
 
   return (

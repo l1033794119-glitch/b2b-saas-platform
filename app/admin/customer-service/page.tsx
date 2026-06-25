@@ -64,7 +64,7 @@ export default function CustomerServicePage() {
               </tr>
             </thead>
             <tbody>
-              {orders.filter((o) => o.status === "pending_review" || o.status === "pending_payment").map((o) => (
+              {orders.filter((o) => o.status === "pending" || o.status === "pending_payment").map((o) => (
                 <tr key={o.id}>
                   <td className="font-mono text-xs">{o.orderNo}</td>
                   <td className="font-medium">{o.company}</td>

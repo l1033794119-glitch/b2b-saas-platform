@@ -15,7 +15,7 @@ export default function OperationsPage() {
         <StatCard label={t("orders")} value={formatNumber(orders.length)} icon={ShoppingCart} accent="indigo" />
         <StatCard label={t("products")} value={formatNumber(products.length)} icon={Package} accent="emerald" />
         <StatCard label={t("agents")} value={formatNumber(agents.length)} icon={Users} accent="amber" />
-        <StatCard label={lang === "en" ? "Pending" : lang === "zh-CN" ? "待处理" : "待處理"} value={formatNumber(orders.filter((o) => o.status === "pending_review" || o.status === "pending_payment").length)} icon={Activity} accent="rose" />
+        <StatCard label={lang === "en" ? "Pending" : lang === "zh-CN" ? "待处理" : "待處理"} value={formatNumber(orders.filter((o) => o.status === "pending" || o.status === "pending_payment").length)} icon={Activity} accent="rose" />
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">

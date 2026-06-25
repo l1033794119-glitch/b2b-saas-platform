@@ -5,7 +5,7 @@ import { AdminLayout } from "@/components/Layout";
 import { PageCard, StatusBadge } from "@/components/Sidebar";
 import { useApp } from "@/components/AppProvider";
 import { formatCurrency, formatNumber } from "@/lib/utils";
-import { Eye, Truck, FileText, Check, Search, X, Phone, Mail, User, MapPin, Package, Image, Upload } from "lucide-react";
+import { Eye, Truck, FileText, Search, X, Phone, Mail, User, MapPin, Package, Image, Upload } from "lucide-react";
 
 interface OrderItem {
   productId: string;
@@ -48,8 +48,7 @@ interface Agent {
 
 const statuses = [
   { id: "all", labelEn: "All", labelZhCN: "全部", labelZhTW: "全部" },
-  { id: "pending_review", labelEn: "Pending Review", labelZhCN: "待审核", labelZhTW: "待審核" },
-  { id: "approved", labelEn: "Approved", labelZhCN: "已批准", labelZhTW: "已批准" },
+  { id: "pending", labelEn: "Unshipped", labelZhCN: "未发货", labelZhTW: "未發貨" },
   { id: "shipped", labelEn: "Shipped", labelZhCN: "已发货", labelZhTW: "已發貨" },
 ];
 
@@ -164,10 +163,6 @@ export default function OrdersPage() {
         return next;
       });
     }
-  };
-
-  const handleApprove = (order: Order) => {
-    updateOrderStatus(order.id, "approved");
   };
 
   const handleShip = async () => {
@@ -452,15 +447,8 @@ export default function OrdersPage() {
 
           {/* Action Buttons */}
           <div className="flex flex-wrap gap-2">
-            {/* 待审核 → 批准 */}
-            {selectedOrder.status === "pending_review" && (
-              <button onClick={() => handleApprove(selectedOrder)} disabled={updating} className="btn-primary flex items-center gap-2">
-                <Check className="w-4 h-4" /> {lang === "en" ? "批准" : lang === "zh-CN" ? "批准" : "批准"}
-              </button>
-            )}
-
-            {/* 已批准 → 发货 */}
-            {selectedOrder.status === "approved" && (
+            {/* 未发货 → 发货 */}
+            {selectedOrder.status === "pending" && (
               <button onClick={() => setShowShipModal(true)} disabled={updating} className="btn-primary flex items-center gap-2">
                 <Truck className="w-4 h-4" /> {lang === "en" ? "发货" : lang === "zh-CN" ? "发货" : "發貨"}
               </button>

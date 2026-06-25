@@ -229,7 +229,7 @@ export default function DashboardPage() {
     .filter((o: any) => o.shippingFee && o.shippingFee > 0)
     .reduce((sum: number, o: any) => sum + (o.shippingFee || 0), 0);
   const pendingOrdersCount = filteredOrders.filter((o: any) =>
-    o.status === "pending_review" || o.status === "pending_payment" || o.status === "approved"
+    o.status === "pending" || o.status === "pending_payment"
   ).length;
   const shippedOrdersCount = filteredOrders.filter((o: any) =>
     o.status === "shipped"
@@ -328,8 +328,7 @@ export default function DashboardPage() {
   const getStatusFilterLabel = () => {
     const labels: Record<string, string> = {
       all: lang === "en" ? "All Status" : lang === "zh-CN" ? "全部状态" : "全部狀態",
-      pending_review: lang === "en" ? "Pending" : lang === "zh-CN" ? "待审核" : "待審核",
-      approved: lang === "en" ? "Approved" : lang === "zh-CN" ? "已批准" : "已批准",
+      pending: lang === "en" ? "Unshipped" : lang === "zh-CN" ? "未发货" : "未發貨",
       shipped: lang === "en" ? "Shipped" : lang === "zh-CN" ? "已发货" : "已發貨",
       completed: lang === "en" ? "Completed" : lang === "zh-CN" ? "已完成" : "已完成",
       cancelled: lang === "en" ? "Cancelled" : lang === "zh-CN" ? "已取消" : "已取消",
@@ -410,11 +409,10 @@ export default function DashboardPage() {
             </button>
             {showStatusDropdown && (
               <div className="absolute top-full left-0 mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg z-10 min-w-[160px] py-1">
-                {["all", "pending_review", "approved", "shipped", "completed", "cancelled"].map((option) => {
+                {["all", "pending", "shipped", "completed", "cancelled"].map((option) => {
                   const labels: Record<string, string> = {
                     all: lang === "en" ? "All Status" : lang === "zh-CN" ? "全部状态" : "全部狀態",
-                    pending_review: lang === "en" ? "Pending Review" : lang === "zh-CN" ? "待审核" : "待審核",
-                    approved: lang === "en" ? "Approved" : lang === "zh-CN" ? "已批准" : "已批准",
+                    pending: lang === "en" ? "Unshipped" : lang === "zh-CN" ? "未发货" : "未發貨",
                     shipped: lang === "en" ? "Shipped" : lang === "zh-CN" ? "已发货" : "已發貨",
                     completed: lang === "en" ? "Completed" : lang === "zh-CN" ? "已完成" : "已完成",
                     cancelled: lang === "en" ? "Cancelled" : lang === "zh-CN" ? "已取消" : "已取消",
