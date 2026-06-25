@@ -90,7 +90,10 @@ export default function ProductsPage() {
     }
   };
 
+  const [saving, setSaving] = useState(false);
+
   const handleSave = async (product: Partial<Product>) => {
+    setSaving(true);
     try {
       const res = await fetch("/api/products", {
         method: "POST",
@@ -110,8 +113,13 @@ export default function ProductsPage() {
         });
         setShowForm(false);
         setEditing(null);
+      } else {
+        alert(lang === "en" ? "Failed to save product: " : lang === "zh-CN" ? "保存产品失败: " : "保存產品失敗: " + (saved.error || "Unknown error"));
       }
-    } catch {
+    } catch (err) {
+      alert(lang === "en" ? "Failed to save product" : lang === "zh-CN" ? "保存产品失败" : "保存產品失敗");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -397,15 +405,15 @@ function ProductForm({ product, categories, warehouses, onSave, onClose, lang, t
             </div>
             <div>
               <label className="label">{lang === "en" ? "Cost Price" : "成本价"} ({currency})</label>
-              <input className="input" type="number" value={form.costPrice || 0} onChange={(e) => set("costPrice", +e.target.value)} />
+              <input className="input" type="number" step="0.01" value={form.costPrice || 0} onChange={(e) => set("costPrice", +e.target.value)} />
             </div>
             <div>
               <label className="label">{lang === "en" ? "Wholesale Price" : "批发价"} ({currency})</label>
-              <input className="input" type="number" value={form.wholesalePrice || 0} onChange={(e) => set("wholesalePrice", +e.target.value)} />
+              <input className="input" type="number" step="0.01" value={form.wholesalePrice || 0} onChange={(e) => set("wholesalePrice", +e.target.value)} />
             </div>
             <div>
               <label className="label">{lang === "en" ? "Retail Price" : "零售价"} ({currency})</label>
-              <input className="input" type="number" value={form.retailPrice || 0} onChange={(e) => set("retailPrice", +e.target.value)} />
+              <input className="input" type="number" step="0.01" value={form.retailPrice || 0} onChange={(e) => set("retailPrice", +e.target.value)} />
             </div>
             <div>
               <label className="label">{t("stock")}</label>
@@ -413,15 +421,15 @@ function ProductForm({ product, categories, warehouses, onSave, onClose, lang, t
             </div>
             <div>
               <label className="label">{lang === "en" ? "Level A Price" : "A级代理价"} ({currency})</label>
-              <input className="input" type="number" value={form.levelAPrice || 0} onChange={(e) => set("levelAPrice", +e.target.value)} />
+              <input className="input" type="number" step="0.01" value={form.levelAPrice || 0} onChange={(e) => set("levelAPrice", +e.target.value)} />
             </div>
             <div>
               <label className="label">{lang === "en" ? "Level B Price" : "B级代理价"} ({currency})</label>
-              <input className="input" type="number" value={form.levelBPrice || 0} onChange={(e) => set("levelBPrice", +e.target.value)} />
+              <input className="input" type="number" step="0.01" value={form.levelBPrice || 0} onChange={(e) => set("levelBPrice", +e.target.value)} />
             </div>
             <div>
               <label className="label">{lang === "en" ? "Level C Price" : "C级代理价"} ({currency})</label>
-              <input className="input" type="number" value={form.levelCPrice || 0} onChange={(e) => set("levelCPrice", +e.target.value)} />
+              <input className="input" type="number" step="0.01" value={form.levelCPrice || 0} onChange={(e) => set("levelCPrice", +e.target.value)} />
             </div>
             <div>
               <label className="label">{lang === "en" ? "Status" : "状态"}</label>
@@ -434,8 +442,15 @@ function ProductForm({ product, categories, warehouses, onSave, onClose, lang, t
           </div>
         </div>
         <div className="flex justify-end gap-3 p-5 border-t border-slate-200 dark:border-slate-800">
-          <button onClick={onClose} className="btn-ghost">{lang === "en" ? "Cancel" : "取消"}</button>
-          <button onClick={() => onSave(form)} className="btn-primary flex items-center gap-2"><Check className="w-4 h-4" /> {lang === "en" ? "Save" : "保存"}</button>
+          <button type="button" onClick={onClose} className="btn-ghost">{lang === "en" ? "Cancel" : "取消"}</button>
+          <button type="button" onClick={() => onSave(form)} disabled={saving} className="btn-primary flex items-center gap-2 disabled:opacity-50">
+            {saving ? (
+              <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <Check className="w-4 h-4" />
+            )}
+            {saving ? (lang === "en" ? "Saving..." : lang === "zh-CN" ? "保存中..." : "保存中...") : (lang === "en" ? "Save" : "保存")}
+          </button>
         </div>
       </div>
     </div>
