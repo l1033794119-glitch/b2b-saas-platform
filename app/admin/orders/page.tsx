@@ -468,40 +468,51 @@ export default function OrdersPage() {
                         const fee = parseFloat(qrInfo.shippingFee) || 0;
                         const currentOrder = data.find((o) => o.id === selectedOrder.id);
 
-                        if (fee > 0 && currentOrder) {
-                          const creditRes = await fetch("/api/credit", {
-                            method: "POST",
+                        setUpdating(true);
+                        try {
+                          if (fee > 0 && currentOrder) {
+                            const creditRes = await fetch("/api/credit", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({
+                                agentId: currentOrder.agentId,
+                                amount: -fee,
+                                type: "shipping_fee",
+                                note: `Shipping fee for order ${currentOrder.orderNo}`,
+                              }),
+                            });
+                            if (!creditRes.ok) {
+                              const err = await creditRes.json();
+                              alert(lang === "en" ? "Failed to deduct shipping fee: " : lang === "zh-CN" ? "运费扣除失败: " : "運費扣除失敗: " + (err.error || "Unknown error"));
+                              return;
+                            }
+                          }
+
+                          const res = await fetch(`/api/orders/${selectedOrder.id}`, {
+                            method: "PUT",
                             headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({
-                              agentId: currentOrder.agentId,
-                              amount: -fee,
-                              type: "shipping_fee",
-                              note: `Shipping fee for order ${currentOrder.orderNo}`,
+                              status: "pending_shipment",
+                              qrCode: qrInfo.qrCode,
+                              shippingFee: fee,
                             }),
                           });
-                          if (!creditRes.ok) {
-                            const err = await creditRes.json();
-                            alert(lang === "en" ? "Failed to deduct shipping fee: " : lang === "zh-CN" ? "运费扣除失败: " : "運費扣除失敗: " + (err.error || "Unknown error"));
-                            return;
+                          if (res.ok) {
+                            const updated = await res.json();
+                            const updatedOrder = { ...selectedOrder, ...updated };
+                            setData(data.map((o) => o.id === selectedOrder.id ? updatedOrder : o));
+                            setSelected(updatedOrder);
+                            setQrInfo({ qrCode: "", shippingFee: "" });
+                          } else {
+                            const err = await res.json();
+                            alert(lang === "en" ? "Failed: " : lang === "zh-CN" ? "操作失败: " : "操作失敗: " + (err.error || "Unknown error"));
                           }
+                        } catch (error) {
+                          console.error("Confirm error:", error);
+                          alert(lang === "en" ? "Operation failed, please try again" : lang === "zh-CN" ? "操作失败，请重试" : "操作失敗，請重試");
+                        } finally {
+                          setUpdating(false);
                         }
-
-                        const res = await fetch(`/api/orders/${selectedOrder.id}`, {
-                          method: "PUT",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({
-                            status: "pending_shipment",
-                            qrCode: qrInfo.qrCode,
-                            shippingFee: fee,
-                          }),
-                        });
-                        if (res.ok) {
-                          const updated = await res.json();
-                          const updatedOrder = { ...selectedOrder, ...updated };
-                          setData(data.map((o) => o.id === selectedOrder.id ? updatedOrder : o));
-                          setSelected(updatedOrder);
-                        }
-                        setQrInfo({ qrCode: "", shippingFee: "" });
                       }}
                       disabled={updating}
                       className="w-full btn-primary flex items-center justify-center gap-2"
@@ -723,11 +734,17 @@ export default function OrdersPage() {
                         const updatedOrder = { ...selectedOrder, ...updated };
                         setData(data.map((o) => o.id === selectedOrder.id ? updatedOrder : o));
                         setSelected(updatedOrder);
+                        setShowShipModal(false);
+                        setShipInfo({ trackingNumber: "", trackingImage: "" });
+                      } else {
+                        const err = await res.json();
+                        alert(lang === "en" ? "Failed to ship: " : lang === "zh-CN" ? "发货失败: " : "發貨失敗: " + (err.error || "Unknown error"));
                       }
+                    } catch (error) {
+                      console.error("Ship error:", error);
+                      alert(lang === "en" ? "Operation failed, please try again" : lang === "zh-CN" ? "操作失败，请重试" : "操作失敗，請重試");
                     } finally {
                       setUpdating(false);
-                      setShowShipModal(false);
-                      setShipInfo({ trackingNumber: "", trackingImage: "" });
                     }
                   } else {
                     if (!shipInfo.trackingNumber.trim() && !shipInfo.trackingImage) {
@@ -749,11 +766,17 @@ export default function OrdersPage() {
                         const updatedOrder = { ...selectedOrder, ...updated };
                         setData(data.map((o) => o.id === selectedOrder.id ? updatedOrder : o));
                         setSelected(updatedOrder);
+                        setShowShipModal(false);
+                        setShipInfo({ trackingNumber: "", trackingImage: "" });
+                      } else {
+                        const err = await res.json();
+                        alert(lang === "en" ? "Save failed: " : lang === "zh-CN" ? "保存失败: " : "保存失敗: " + (err.error || "Unknown error"));
                       }
+                    } catch (error) {
+                      console.error("Save error:", error);
+                      alert(lang === "en" ? "Operation failed, please try again" : lang === "zh-CN" ? "操作失败，请重试" : "操作失敗，請重試");
                     } finally {
                       setUpdating(false);
-                      setShowShipModal(false);
-                      setShipInfo({ trackingNumber: "", trackingImage: "" });
                     }
                   }
                 }}
