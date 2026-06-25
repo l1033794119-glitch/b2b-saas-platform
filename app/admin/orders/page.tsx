@@ -334,7 +334,7 @@ export default function OrdersPage() {
             />
           </div>
           <button
-            onClick={() => { setQ(""); setFlt("all"); setAgentFilter("all"); setDateFrom(""); setDateTo(""); }}
+            onClick={() => { setQ(""); setFlt("all"); setAgentFilter("all"); setWarehouseFilter("all"); setDateFrom(""); setDateTo(""); }}
             className="btn-ghost py-2"
           >
             {lang === "en" ? "Clear Filters" : lang === "zh-CN" ? "清除筛选" : "清除篩選"}

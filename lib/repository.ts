@@ -413,6 +413,8 @@ function mapOrderFromRow(o: any): Order {
     shippedAt: o.shipped_at,
     trackingImage: o.tracking_image,
     qrCode: o.qr_code || o.qrCode || null,
+    warehouseId: o.warehouse_id || o.warehouseId || null,
+    warehouse: o.warehouse || null,
   };
 }
 
@@ -452,8 +454,9 @@ export async function createOrder(order: any): Promise<Order> {
     await execute(
       `INSERT INTO orders (id, order_no, agent_id, items, total, status, date,
        shipping_address, postal_code, country, contact_name, phone, email, notes,
-       tracking_number, company, shipping_fee, shipped_at, tracking_image, qr_code, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       tracking_number, company, shipping_fee, shipped_at, tracking_image, qr_code,
+       warehouse_id, warehouse, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id, order.orderNo, order.agentId, JSON.stringify(order.items || []),
         order.total, order.status || "pending_review", order.date || now,
@@ -461,7 +464,7 @@ export async function createOrder(order: any): Promise<Order> {
         order.contactName || "", order.phone || "", order.email || "",
         order.notes || "", order.trackingNumber || null, order.company || null,
         order.shippingFee || null, order.shippedAt || null, order.trackingImage || null,
-        order.qrCode || null,
+        order.qrCode || null, order.warehouseId || null, order.warehouse || null,
         now, now
       ]
     );
@@ -477,6 +480,8 @@ export async function createOrder(order: any): Promise<Order> {
       shippingFee: order.shippingFee || null, shippedAt: order.shippedAt || null,
       trackingImage: order.trackingImage || null,
       qrCode: order.qrCode || null,
+      warehouseId: order.warehouseId || null,
+      warehouse: order.warehouse || null,
     });
   }
 
@@ -490,6 +495,8 @@ export async function createOrder(order: any): Promise<Order> {
     shippingFee: order.shippingFee || null, shippedAt: order.shippedAt || null,
     trackingImage: order.trackingImage || null,
     qrCode: order.qrCode || null,
+    warehouseId: order.warehouseId || null,
+    warehouse: order.warehouse || null,
   };
 }
 
@@ -516,6 +523,8 @@ export async function updateOrder(id: string, updates: any): Promise<Order | nul
     if (updates.shippedAt !== undefined) { setClauses.push("shipped_at = ?"); values.push(updates.shippedAt); }
     if (updates.trackingImage !== undefined) { setClauses.push("tracking_image = ?"); values.push(updates.trackingImage); }
     if (updates.qrCode !== undefined) { setClauses.push("qr_code = ?"); values.push(updates.qrCode); }
+    if (updates.warehouseId !== undefined) { setClauses.push("warehouse_id = ?"); values.push(updates.warehouseId); }
+    if (updates.warehouse !== undefined) { setClauses.push("warehouse = ?"); values.push(updates.warehouse); }
 
     setClauses.push("updated_at = ?");
     values.push(formatMySQLDate());

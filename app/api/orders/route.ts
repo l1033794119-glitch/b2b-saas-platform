@@ -50,12 +50,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: stockErrors.join("; ") }, { status: 400 });
     }
 
-    // 扣减库存
+    // 扣减库存并获取仓库信息
+    const warehouseIds = new Set<string>();
+    const warehouseNames = new Set<string>();
+    const orderItemsWithWarehouse = [];
+
     for (const item of items) {
       const product = await getProductById(item.productId);
       if (product) {
         const newStock = (product.stock || 0) - (item.quantity || 0);
         await updateProductStock(item.productId, newStock);
+        
+        if (product.warehouseId) warehouseIds.add(product.warehouseId);
+        if (product.warehouse) warehouseNames.add(product.warehouse);
+        
+        orderItemsWithWarehouse.push({
+          ...item,
+          warehouseId: product.warehouseId || null,
+          warehouse: product.warehouse || null,
+        });
+      } else {
+        orderItemsWithWarehouse.push(item);
       }
     }
 
@@ -91,7 +106,7 @@ export async function POST(req: NextRequest) {
       id: `ord_${Date.now()}`,
       orderNo: body.orderNo || `ORD-${Date.now()}`,
       agentId,
-      items: items || [],
+      items: orderItemsWithWarehouse || [],
       total: total || 0,
       status: "pending_approval",
       date: formatMySQLDate(),
@@ -107,6 +122,8 @@ export async function POST(req: NextRequest) {
       shippingFee: null,
       shippedAt: null,
       qrCode: null,
+      warehouseId: warehouseIds.size === 1 ? Array.from(warehouseIds)[0] : null,
+      warehouse: warehouseNames.size === 1 ? Array.from(warehouseNames)[0] : null,
     };
 
     const result = await createOrder(order);
