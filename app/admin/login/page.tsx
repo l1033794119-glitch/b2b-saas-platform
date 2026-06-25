@@ -17,7 +17,11 @@ export default function AdminLogin() {
 
   useEffect(() => {
     if (user) {
-      router.push("/admin/dashboard");
+      // 只有管理员角色才能跳转到仪表盘
+      const adminRoles = ["super_admin", "warehouse_manager", "finance_manager", "operations_manager", "customer_service"];
+      if (adminRoles.includes(user.role)) {
+        router.push("/admin/dashboard");
+      }
     }
   }, [user, router]);
 
