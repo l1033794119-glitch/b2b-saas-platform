@@ -32,6 +32,7 @@ interface Order {
   email?: string;
   trackingNumber?: string;
   trackingImage?: string;
+  qrCode?: string;
   notes?: string;
   shippingFee?: number;
   shippedAt?: string;
@@ -426,12 +427,35 @@ export default function MyOrdersPage() {
               {/* Status Timeline */}
               <div className="mb-6 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
                 <div className="text-xs text-slate-500 mb-3">{lang === "en" ? "Order Status" : lang === "zh-CN" ? "订单状态" : "訂單狀態"}</div>
-                <div className="flex items-center gap-2">
-                  <div className={`w-3 h-3 rounded-full ${selected.status === "pending" || selected.status === "shipped" ? "bg-emerald-500" : "bg-slate-300"}`} />
-                  <span className="text-xs">{lang === "en" ? "Submitted" : lang === "zh-CN" ? "已提交" : "已提交"}</span>
-                  <div className={`flex-1 h-0.5 ${selected.status === "shipped" ? "bg-emerald-500" : "bg-slate-200"}`} />
-                  <div className={`w-3 h-3 rounded-full ${selected.status === "shipped" ? "bg-emerald-500" : "bg-slate-300"}`} />
-                  <span className="text-xs">{lang === "en" ? "Shipped" : lang === "zh-CN" ? "已发货" : "已發貨"}</span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {/* 已提交 */}
+                  <div className={`w-3 h-3 rounded-full ${["pending_approval", "pending_qrcode", "pending_shipment", "shipped", "completed"].includes(selected.status) ? "bg-emerald-500" : "bg-slate-300"}`} />
+                  <span className="text-xs whitespace-nowrap">{lang === "en" ? "Submitted" : lang === "zh-CN" ? "已提交" : "已提交"}</span>
+                  <div className={`flex-1 h-0.5 min-w-4 ${["pending_qrcode", "pending_shipment", "shipped", "completed"].includes(selected.status) ? "bg-emerald-500" : "bg-slate-200"}`} />
+                  
+                  {/* 待审批 */}
+                  <div className={`w-3 h-3 rounded-full ${["pending_approval", "pending_qrcode", "pending_shipment", "shipped", "completed"].includes(selected.status) ? "bg-amber-500" : "bg-slate-300"}`} />
+                  <span className="text-xs whitespace-nowrap">{lang === "en" ? "Pending Approval" : lang === "zh-CN" ? "待审批" : "待審批"}</span>
+                  <div className={`flex-1 h-0.5 min-w-4 ${["pending_qrcode", "pending_shipment", "shipped", "completed"].includes(selected.status) ? "bg-emerald-500" : "bg-slate-200"}`} />
+                  
+                  {/* 待上传二维码 */}
+                  <div className={`w-3 h-3 rounded-full ${["pending_qrcode", "pending_shipment", "shipped", "completed"].includes(selected.status) ? "bg-orange-500" : "bg-slate-300"}`} />
+                  <span className="text-xs whitespace-nowrap">{lang === "en" ? "QR Code" : lang === "zh-CN" ? "二维码" : "二維碼"}</span>
+                  <div className={`flex-1 h-0.5 min-w-4 ${["pending_shipment", "shipped", "completed"].includes(selected.status) ? "bg-emerald-500" : "bg-slate-200"}`} />
+                  
+                  {/* 待发货 */}
+                  <div className={`w-3 h-3 rounded-full ${["pending_shipment", "shipped", "completed"].includes(selected.status) ? "bg-yellow-500" : "bg-slate-300"}`} />
+                  <span className="text-xs whitespace-nowrap">{lang === "en" ? "Pending Ship" : lang === "zh-CN" ? "待发货" : "待發貨"}</span>
+                  <div className={`flex-1 h-0.5 min-w-4 ${["shipped", "completed"].includes(selected.status) ? "bg-emerald-500" : "bg-slate-200"}`} />
+                  
+                  {/* 已发货 */}
+                  <div className={`w-3 h-3 rounded-full ${["shipped", "completed"].includes(selected.status) ? "bg-purple-500" : "bg-slate-300"}`} />
+                  <span className="text-xs whitespace-nowrap">{lang === "en" ? "Shipped" : lang === "zh-CN" ? "已发货" : "已發貨"}</span>
+                  <div className={`flex-1 h-0.5 min-w-4 ${selected.status === "completed" ? "bg-emerald-500" : "bg-slate-200"}`} />
+                  
+                  {/* 已完成 */}
+                  <div className={`w-3 h-3 rounded-full ${selected.status === "completed" ? "bg-emerald-500" : "bg-slate-300"}`} />
+                  <span className="text-xs whitespace-nowrap">{lang === "en" ? "Completed" : lang === "zh-CN" ? "已完成" : "已完成"}</span>
                 </div>
               </div>
 
@@ -462,10 +486,18 @@ export default function MyOrdersPage() {
                     {selected.country && <span>{selected.country}</span>}
                   </div>
 
-                  {/* Tracking Image */}
-                  {selected.trackingImage && (
+                  {/* QR Code Display */}
+                  {selected.qrCode && (
                     <div className="mt-4">
-                      <div className="text-xs text-slate-500 mb-2">{lang === "en" ? "Tracking Document" : lang === "zh-CN" ? "运单文件" : "運單文件"}</div>
+                      <div className="text-xs text-slate-500 mb-2">{lang === "en" ? "Payment QR Code" : lang === "zh-CN" ? "支付二维码" : "支付二維碼"}</div>
+                      <img src={selected.qrCode} alt="QR Code" className="max-w-full rounded-lg border border-slate-200 dark:border-slate-700" />
+                    </div>
+                  )}
+
+                  {/* Tracking Image - Show after shipped */}
+                  {selected.trackingImage && (selected.status === "shipped" || selected.status === "completed") && (
+                    <div className="mt-4">
+                      <div className="text-xs text-slate-500 mb-2">{lang === "en" ? "Tracking Image" : lang === "zh-CN" ? "运单图片" : "運單圖片"}</div>
                       <img src={selected.trackingImage} alt="Tracking" className="max-w-full rounded-lg border border-slate-200 dark:border-slate-700" />
                     </div>
                   )}

@@ -33,6 +33,7 @@ interface Order {
   notes?: string;
   trackingNumber?: string;
   trackingImage?: string;
+  qrCode?: string;
   company?: string;
   shippingFee?: number;
   shippedAt?: string;
@@ -77,15 +78,43 @@ export default function OrdersPage() {
   const [dateTo, setDateTo] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
   const [showShipModal, setShowShipModal] = useState(false);
-  const [shipInfo, setShipInfo] = useState({ trackingNumber: "", trackingImage: "", shippingFee: "" });
+  const [shipInfo, setShipInfo] = useState({ trackingNumber: "", trackingImage: "" });
+  const [qrInfo, setQrInfo] = useState({ qrCode: "", shippingFee: "" });
   const [updating, setUpdating] = useState(false);
-  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingQrImage, setUploadingQrImage] = useState(false);
+  const [uploadingTrackingImage, setUploadingTrackingImage] = useState(false);
+
+  const handleQrImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingQrImage(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setQrInfo({ ...qrInfo, qrCode: data.url });
+      } else {
+        alert(lang === "en" ? "Upload failed" : lang === "zh-CN" ? "上传失败" : "上傳失敗");
+      }
+    } catch (error) {
+      console.error("Upload failed:", error);
+      alert(lang === "en" ? "Upload failed" : lang === "zh-CN" ? "上传失败" : "上傳失敗");
+    } finally {
+      setUploadingQrImage(false);
+    }
+  };
 
   const handleTrackingImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setUploadingImage(true);
+    setUploadingTrackingImage(true);
     try {
       const formData = new FormData();
       formData.append("file", file);
@@ -103,7 +132,7 @@ export default function OrdersPage() {
       console.error("Upload failed:", error);
       alert(lang === "en" ? "Upload failed" : lang === "zh-CN" ? "上传失败" : "上傳失敗");
     } finally {
-      setUploadingImage(false);
+      setUploadingTrackingImage(false);
     }
   };
 
@@ -371,20 +400,20 @@ export default function OrdersPage() {
                 <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-950/30 rounded-xl">
                   <div className="text-xs text-amber-600 mb-3 flex items-center gap-1">
                     <AlertCircle className="w-4 h-4" />
-                    {lang === "en" ? "Please upload payment QR code and enter shipping details" : lang === "zh-CN" ? "请上传支付二维码并填写发货信息" : "請上傳支付二維碼並填寫發貨資訊"}
+                    {lang === "en" ? "Please upload payment QR code and enter shipping fee" : lang === "zh-CN" ? "请上传支付二维码并填写运费" : "請上傳支付二維碼並填寫運費"}
                   </div>
                   
                   {/* QR Code Upload */}
                   <div className="mb-4">
                     <label className="block text-xs text-amber-700 dark:text-amber-400 mb-2">
-                      {lang === "en" ? "Payment QR Code" : lang === "zh-CN" ? "支付二维码" : "支付二維碼"}
+                      {lang === "en" ? "Payment QR Code *" : lang === "zh-CN" ? "支付二维码 *" : "支付二維碼 *"}
                     </label>
                     <div className="border-2 border-dashed border-amber-300 dark:border-amber-700 rounded-xl p-4 text-center hover:border-amber-500 transition-colors">
-                      {shipInfo.trackingImage ? (
+                      {qrInfo.qrCode ? (
                         <div className="relative">
-                          <img src={shipInfo.trackingImage} alt="QR Code" className="max-h-40 mx-auto rounded-lg" />
+                          <img src={qrInfo.qrCode} alt="QR Code" className="max-h-40 mx-auto rounded-lg" />
                           <button
-                            onClick={() => setShipInfo({ ...shipInfo, trackingImage: "" })}
+                            onClick={() => setQrInfo({ ...qrInfo, qrCode: "" })}
                             className="absolute top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center"
                           >
                             <X className="w-4 h-4" />
@@ -397,30 +426,17 @@ export default function OrdersPage() {
                             accept="image/*"
                             className="hidden"
                             id="qr-upload"
-                            onChange={handleTrackingImageUpload}
+                            onChange={handleQrImageUpload}
                           />
                           <label htmlFor="qr-upload" className="cursor-pointer">
                             <Upload className="w-8 h-8 mx-auto text-amber-400 mb-2" />
                             <div className="text-sm text-amber-600">
-                              {uploadingImage ? (lang === "en" ? "Uploading..." : lang === "zh-CN" ? "上传中..." : "上傳中...") : (lang === "en" ? "Click to upload QR code" : lang === "zh-CN" ? "点击上传二维码" : "點擊上傳二維碼")}
+                              {uploadingQrImage ? (lang === "en" ? "Uploading..." : lang === "zh-CN" ? "上传中..." : "上傳中...") : (lang === "en" ? "Click to upload QR code" : lang === "zh-CN" ? "点击上传二维码" : "點擊上傳二維碼")}
                             </div>
                           </label>
                         </>
                       )}
                     </div>
-                  </div>
-
-                  {/* Tracking Number Input */}
-                  <div className="mb-4">
-                    <label className="block text-xs text-amber-700 dark:text-amber-400 mb-2">
-                      {lang === "en" ? "Tracking Number *" : lang === "zh-CN" ? "运单号 *" : "運單號 *"}
-                    </label>
-                    <input
-                      className="input"
-                      placeholder={lang === "en" ? "Enter tracking number" : lang === "zh-CN" ? "输入运单号" : "輸入運單號"}
-                      value={shipInfo.trackingNumber}
-                      onChange={(e) => setShipInfo({ ...shipInfo, trackingNumber: e.target.value })}
-                    />
                   </div>
 
                   {/* Shipping Fee Input */}
@@ -436,8 +452,8 @@ export default function OrdersPage() {
                         step="0.01"
                         min="0"
                         placeholder="0.00"
-                        value={shipInfo.shippingFee}
-                        onChange={(e) => setShipInfo({ ...shipInfo, shippingFee: e.target.value })}
+                        value={qrInfo.shippingFee}
+                        onChange={(e) => setQrInfo({ ...qrInfo, shippingFee: e.target.value })}
                       />
                     </div>
                     <div className="text-xs text-amber-600 mt-1.5">
@@ -445,14 +461,13 @@ export default function OrdersPage() {
                     </div>
                   </div>
 
-                  {/* Ship Button */}
-                  {shipInfo.trackingImage && shipInfo.trackingNumber.trim() && (
+                  {/* Confirm Button - Go to pending_shipment */}
+                  {qrInfo.qrCode && (
                     <button
                       onClick={async () => {
-                        const fee = parseFloat(shipInfo.shippingFee) || 0;
+                        const fee = parseFloat(qrInfo.shippingFee) || 0;
                         const currentOrder = data.find((o) => o.id === selectedOrder.id);
 
-                        // 如果有运费，先从代理商信用额度中扣除
                         if (fee > 0 && currentOrder) {
                           const creditRes = await fetch("/api/credit", {
                             method: "POST",
@@ -471,14 +486,12 @@ export default function OrdersPage() {
                           }
                         }
 
-                        // 更新订单状态和运费信息
                         const res = await fetch(`/api/orders/${selectedOrder.id}`, {
                           method: "PUT",
                           headers: { "Content-Type": "application/json" },
                           body: JSON.stringify({
-                            status: "shipped",
-                            trackingNumber: shipInfo.trackingNumber,
-                            trackingImage: shipInfo.trackingImage,
+                            status: "pending_shipment",
+                            qrCode: qrInfo.qrCode,
                             shippingFee: fee,
                           }),
                         });
@@ -488,7 +501,7 @@ export default function OrdersPage() {
                           setData(data.map((o) => o.id === selectedOrder.id ? updatedOrder : o));
                           setSelected(updatedOrder);
                         }
-                        setShipInfo({ trackingNumber: "", trackingImage: "", shippingFee: "" });
+                        setQrInfo({ qrCode: "", shippingFee: "" });
                       }}
                       disabled={updating}
                       className="w-full btn-primary flex items-center justify-center gap-2"
@@ -496,19 +509,27 @@ export default function OrdersPage() {
                       {updating ? (
                         <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                       ) : (
-                        <Truck className="w-4 h-4" />
+                        <Check className="w-4 h-4" />
                       )}
-                      {lang === "en" ? "Confirm & Ship" : lang === "zh-CN" ? "确认并发货" : "確認並發貨"}
+                      {lang === "en" ? "Confirm" : lang === "zh-CN" ? "确认" : "確認"}
                     </button>
                   )}
                 </div>
               )}
 
-              {/* Tracking Image */}
-              {selectedOrder.trackingImage && selectedOrder.status !== "pending_qrcode" && (
+              {/* QR Code Display */}
+              {selectedOrder.qrCode && selectedOrder.status !== "pending_qrcode" && (
                 <div className="mt-4">
-                  <div className="text-xs text-slate-500 mb-2">{lang === "en" ? "QR Code" : lang === "zh-CN" ? "二维码" : "二維碼"}</div>
-                  <img src={selectedOrder.trackingImage} alt="QR Code" className="max-w-xs rounded-lg border border-slate-200 dark:border-slate-700" />
+                  <div className="text-xs text-slate-500 mb-2">{lang === "en" ? "Payment QR Code" : lang === "zh-CN" ? "支付二维码" : "支付二維碼"}</div>
+                  <img src={selectedOrder.qrCode} alt="QR Code" className="max-w-xs rounded-lg border border-slate-200 dark:border-slate-700" />
+                </div>
+              )}
+
+              {/* Tracking Image - Show after shipped */}
+              {selectedOrder.trackingImage && (selectedOrder.status === "shipped" || selectedOrder.status === "completed") && (
+                <div className="mt-4">
+                  <div className="text-xs text-slate-500 mb-2">{lang === "en" ? "Tracking Image" : lang === "zh-CN" ? "运单图片" : "運單圖片"}</div>
+                  <img src={selectedOrder.trackingImage} alt="Tracking" className="max-w-xs rounded-lg border border-slate-200 dark:border-slate-700" />
                 </div>
               )}
             </div>
@@ -578,16 +599,28 @@ export default function OrdersPage() {
               </button>
             )}
 
-            {/* 待发货 → 发货 (现在在上传二维码弹窗中完成) */}
+            {/* 待发货 → 发货 */}
             {selectedOrder.status === "pending_shipment" && (
-              <button onClick={() => setShowShipModal(true)} disabled={updating} className="btn-primary flex items-center gap-2">
+              <button onClick={() => {
+                setShipInfo({
+                  trackingNumber: selectedOrder.trackingNumber || "",
+                  trackingImage: selectedOrder.trackingImage || "",
+                });
+                setShowShipModal(true);
+              }} disabled={updating} className="btn-primary flex items-center gap-2">
                 <Truck className="w-4 h-4" /> {lang === "en" ? "发货" : lang === "zh-CN" ? "发货" : "發貨"}
               </button>
             )}
 
             {/* 已发货订单可以编辑运单信息 */}
             {(selectedOrder.status === "shipped" || selectedOrder.status === "completed") && (
-              <button onClick={() => setShowShipModal(true)} className="btn-ghost flex items-center gap-2">
+              <button onClick={() => {
+                setShipInfo({
+                  trackingNumber: selectedOrder.trackingNumber || "",
+                  trackingImage: selectedOrder.trackingImage || "",
+                });
+                setShowShipModal(true);
+              }} className="btn-ghost flex items-center gap-2">
                 <Edit2 className="w-4 h-4" /> {lang === "en" ? "编辑发货信息" : lang === "zh-CN" ? "编辑发货信息" : "編輯發貨資訊"}
               </button>
             )}
@@ -597,16 +630,19 @@ export default function OrdersPage() {
         </div>
       )}
 
-      {/* Shipment Modal - For editing tracking info */}
+      {/* Shipment Modal - For shipping or editing tracking info */}
       {showShipModal && selectedOrder && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md">
             <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
               <h2 className="text-lg font-semibold flex items-center gap-2">
-                <Edit2 className="w-5 h-5" />
-                {lang === "en" ? "Edit Shipping Info" : lang === "zh-CN" ? "编辑发货信息" : "編輯發貨資訊"}
+                {selectedOrder.status === "pending_shipment" ? (
+                  <><Truck className="w-5 h-5" />{lang === "en" ? "Ship Order" : lang === "zh-CN" ? "发货" : "發貨"}</>
+                ) : (
+                  <><Edit2 className="w-5 h-5" />{lang === "en" ? "Edit Shipping Info" : lang === "zh-CN" ? "编辑发货信息" : "編輯發貨資訊"}</>
+                )}
               </h2>
-              <button onClick={() => { setShowShipModal(false); setShipInfo({ trackingNumber: "", trackingImage: "", shippingFee: "" }); }} className="w-8 h-8 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center">
+              <button onClick={() => { setShowShipModal(false); setShipInfo({ trackingNumber: "", trackingImage: "" }); }} className="w-8 h-8 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -614,7 +650,7 @@ export default function OrdersPage() {
             <div className="p-5 space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1.5">
-                  {lang === "en" ? "Tracking Number" : lang === "zh-CN" ? "运单号" : "運單號"}
+                  {lang === "en" ? "Tracking Number *" : lang === "zh-CN" ? "运单号 *" : "運單號 *"}
                 </label>
                 <input
                   className="input"
@@ -651,7 +687,7 @@ export default function OrdersPage() {
                       <label htmlFor="tracking-upload" className="cursor-pointer">
                         <Upload className="w-8 h-8 mx-auto text-slate-400 mb-2" />
                         <div className="text-sm text-slate-500">
-                          {uploadingImage ? (lang === "en" ? "Uploading..." : lang === "zh-CN" ? "上传中..." : "上傳中...") : (lang === "en" ? "Click to upload tracking image" : lang === "zh-CN" ? "点击上传运单图片" : "點擊上傳運單圖片")}
+                          {uploadingTrackingImage ? (lang === "en" ? "Uploading..." : lang === "zh-CN" ? "上传中..." : "上傳中...") : (lang === "en" ? "Click to upload tracking image" : lang === "zh-CN" ? "点击上传运单图片" : "點擊上傳運單圖片")}
                         </div>
                       </label>
                     </>
@@ -661,35 +697,64 @@ export default function OrdersPage() {
             </div>
 
             <div className="p-5 border-t border-slate-200 dark:border-slate-800 flex gap-3">
-              <button onClick={() => { setShowShipModal(false); setShipInfo({ trackingNumber: "", trackingImage: "", shippingFee: "" }); }} className="flex-1 btn-ghost justify-center">
+              <button onClick={() => { setShowShipModal(false); setShipInfo({ trackingNumber: "", trackingImage: "" }); }} className="flex-1 btn-ghost justify-center">
                 {lang === "en" ? "Cancel" : lang === "zh-CN" ? "取消" : "取消"}
               </button>
               <button
                 onClick={async () => {
-                  if (!shipInfo.trackingNumber.trim() && !shipInfo.trackingImage) {
-                    alert(lang === "en" ? "Please enter tracking number or upload image" : lang === "zh-CN" ? "请输入运单号或上传图片" : "請輸入運單號或上傳圖片");
-                    return;
-                  }
-                  setUpdating(true);
-                  try {
-                    const res = await fetch(`/api/orders/${selectedOrder.id}`, {
-                      method: "PUT",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({
-                        trackingNumber: shipInfo.trackingNumber || selectedOrder.trackingNumber,
-                        trackingImage: shipInfo.trackingImage || selectedOrder.trackingImage,
-                      }),
-                    });
-                    if (res.ok) {
-                      const updated = await res.json();
-                      const updatedOrder = { ...selectedOrder, ...updated };
-                      setData(data.map((o) => o.id === selectedOrder.id ? updatedOrder : o));
-                      setSelected(updatedOrder);
+                  if (selectedOrder.status === "pending_shipment") {
+                    if (!shipInfo.trackingNumber.trim()) {
+                      alert(lang === "en" ? "Please enter tracking number" : lang === "zh-CN" ? "请输入运单号" : "請輸入運單號");
+                      return;
                     }
-                  } finally {
-                    setUpdating(false);
-                    setShowShipModal(false);
-                    setShipInfo({ trackingNumber: "", trackingImage: "", shippingFee: "" });
+                    setUpdating(true);
+                    try {
+                      const res = await fetch(`/api/orders/${selectedOrder.id}`, {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          status: "shipped",
+                          trackingNumber: shipInfo.trackingNumber,
+                          trackingImage: shipInfo.trackingImage,
+                        }),
+                      });
+                      if (res.ok) {
+                        const updated = await res.json();
+                        const updatedOrder = { ...selectedOrder, ...updated };
+                        setData(data.map((o) => o.id === selectedOrder.id ? updatedOrder : o));
+                        setSelected(updatedOrder);
+                      }
+                    } finally {
+                      setUpdating(false);
+                      setShowShipModal(false);
+                      setShipInfo({ trackingNumber: "", trackingImage: "" });
+                    }
+                  } else {
+                    if (!shipInfo.trackingNumber.trim() && !shipInfo.trackingImage) {
+                      alert(lang === "en" ? "Please enter tracking number or upload image" : lang === "zh-CN" ? "请输入运单号或上传图片" : "請輸入運單號或上傳圖片");
+                      return;
+                    }
+                    setUpdating(true);
+                    try {
+                      const res = await fetch(`/api/orders/${selectedOrder.id}`, {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          trackingNumber: shipInfo.trackingNumber || selectedOrder.trackingNumber,
+                          trackingImage: shipInfo.trackingImage || selectedOrder.trackingImage,
+                        }),
+                      });
+                      if (res.ok) {
+                        const updated = await res.json();
+                        const updatedOrder = { ...selectedOrder, ...updated };
+                        setData(data.map((o) => o.id === selectedOrder.id ? updatedOrder : o));
+                        setSelected(updatedOrder);
+                      }
+                    } finally {
+                      setUpdating(false);
+                      setShowShipModal(false);
+                      setShipInfo({ trackingNumber: "", trackingImage: "" });
+                    }
                   }
                 }}
                 disabled={updating}
@@ -697,10 +762,16 @@ export default function OrdersPage() {
               >
                 {updating ? (
                   <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : selectedOrder.status === "pending_shipment" ? (
+                  <Truck className="w-4 h-4" />
                 ) : (
                   <Check className="w-4 h-4" />
                 )}
-                {lang === "en" ? "Save" : lang === "zh-CN" ? "保存" : "保存"}
+                {selectedOrder.status === "pending_shipment" ? (
+                  lang === "en" ? "Confirm Shipment" : lang === "zh-CN" ? "确认发货" : "確認發貨"
+                ) : (
+                  lang === "en" ? "Save" : lang === "zh-CN" ? "保存" : "保存"
+                )}
               </button>
             </div>
           </div>

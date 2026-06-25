@@ -106,6 +106,7 @@ export async function POST(req: NextRequest) {
       company: null,
       shippingFee: null,
       shippedAt: null,
+      qrCode: null,
     };
 
     const result = await createOrder(order);

@@ -54,6 +54,7 @@ export interface Order {
   shippingAddress: string;
   trackingNumber?: string;
   trackingImage?: string;
+  qrCode?: string;
   carrier?: string;
   notes?: string;
 }

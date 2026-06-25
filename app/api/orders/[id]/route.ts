@@ -56,6 +56,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     if (body.email !== undefined) updates.email = body.email;
     if (body.notes !== undefined) updates.notes = body.notes;
     if (body.trackingImage !== undefined) updates.trackingImage = body.trackingImage;
+    if (body.qrCode !== undefined) updates.qrCode = body.qrCode;
 
     const updated = await updateOrder(params.id, updates);
     return NextResponse.json(updated);

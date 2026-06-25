@@ -395,6 +395,7 @@ export interface Order {
   shippingFee: number | null;
   shippedAt: string | null;
   trackingImage: string | null;
+  qrCode: string | null;
 }
 
 export interface CreditRecord {
