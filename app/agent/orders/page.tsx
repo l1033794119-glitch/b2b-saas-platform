@@ -505,7 +505,7 @@ export default function MyOrdersPage() {
 
                   <div className="flex items-center justify-between pt-3 mt-3 border-t border-slate-200 dark:border-slate-700">
                     <span className="font-semibold">{lang === "en" ? "Total" : lang === "zh-CN" ? "总计" : "總計"}</span>
-                    <span className="text-lg font-bold text-indigo-600">{formatCurrency(selected.total, currency)}</span>
+                    <span className="text-lg font-bold text-indigo-600">{formatCurrency(selected.total + (selected.shippingFee || 0), currency)}</span>
                   </div>
                 </div>
               </div>

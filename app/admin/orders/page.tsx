@@ -432,7 +432,7 @@ export default function OrdersPage() {
 
                 <div className="flex items-center justify-between py-3 font-semibold text-base">
                   <span>{t("total")}</span>
-                  <span>{formatCurrency(selectedOrder.total, currency)}</span>
+                  <span>{formatCurrency(selectedOrder.total + (selectedOrder.shippingFee || 0), currency)}</span>
                 </div>
               </div>
             </div>
