@@ -396,6 +396,8 @@ export interface Order {
   shippedAt: string | null;
   trackingImage: string | null;
   qrCode: string | null;
+  warehouseId: string | null;
+  warehouse: string | null;
 }
 
 export interface CreditRecord {
