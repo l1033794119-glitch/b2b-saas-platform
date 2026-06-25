@@ -12,13 +12,20 @@ export function AdminLayout({ children, title, subtitle }:
   const router = useRouter();
   const pathname = usePathname();
 
+  // 检查是否是管理员角色
+  const isAdmin = user?.role === "super_admin" || 
+                  user?.role === "warehouse_manager" || 
+                  user?.role === "finance_manager" || 
+                  user?.role === "operations_manager" ||
+                  user?.role === "customer_service";
+
   useEffect(() => {
-    if (!user && pathname !== "/admin/login") {
+    if ((!user || !isAdmin) && pathname !== "/admin/login") {
       router.push("/admin/login");
     }
-  }, [user, router, pathname]);
+  }, [user, isAdmin, router, pathname]);
 
-  if (!user) {
+  if (!user || !isAdmin) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-[#0a0e17]">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600" />
@@ -48,13 +55,21 @@ export function AgentLayout({ children, title, subtitle }:
   const router = useRouter();
   const pathname = usePathname();
 
-  useEffect(() => {
-    if (!user && pathname !== "/login") {
-      router.push("/login");
-    }
-  }, [user, router, pathname]);
+  // 检查是否是代理商
+  const isAgent = user?.role === "agent";
 
-  if (!user) {
+  useEffect(() => {
+    if (!user || !isAgent) {
+      // 如果是管理员尝试访问代理商页面，跳转到管理员后台
+      if (user && user.role !== "agent") {
+        router.push("/admin/dashboard");
+      } else {
+        router.push("/login");
+      }
+    }
+  }, [user, isAgent, router]);
+
+  if (!user || !isAgent) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-[#0a0e17]">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600" />
