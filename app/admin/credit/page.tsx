@@ -238,7 +238,7 @@ export default function CreditLimitsPage() {
                       <div className="flex-1">
                         <div className="text-sm font-medium">{langMap[txn.type] || txn.type}</div>
                         <div className="text-xs text-slate-500">{txn.note}</div>
-                        <div className="text-xs text-slate-400 mt-0.5">{new Date(txn.time).toLocaleString()}</div>
+                        <div className="text-xs text-slate-400 mt-0.5">{new Date(txn.time).toLocaleString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", timeZone: "Asia/Shanghai" })}</div>
                       </div>
                       <div className={`text-sm font-semibold ${txn.amount > 0 ? "text-emerald-600" : "text-slate-700 dark:text-slate-200"}`}>
                         {txn.amount > 0 ? "+" : ""}{formatCurrency(txn.amount, currency)}

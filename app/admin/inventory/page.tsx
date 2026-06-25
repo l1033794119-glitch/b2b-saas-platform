@@ -409,7 +409,7 @@ export default function InventoryPage() {
                     </td>
                     <td className="font-semibold">{formatNumber(log.stockAfter)}</td>
                     <td className="text-sm">{log.operator}</td>
-                    <td className="text-sm text-slate-500">{new Date(log.time).toLocaleString()}</td>
+                    <td className="text-sm text-slate-500">{new Date(log.time).toLocaleString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", timeZone: "Asia/Shanghai" })}</td>
                     <td className="text-sm text-slate-500 max-w-[150px] truncate">{log.note || "—"}</td>
                   </tr>
                 ))}

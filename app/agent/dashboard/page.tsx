@@ -247,7 +247,7 @@ export default function AgentDashboard() {
                   {filteredOrders.slice(0, 6).map((o) => (
                     <tr key={o.id}>
                       <td className="font-mono text-xs">{o.orderNo}</td>
-                      <td>{new Date(o.date).toLocaleDateString()}</td>
+                      <td>{new Date(o.date).toLocaleDateString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit", timeZone: "Asia/Shanghai" })}</td>
                       <td className="font-medium">{formatCurrency(o.total, currency)}</td>
                       <td className={o.shippingFee ? "text-orange-600 font-medium" : "text-slate-400"}>
                         {o.shippingFee ? formatCurrency(o.shippingFee, currency) : "—"}
@@ -329,7 +329,7 @@ export default function AgentDashboard() {
                       {record.note?.replace("Shipping fee for ", "") || "—"}
                     </div>
                     <div className="text-xs text-slate-500">
-                      {new Date(record.time).toLocaleString()}
+                      {new Date(record.time).toLocaleString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", timeZone: "Asia/Shanghai" })}
                     </div>
                   </div>
                 </div>

@@ -337,7 +337,7 @@ export default function OrdersPage() {
             <div>
               <div className="text-xs text-slate-500 font-mono">{selectedOrder.orderNo}</div>
               <div className="text-lg font-semibold">{selectedOrder.contactName || selectedOrder.company || "N/A"}</div>
-              <div className="text-sm text-slate-500">{new Date(selectedOrder.date).toLocaleString()}</div>
+              <div className="text-sm text-slate-500">{new Date(selectedOrder.date).toLocaleString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", timeZone: "Asia/Shanghai" })}</div>
             </div>
             <button onClick={() => setSelected(null)} className="text-slate-400 hover:text-slate-700"><X className="w-5 h-5" /></button>
           </div>
@@ -423,7 +423,7 @@ export default function OrdersPage() {
                     <span className="text-slate-500">
                       {lang === "en" ? "Shipping Fee" : lang === "zh-CN" ? "运费" : "運費"}
                       {selectedOrder.shippedAt && (
-                        <span className="ml-2 text-xs text-slate-400">@ {new Date(selectedOrder.shippedAt).toLocaleDateString()}</span>
+                        <span className="ml-2 text-xs text-slate-400">@ {new Date(selectedOrder.shippedAt).toLocaleDateString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit", timeZone: "Asia/Shanghai" })}</span>
                       )}
                     </span>
                     <span className="font-medium">{formatCurrency(selectedOrder.shippingFee, currency)}</span>
@@ -594,7 +594,7 @@ export default function OrdersPage() {
                         <div>{o.contactName || o.company || "N/A"}</div>
                         {o.phone && <div className="text-xs text-slate-400">{o.phone}</div>}
                       </td>
-                      <td className="text-slate-500 text-sm">{new Date(o.date).toLocaleDateString()}</td>
+                      <td className="text-slate-500 text-sm">{new Date(o.date).toLocaleDateString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit", timeZone: "Asia/Shanghai" })}</td>
                       <td className="font-medium">{formatCurrency(o.total, currency)}</td>
                       <td><StatusBadge status={o.status} /></td>
                       <td className="text-sm text-slate-500 font-mono">{o.trackingNumber || "—"}</td>

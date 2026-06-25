@@ -416,7 +416,7 @@ export default function MyOrdersPage() {
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <div className="text-xs text-slate-500 font-mono">{selected.orderNo}</div>
-                  <div className="text-sm text-slate-500">{new Date(selected.date).toLocaleString()}</div>
+                  <div className="text-sm text-slate-500">{new Date(selected.date).toLocaleString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", timeZone: "Asia/Shanghai" })}</div>
                 </div>
                 <button onClick={() => setSelected(null)} className="text-slate-400 hover:text-slate-700">✕</button>
               </div>
@@ -503,7 +503,7 @@ export default function MyOrdersPage() {
                       <span className="text-slate-500">
                         {lang === "en" ? "Shipping Fee" : lang === "zh-CN" ? "运费" : "運費"}
                         {selected.shippedAt && (
-                          <span className="ml-2 text-xs text-slate-400">@ {new Date(selected.shippedAt).toLocaleDateString()}</span>
+                          <span className="ml-2 text-xs text-slate-400">@ {new Date(selected.shippedAt).toLocaleDateString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit", timeZone: "Asia/Shanghai" })}</span>
                         )}
                       </span>
                       <span className="font-medium text-orange-600">{formatCurrency(selected.shippingFee, currency)}</span>
