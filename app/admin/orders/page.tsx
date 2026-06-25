@@ -472,12 +472,12 @@ export default function OrdersPage() {
                         try {
                           if (fee > 0 && currentOrder) {
                             const creditRes = await fetch("/api/credit", {
-                              method: "POST",
+                              method: "PUT",
                               headers: { "Content-Type": "application/json" },
                               body: JSON.stringify({
                                 agentId: currentOrder.agentId,
-                                amount: -fee,
-                                type: "shipping_fee",
+                                action: "deduct",
+                                amount: fee,
                                 note: `Shipping fee for order ${currentOrder.orderNo}`,
                               }),
                             });
