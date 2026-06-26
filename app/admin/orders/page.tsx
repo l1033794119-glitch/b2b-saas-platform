@@ -949,6 +949,7 @@ export default function OrdersPage() {
                   <th>{t("order_no")}</th>
                   <th>{lang === "en" ? "Agent" : lang === "zh-CN" ? "代理商" : "代理商"}</th>
                   <th>{lang === "en" ? "Contact" : lang === "zh-CN" ? "联系人" : "聯絡人"}</th>
+                  <th>{lang === "en" ? "Postal Code" : lang === "zh-CN" ? "邮编" : "郵遞區號"}</th>
                   <th>{t("order_date")}</th>
                   <th>{t("amount")}</th>
                   <th>{t("status")}</th>
@@ -970,6 +971,7 @@ export default function OrdersPage() {
                         <div>{o.contactName || o.company || "N/A"}</div>
                         {o.phone && <div className="text-xs text-slate-400">{o.phone}</div>}
                       </td>
+                      <td className="text-sm text-slate-500 font-mono">{o.postalCode || "—"}</td>
                       <td className="text-slate-500 text-sm">{new Date(o.date).toLocaleDateString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit", timeZone: "Asia/Shanghai" })}</td>
                       <td className="font-medium">{formatCurrency(o.total, currency)}</td>
                       <td><StatusBadge status={o.status} /></td>
