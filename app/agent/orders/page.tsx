@@ -482,14 +482,6 @@ export default function MyOrdersPage() {
                     {selected.country && <span>{selected.country}</span>}
                   </div>
 
-                  {/* QR Code Display */}
-                  {selected.qrCode && (
-                    <div className="mt-4">
-                      <div className="text-xs text-slate-500 mb-2">{lang === "en" ? "Payment QR Code" : lang === "zh-CN" ? "支付二维码" : "支付二維碼"}</div>
-                      <img src={selected.qrCode} alt="QR Code" className="max-w-full rounded-lg border border-slate-200 dark:border-slate-700" />
-                    </div>
-                  )}
-
                   {/* Waybill Image Display */}
                   {selected.waybillImage && (
                     <div className="mt-4">
