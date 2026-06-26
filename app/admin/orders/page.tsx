@@ -378,52 +378,54 @@ export default function OrdersPage() {
 
   return (
     <AdminLayout title={t("orders")} subtitle={`${formatNumber(filtered.length)} / ${formatNumber(data.length)} ${lang === "en" ? "orders" : lang === "zh-CN" ? "订单" : "訂單"}`}>
-      <div className="card p-4 mb-4">
-        <div className="flex flex-wrap items-end gap-4">
-          <div className="flex-1 min-w-[200px] relative">
+      <div className="card p-3 sm:p-4 mb-4">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-3 sm:gap-4">
+          <div className="w-full sm:flex-1 sm:min-w-[200px] relative">
             <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
             <input
-              className="input pl-9 py-2.5"
+              className="input pl-9 py-2.5 w-full"
               placeholder={lang === "en" ? "Search orders..." : lang === "zh-CN" ? "搜索订单（订单号、联系人、电话、邮箱）..." : "搜尋訂單（訂單號、聯絡人、電話、郵箱）..."}
               value={q}
               onChange={(e) => setQ(e.target.value)}
             />
           </div>
 
-          <div className="min-w-[180px]">
-            <label className="block text-xs text-slate-500 mb-1">{lang === "en" ? "Agent" : lang === "zh-CN" ? "代理商" : "代理商"}</label>
-            <select
-              className="select py-2.5"
-              value={agentFilter}
-              onChange={(e) => setAgentFilter(e.target.value)}
-            >
-              <option value="all">{lang === "en" ? "All Agents" : lang === "zh-CN" ? "全部代理商" : "全部代理商"}</option>
-              {agents.map((a) => (
-                <option key={a.id} value={a.id}>{a.company}</option>
-              ))}
-            </select>
+          <div className="grid grid-cols-2 gap-3 w-full sm:w-auto sm:min-w-[360px]">
+            <div className="min-w-0">
+              <label className="block text-xs text-slate-500 mb-1">{lang === "en" ? "Agent" : lang === "zh-CN" ? "代理商" : "代理商"}</label>
+              <select
+                className="select py-2 w-full"
+                value={agentFilter}
+                onChange={(e) => setAgentFilter(e.target.value)}
+              >
+                <option value="all">{lang === "en" ? "All Agents" : lang === "zh-CN" ? "全部代理商" : "全部代理商"}</option>
+                {agents.map((a) => (
+                  <option key={a.id} value={a.id}>{a.company}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="min-w-0">
+              <label className="block text-xs text-slate-500 mb-1">{lang === "en" ? "Warehouse" : lang === "zh-CN" ? "仓库" : "倉庫"}</label>
+              <select
+                className="select py-2 w-full"
+                value={warehouseFilter}
+                onChange={(e) => setWarehouseFilter(e.target.value)}
+              >
+                <option value="all">{lang === "en" ? "All Warehouses" : lang === "zh-CN" ? "全部仓库" : "全部倉庫"}</option>
+                {warehouses.map((w) => (
+                  <option key={w.id} value={w.id}>{w.name}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
-          <div className="min-w-[160px]">
-            <label className="block text-xs text-slate-500 mb-1">{lang === "en" ? "Warehouse" : lang === "zh-CN" ? "仓库" : "倉庫"}</label>
-            <select
-              className="select py-2.5"
-              value={warehouseFilter}
-              onChange={(e) => setWarehouseFilter(e.target.value)}
-            >
-              <option value="all">{lang === "en" ? "All Warehouses" : lang === "zh-CN" ? "全部仓库" : "全部倉庫"}</option>
-              {warehouses.map((w) => (
-                <option key={w.id} value={w.id}>{w.name}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex gap-1.5 flex-wrap">
+          <div className="flex gap-1.5 flex-wrap w-full sm:w-auto">
             {statuses.map((s) => (
               <button
                 key={s.id}
                 onClick={() => setFlt(s.id)}
-                className={`px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-800 ${flt === s.id ? "bg-indigo-600 text-white border-indigo-600" : ""}`}
+                className={`px-3 py-1.5 text-xs sm:text-sm rounded-lg border border-slate-200 dark:border-slate-800 ${flt === s.id ? "bg-indigo-600 text-white border-indigo-600" : ""}`}
               >
                 {lang === "en" ? s.labelEn : lang === "zh-CN" ? s.labelZhCN : s.labelZhTW}
               </button>
@@ -431,28 +433,28 @@ export default function OrdersPage() {
           </div>
         </div>
 
-        <div className="flex flex-wrap items-end gap-4 mt-4">
-          <div>
+        <div className="flex flex-wrap items-end gap-3 mt-3">
+          <div className="flex-1 min-w-[130px]">
             <label className="block text-xs text-slate-500 mb-1">{lang === "en" ? "From Date" : lang === "zh-CN" ? "开始日期" : "開始日期"}</label>
             <input
               type="date"
-              className="input py-2"
+              className="input py-2 w-full"
               value={dateFrom}
               onChange={(e) => setDateFrom(e.target.value)}
             />
           </div>
-          <div>
+          <div className="flex-1 min-w-[130px]">
             <label className="block text-xs text-slate-500 mb-1">{lang === "en" ? "To Date" : lang === "zh-CN" ? "结束日期" : "結束日期"}</label>
             <input
               type="date"
-              className="input py-2"
+              className="input py-2 w-full"
               value={dateTo}
               onChange={(e) => setDateTo(e.target.value)}
             />
           </div>
           <button
             onClick={() => { setQ(""); setFlt("all"); setAgentFilter("all"); setWarehouseFilter("all"); setDateFrom(""); setDateTo(""); }}
-            className="btn-ghost py-2"
+            className="btn-ghost py-2 flex-shrink-0"
           >
             {lang === "en" ? "Clear Filters" : lang === "zh-CN" ? "清除筛选" : "清除篩選"}
           </button>
@@ -460,44 +462,44 @@ export default function OrdersPage() {
       </div>
 
       {selectedOrder && (
-        <div className="card p-6 mb-6">
-          <div className="flex items-start justify-between mb-4">
-            <div>
-              <div className="text-xs text-slate-500 font-mono">{selectedOrder.orderNo}</div>
-              <div className="text-lg font-semibold">{selectedOrder.contactName || selectedOrder.company || "N/A"}</div>
-              <div className="text-sm text-slate-500">{new Date(selectedOrder.date).toLocaleString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", timeZone: "Asia/Shanghai" })}</div>
+        <div className="card p-4 sm:p-6 mb-4 sm:mb-6">
+          <div className="flex items-start justify-between mb-4 gap-3">
+            <div className="min-w-0 flex-1">
+              <div className="text-xs text-slate-500 font-mono truncate">{selectedOrder.orderNo}</div>
+              <div className="text-base sm:text-lg font-semibold truncate">{selectedOrder.contactName || selectedOrder.company || "N/A"}</div>
+              <div className="text-xs sm:text-sm text-slate-500 truncate">{new Date(selectedOrder.date).toLocaleString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", timeZone: "Asia/Shanghai" })}</div>
             </div>
-            <button onClick={() => setSelected(null)} className="text-slate-400 hover:text-slate-700"><X className="w-5 h-5" /></button>
+            <button onClick={() => setSelected(null)} className="text-slate-400 hover:text-slate-700 flex-shrink-0 p-1"><X className="w-5 h-5" /></button>
           </div>
-          <div className="flex flex-wrap gap-2 mb-5">
+          <div className="flex flex-wrap gap-2 mb-4 sm:mb-5">
             <StatusBadge status={selectedOrder.status} />
             {selectedOrder.trackingNumber && (
               <span className="badge badge-blue">{selectedOrder.trackingNumber}</span>
             )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 mb-4 sm:mb-5 p-3 sm:p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
             {selectedOrder.contactName && (
               <div className="flex items-center gap-2">
-                <User className="w-4 h-4 text-slate-400" />
-                <span className="text-sm">{selectedOrder.contactName}</span>
+                <User className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                <span className="text-xs sm:text-sm truncate">{selectedOrder.contactName}</span>
               </div>
             )}
             {selectedOrder.phone && (
               <div className="flex items-center gap-2">
-                <Phone className="w-4 h-4 text-slate-400" />
-                <span className="text-sm">{selectedOrder.phone}</span>
+                <Phone className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                <span className="text-xs sm:text-sm truncate">{selectedOrder.phone}</span>
               </div>
             )}
             {selectedOrder.email && (
               <div className="flex items-center gap-2">
-                <Mail className="w-4 h-4 text-slate-400" />
-                <span className="text-sm">{selectedOrder.email}</span>
+                <Mail className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                <span className="text-xs sm:text-sm truncate">{selectedOrder.email}</span>
               </div>
             )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 mb-5">
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <MapPin className="w-4 h-4 text-slate-400" />
@@ -947,13 +949,13 @@ export default function OrdersPage() {
               <thead>
                 <tr>
                   <th>{t("order_no")}</th>
-                  <th>{lang === "en" ? "Agent" : lang === "zh-CN" ? "代理商" : "代理商"}</th>
+                  <th className="hidden sm:table-cell">{lang === "en" ? "Agent" : lang === "zh-CN" ? "代理商" : "代理商"}</th>
                   <th>{lang === "en" ? "Contact" : lang === "zh-CN" ? "联系人" : "聯絡人"}</th>
-                  <th>{lang === "en" ? "Postal Code" : lang === "zh-CN" ? "邮编" : "郵遞區號"}</th>
-                  <th>{t("order_date")}</th>
+                  <th className="hidden md:table-cell">{lang === "en" ? "Postal Code" : lang === "zh-CN" ? "邮编" : "郵遞區號"}</th>
+                  <th className="hidden sm:table-cell">{t("order_date")}</th>
                   <th>{t("amount")}</th>
                   <th>{t("status")}</th>
-                  <th>{t("tracking_number")}</th>
+                  <th className="hidden lg:table-cell">{t("tracking_number")}</th>
                   <th>{t("actions")}</th>
                 </tr>
               </thead>
@@ -963,22 +965,22 @@ export default function OrdersPage() {
                   return (
                     <tr key={o.id}>
                       <td className="font-mono text-xs">{o.orderNo}</td>
-                      <td className="font-medium">
+                      <td className="hidden sm:table-cell font-medium">
                         <div>{agent?.company || o.agentId}</div>
                         {agent?.email && <div className="text-xs text-slate-400">{agent.email}</div>}
                       </td>
                       <td className="font-medium">
-                        <div>{o.contactName || o.company || "N/A"}</div>
-                        {o.phone && <div className="text-xs text-slate-400">{o.phone}</div>}
+                        <div className="truncate max-w-[120px] sm:max-w-none">{o.contactName || o.company || "N/A"}</div>
+                        {o.phone && <div className="text-xs text-slate-400 truncate max-w-[120px] sm:max-w-none">{o.phone}</div>}
                       </td>
-                      <td className="text-sm text-slate-500 font-mono">{o.postalCode || "—"}</td>
-                      <td className="text-slate-500 text-sm">{new Date(o.date).toLocaleDateString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit", timeZone: "Asia/Shanghai" })}</td>
-                      <td className="font-medium">{formatCurrency(o.total, currency)}</td>
+                      <td className="hidden md:table-cell text-sm text-slate-500 font-mono">{o.postalCode || "—"}</td>
+                      <td className="hidden sm:table-cell text-slate-500 text-sm whitespace-nowrap">{new Date(o.date).toLocaleDateString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit", timeZone: "Asia/Shanghai" })}</td>
+                      <td className="font-medium whitespace-nowrap">{formatCurrency(o.total, currency)}</td>
                       <td><StatusBadge status={o.status} /></td>
-                      <td className="text-sm text-slate-500 font-mono">{o.trackingNumber || "—"}</td>
+                      <td className="hidden lg:table-cell text-sm text-slate-500 font-mono">{o.trackingNumber || "—"}</td>
                       <td>
-                        <button onClick={() => setSelected(o.id)} className="text-indigo-600 hover:underline text-sm flex items-center gap-1.5">
-                          <Eye className="w-3.5 h-3.5" /> {t("view")}
+                        <button onClick={() => setSelected(o.id)} className="text-indigo-600 hover:underline text-sm flex items-center gap-1">
+                          <Eye className="w-3.5 h-3.5" /> <span className="hidden sm:inline">{t("view")}</span>
                         </button>
                       </td>
                     </tr>

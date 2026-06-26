@@ -159,11 +159,11 @@ export function Topbar({ title, onMenu, subtitle }: { title: string; onMenu: () 
 
   return (
     <header className="sticky top-0 z-20 bg-white/80 dark:bg-[#0b0f19]/80 backdrop-blur border-b border-slate-200 dark:border-slate-800">
-      <div className="flex items-center gap-4 px-4 sm:px-6 py-3">
-        <button onClick={onMenu} className="lg:hidden text-slate-700 dark:text-slate-300"><Menu className="w-5 h-5" /></button>
+      <div className="flex items-center gap-2 sm:gap-4 px-3 sm:px-6 py-3">
+        <button onClick={onMenu} className="lg:hidden text-slate-700 dark:text-slate-300 p-1"><Menu className="w-5 h-5" /></button>
         <div className="flex-1 min-w-0">
-          <h1 className="text-lg font-semibold text-slate-900 dark:text-white truncate">{title}</h1>
-          {subtitle && <div className="text-xs text-slate-500">{subtitle}</div>}
+          <h1 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white truncate">{title}</h1>
+          {subtitle && <div className="text-xs text-slate-500 truncate">{subtitle}</div>}
         </div>
 
         <div className="hidden md:flex items-center relative">
@@ -176,7 +176,7 @@ export function Topbar({ title, onMenu, subtitle }: { title: string; onMenu: () 
         </div>
 
         <select
-          className="hidden sm:block bg-transparent text-sm border border-slate-200 dark:border-slate-700 rounded-md px-2 py-1.5 outline-none"
+          className="hidden sm:block bg-transparent text-xs sm:text-sm border border-slate-200 dark:border-slate-700 rounded-md px-2 py-1.5 outline-none"
           value={currency}
           onChange={(e) => setCurrency(e.target.value)}
         >
@@ -186,7 +186,7 @@ export function Topbar({ title, onMenu, subtitle }: { title: string; onMenu: () 
         </select>
 
         <select
-          className="bg-transparent text-sm border border-slate-200 dark:border-slate-700 rounded-md px-2 py-1.5 outline-none"
+          className="bg-transparent text-xs sm:text-sm border border-slate-200 dark:border-slate-700 rounded-md px-1 sm:px-2 py-1.5 outline-none max-w-[100px]"
           value={lang}
           onChange={(e) => setLang(e.target.value as Lang)}
         >
@@ -197,22 +197,22 @@ export function Topbar({ title, onMenu, subtitle }: { title: string; onMenu: () 
 
         <button
           onClick={toggleTheme}
-          className="w-9 h-9 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300"
+          className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 flex-shrink-0"
         >
           {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
         </button>
 
         <div className="relative">
-          <button onClick={() => setMenuOpen((v) => !v)} className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center text-sm font-semibold">
+          <button onClick={() => setMenuOpen((v) => !v)} className="flex items-center gap-1 sm:gap-2">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center text-xs sm:text-sm font-semibold flex-shrink-0">
               {(user?.name || "U").charAt(0)}
             </div>
-            <ChevronDown className="w-4 h-4 hidden sm:block text-slate-500" />
+            <ChevronDown className="w-3 h-3 hidden sm:block text-slate-500" />
           </button>
           {menuOpen && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
-              <div className="dropdown z-50 mt-1">
+              <div className="dropdown z-50 mt-1 right-0">
                 <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800">
                   <div className="text-sm font-medium text-slate-900 dark:text-white">{user?.name}</div>
                   <div className="text-xs text-slate-500">{user?.email}</div>
@@ -259,7 +259,7 @@ export function PageCard({ title, subtitle, actions, children, className = "" }:
   return (
     <div className={`card overflow-hidden ${className}`}>
       {(title || actions) && (
-        <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b border-slate-200 dark:border-slate-800">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-5 py-3 sm:py-4 border-b border-slate-200 dark:border-slate-800">
           <div>
             {title && <h2 className="text-base font-semibold text-slate-900 dark:text-white">{title}</h2>}
             {subtitle && <div className="text-xs text-slate-500 mt-0.5">{subtitle}</div>}
@@ -267,7 +267,7 @@ export function PageCard({ title, subtitle, actions, children, className = "" }:
           {actions}
         </div>
       )}
-      <div className="p-5">{children}</div>
+      <div className="p-3 sm:p-5">{children}</div>
     </div>
   );
 }
