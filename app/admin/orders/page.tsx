@@ -5,7 +5,7 @@ import { AdminLayout } from "@/components/Layout";
 import { PageCard, StatusBadge } from "@/components/Sidebar";
 import { useApp } from "@/components/AppProvider";
 import { formatCurrency, formatNumber } from "@/lib/utils";
-import { Eye, Truck, FileText, Search, X, Phone, Mail, User, MapPin, Package, Image, Upload, Check, AlertCircle, Edit2 } from "lucide-react";
+import { Eye, Truck, FileText, Search, X, Phone, Mail, User, MapPin, Package, Image, Upload, Check, AlertCircle, Edit2, QrCode, Package as PackageIcon } from "lucide-react";
 
 interface OrderItem {
   productId: string;
@@ -34,6 +34,7 @@ interface Order {
   trackingNumber?: string;
   trackingImage?: string;
   qrCode?: string;
+  waybillImage?: string;
   company?: string;
   shippingFee?: number;
   shippedAt?: string;
@@ -57,8 +58,11 @@ interface Warehouse {
 
 const statuses = [
   { id: "all", labelEn: "All", labelZhCN: "全部", labelZhTW: "全部" },
-  { id: "pending_approval", labelEn: "Pending Approval", labelZhCN: "待审批", labelZhTW: "待審批" },
+  { id: "submitted", labelEn: "Submitted", labelZhCN: "已提交", labelZhTW: "已提交" },
   { id: "pending_qrcode", labelEn: "Pending QR Code", labelZhCN: "待上传二维码", labelZhTW: "待上傳二維碼" },
+  { id: "qrcode_uploaded", labelEn: "QR Code Uploaded", labelZhCN: "已上传二维码", labelZhTW: "已上傳二維碼" },
+  { id: "pending_waybill", labelEn: "Pending Waybill", labelZhCN: "待上传快递面单", labelZhTW: "待上傳快遞面單" },
+  { id: "waybill_uploaded", labelEn: "Waybill Uploaded", labelZhCN: "已上传快递面单", labelZhTW: "已上傳快遞面單" },
   { id: "pending_shipment", labelEn: "Pending Shipment", labelZhCN: "待发货", labelZhTW: "待發貨" },
   { id: "shipped", labelEn: "Shipped", labelZhCN: "已发货", labelZhTW: "已發貨" },
   { id: "completed", labelEn: "Completed", labelZhCN: "已完成", labelZhTW: "已完成" },
@@ -79,12 +83,19 @@ export default function OrdersPage() {
   const [selected, setSelected] = useState<string | null>(null);
   const [showShipModal, setShowShipModal] = useState(false);
   const [shipInfo, setShipInfo] = useState({ trackingNumber: "", trackingImage: "" });
-  const [qrInfo, setQrInfo] = useState({ qrCode: "", shippingFee: "" });
   const [updating, setUpdating] = useState(false);
   const [uploadingQrImage, setUploadingQrImage] = useState(false);
-  const [uploadingTrackingImage, setUploadingTrackingImage] = useState(false);
+  const [uploadingWaybillImage, setUploadingWaybillImage] = useState(false);
+  const [trackingNumberInput, setTrackingNumberInput] = useState("");
+  const [editingQrCode, setEditingQrCode] = useState(false);
+  const [editingWaybill, setEditingWaybill] = useState(false);
+  const [editingTracking, setEditingTracking] = useState(false);
+  const [tempQrCode, setTempQrCode] = useState("");
+  const [tempWaybillImage, setTempWaybillImage] = useState("");
+  const [tempTrackingNumber, setTempTrackingNumber] = useState("");
+  const [tempShippingFee, setTempShippingFee] = useState("");
 
-  const handleQrImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleQrImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, forEdit = false) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -98,7 +109,11 @@ export default function OrdersPage() {
       });
       if (res.ok) {
         const data = await res.json();
-        setQrInfo({ ...qrInfo, qrCode: data.url });
+        if (forEdit) {
+          setTempQrCode(data.url);
+        } else {
+          setTempQrCode(data.url);
+        }
       } else {
         alert(lang === "en" ? "Upload failed" : lang === "zh-CN" ? "上传失败" : "上傳失敗");
       }
@@ -110,11 +125,36 @@ export default function OrdersPage() {
     }
   };
 
+  const handleWaybillImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingWaybillImage(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setTempWaybillImage(data.url);
+      } else {
+        alert(lang === "en" ? "Upload failed" : lang === "zh-CN" ? "上传失败" : "上傳失敗");
+      }
+    } catch (error) {
+      console.error("Upload failed:", error);
+      alert(lang === "en" ? "Upload failed" : lang === "zh-CN" ? "上传失败" : "上傳失敗");
+    } finally {
+      setUploadingWaybillImage(false);
+    }
+  };
+
   const handleTrackingImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setUploadingTrackingImage(true);
     try {
       const formData = new FormData();
       formData.append("file", file);
@@ -131,8 +171,6 @@ export default function OrdersPage() {
     } catch (error) {
       console.error("Upload failed:", error);
       alert(lang === "en" ? "Upload failed" : lang === "zh-CN" ? "上传失败" : "上傳失敗");
-    } finally {
-      setUploadingTrackingImage(false);
     }
   };
 
@@ -180,12 +218,10 @@ export default function OrdersPage() {
     fetchWarehouses();
   }, []);
 
-  // 防止自动刷新时覆盖正在更新的订单
   const [updatingOrderIds, setUpdatingOrderIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const interval = setInterval(() => {
-      // 如果有订单正在更新，跳过这次刷新
       if (updatingOrderIds.size === 0) {
         fetchOrders();
       }
@@ -193,23 +229,31 @@ export default function OrdersPage() {
     return () => clearInterval(interval);
   }, [updatingOrderIds]);
 
-  const updateOrderStatus = async (id: string, status: string, extra?: Partial<Order>) => {
+  const updateOrder = async (id: string, updates: Partial<Order>) => {
     setUpdating(true);
     setUpdatingOrderIds((prev) => new Set(prev).add(id));
     try {
       const res = await fetch(`/api/orders/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status, ...extra }),
+        body: JSON.stringify(updates),
       });
       if (res.ok) {
         const updated = await res.json();
-        const updatedOrder = { ...data.find((o) => o.id === id), ...updated };
+        const currentOrder = data.find((o) => o.id === id);
+        const updatedOrder = { ...currentOrder, ...updated };
         setData(data.map((o) => o.id === id ? updatedOrder : o));
         if (selected === id) setSelected(updatedOrder);
+        return true;
+      } else {
+        const err = await res.json();
+        alert(lang === "en" ? "Failed: " : lang === "zh-CN" ? "操作失败: " : "操作失敗: " + (err.error || "Unknown error"));
+        return false;
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to update order:", error);
+      alert(lang === "en" ? "Operation failed: " : lang === "zh-CN" ? "操作失败: " : "操作失敗: " + (error.message || JSON.stringify(error)));
+      return false;
     } finally {
       setUpdating(false);
       setUpdatingOrderIds((prev) => {
@@ -221,7 +265,6 @@ export default function OrdersPage() {
   };
 
   const filtered = data.filter((o) => {
-    // Search filter
     const searchText = q.toLowerCase();
     const mq = !q ||
       o.orderNo.toLowerCase().includes(searchText) ||
@@ -230,19 +273,15 @@ export default function OrdersPage() {
       (o.phone && o.phone.includes(searchText)) ||
       (o.email && o.email.toLowerCase().includes(searchText));
 
-    // Status filter
     const mf = flt === "all" || o.status === flt;
 
-    // Agent filter
     const mage = agentFilter === "all" || o.agentId === agentFilter;
 
-    // Warehouse filter - check if any item in the order is from the selected warehouse
     const mwarehouse = warehouseFilter === "all" || 
       (o.warehouseId && o.warehouseId === warehouseFilter) ||
       (o.warehouse && o.warehouse === warehouseFilter) ||
       (o.items && o.items.some((item: any) => item.warehouseId === warehouseFilter || item.warehouse === warehouseFilter));
 
-    // Date filter
     const orderDate = new Date(o.date);
     const fromDate = dateFrom ? new Date(dateFrom) : null;
     const toDate = dateTo ? new Date(dateTo + "T23:59:59") : null;
@@ -253,12 +292,94 @@ export default function OrdersPage() {
 
   const selectedOrder = data.find((o) => o.id === selected);
 
+  const openQrEdit = () => {
+    setTempQrCode(selectedOrder?.qrCode || "");
+    setTempShippingFee(selectedOrder?.shippingFee?.toString() || "");
+    setEditingQrCode(true);
+  };
+
+  const saveQrCode = async () => {
+    if (!selectedOrder || !tempQrCode) return;
+
+    const fee = parseFloat(tempShippingFee) || 0;
+    const updates: Partial<Order> = { qrCode: tempQrCode, shippingFee: fee };
+
+    if (selectedOrder.status === "pending_qrcode" || selectedOrder.status === "submitted") {
+      updates.status = "qrcode_uploaded";
+    }
+
+    if (fee > 0 && (selectedOrder.status === "pending_qrcode" || selectedOrder.status === "submitted")) {
+      const creditRes = await fetch("/api/credit", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          agentId: selectedOrder.agentId,
+          action: "deduct",
+          amount: fee,
+          note: `Shipping fee for order ${selectedOrder.orderNo}`,
+        }),
+      });
+      if (!creditRes.ok) {
+        const err = await creditRes.json();
+        alert(lang === "en" ? "Failed to deduct shipping fee: " : lang === "zh-CN" ? "运费扣除失败: " : "運費扣除失敗: " + (err.error || "Unknown error"));
+        return;
+      }
+    }
+
+    const ok = await updateOrder(selectedOrder.id, updates);
+    if (ok) {
+      setEditingQrCode(false);
+    }
+  };
+
+  const openWaybillEdit = () => {
+    setTempWaybillImage(selectedOrder?.waybillImage || "");
+    setEditingWaybill(true);
+  };
+
+  const saveWaybill = async () => {
+    if (!selectedOrder || !tempWaybillImage) return;
+
+    const updates: Partial<Order> = { waybillImage: tempWaybillImage };
+
+    if (selectedOrder.status === "qrcode_uploaded" || selectedOrder.status === "pending_waybill") {
+      updates.status = "waybill_uploaded";
+    }
+
+    const ok = await updateOrder(selectedOrder.id, updates);
+    if (ok) {
+      setEditingWaybill(false);
+    }
+  };
+
+  const openTrackingEdit = () => {
+    setTempTrackingNumber(selectedOrder?.trackingNumber || "");
+    setEditingTracking(true);
+  };
+
+  const saveTrackingNumber = async () => {
+    if (!selectedOrder) return;
+    if (!tempTrackingNumber.trim()) {
+      alert(lang === "en" ? "Please enter tracking number" : lang === "zh-CN" ? "请输入运单号" : "請輸入運單號");
+      return;
+    }
+
+    const updates: Partial<Order> = { trackingNumber: tempTrackingNumber.trim() };
+
+    if (selectedOrder.status === "waybill_uploaded") {
+      updates.status = "pending_shipment";
+    }
+
+    const ok = await updateOrder(selectedOrder.id, updates);
+    if (ok) {
+      setEditingTracking(false);
+    }
+  };
+
   return (
     <AdminLayout title={t("orders")} subtitle={`${formatNumber(filtered.length)} / ${formatNumber(data.length)} ${lang === "en" ? "orders" : lang === "zh-CN" ? "订单" : "訂單"}`}>
-      {/* Filters */}
       <div className="card p-4 mb-4">
         <div className="flex flex-wrap items-end gap-4">
-          {/* Search */}
           <div className="flex-1 min-w-[200px] relative">
             <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
             <input
@@ -269,7 +390,6 @@ export default function OrdersPage() {
             />
           </div>
 
-          {/* Agent Filter */}
           <div className="min-w-[180px]">
             <label className="block text-xs text-slate-500 mb-1">{lang === "en" ? "Agent" : lang === "zh-CN" ? "代理商" : "代理商"}</label>
             <select
@@ -284,7 +404,6 @@ export default function OrdersPage() {
             </select>
           </div>
 
-          {/* Warehouse Filter */}
           <div className="min-w-[160px]">
             <label className="block text-xs text-slate-500 mb-1">{lang === "en" ? "Warehouse" : lang === "zh-CN" ? "仓库" : "倉庫"}</label>
             <select
@@ -299,7 +418,6 @@ export default function OrdersPage() {
             </select>
           </div>
 
-          {/* Status Filter */}
           <div className="flex gap-1.5 flex-wrap">
             {statuses.map((s) => (
               <button
@@ -313,7 +431,6 @@ export default function OrdersPage() {
           </div>
         </div>
 
-        {/* Date Filters */}
         <div className="flex flex-wrap items-end gap-4 mt-4">
           <div>
             <label className="block text-xs text-slate-500 mb-1">{lang === "en" ? "From Date" : lang === "zh-CN" ? "开始日期" : "開始日期"}</label>
@@ -359,7 +476,6 @@ export default function OrdersPage() {
             )}
           </div>
 
-          {/* Contact Information */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
             {selectedOrder.contactName && (
               <div className="flex items-center gap-2">
@@ -382,7 +498,6 @@ export default function OrdersPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
-            {/* Shipping Address */}
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <MapPin className="w-4 h-4 text-slate-400" />
@@ -395,157 +510,241 @@ export default function OrdersPage() {
                 {selectedOrder.country && <span>{selectedOrder.country}</span>}
               </div>
 
-              {/* QR Code Upload Section - Show when pending_qrcode */}
-              {selectedOrder.status === "pending_qrcode" && (
-                <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-950/30 rounded-xl">
-                  <div className="text-xs text-amber-600 mb-3 flex items-center gap-1">
-                    <AlertCircle className="w-4 h-4" />
-                    {lang === "en" ? "Please upload payment QR code and enter shipping fee" : lang === "zh-CN" ? "请上传支付二维码并填写运费" : "請上傳支付二維碼並填寫運費"}
-                  </div>
-                  
-                  {/* QR Code Upload */}
-                  <div className="mb-4">
-                    <label className="block text-xs text-amber-700 dark:text-amber-400 mb-2">
-                      {lang === "en" ? "Payment QR Code *" : lang === "zh-CN" ? "支付二维码 *" : "支付二維碼 *"}
-                    </label>
-                    <div className="border-2 border-dashed border-amber-300 dark:border-amber-700 rounded-xl p-4 text-center hover:border-amber-500 transition-colors">
-                      {qrInfo.qrCode ? (
-                        <div className="relative">
-                          <img src={qrInfo.qrCode} alt="QR Code" className="max-h-40 mx-auto rounded-lg" />
-                          <button
-                            onClick={() => setQrInfo({ ...qrInfo, qrCode: "" })}
-                            className="absolute top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ) : (
-                        <>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            id="qr-upload"
-                            onChange={handleQrImageUpload}
-                          />
-                          <label htmlFor="qr-upload" className="cursor-pointer">
-                            <Upload className="w-8 h-8 mx-auto text-amber-400 mb-2" />
-                            <div className="text-sm text-amber-600">
-                              {uploadingQrImage ? (lang === "en" ? "Uploading..." : lang === "zh-CN" ? "上传中..." : "上傳中...") : (lang === "en" ? "Click to upload QR code" : lang === "zh-CN" ? "点击上传二维码" : "點擊上傳二維碼")}
-                            </div>
-                          </label>
-                        </>
-                      )}
+              <div className="mt-5 space-y-4">
+                <div className="p-4 bg-amber-50 dark:bg-amber-950/30 rounded-xl">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <QrCode className="w-4 h-4 text-amber-600" />
+                      <span className="text-xs font-medium text-amber-700 dark:text-amber-400">
+                        {lang === "en" ? "Payment QR Code" : lang === "zh-CN" ? "支付二维码" : "支付二維碼"}
+                      </span>
                     </div>
-                  </div>
-
-                  {/* Shipping Fee Input */}
-                  <div className="mb-4">
-                    <label className="block text-xs text-amber-700 dark:text-amber-400 mb-2">
-                      {lang === "en" ? "Shipping Fee" : lang === "zh-CN" ? "运费金额" : "運費金額"}
-                    </label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">{currency}</span>
-                      <input
-                        className="input pl-12"
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        placeholder="0.00"
-                        value={qrInfo.shippingFee}
-                        onChange={(e) => setQrInfo({ ...qrInfo, shippingFee: e.target.value })}
-                      />
-                    </div>
-                    <div className="text-xs text-amber-600 mt-1.5">
-                      {lang === "en" ? "Will be deducted from agent's credit limit" : lang === "zh-CN" ? "将从代理商的信用额度中扣除" : "將從代理商的信用額度中扣除"}
-                    </div>
-                  </div>
-
-                  {/* Confirm Button - Go to pending_shipment */}
-                  {qrInfo.qrCode && (
-                    <button
-                      onClick={async () => {
-                        const fee = parseFloat(qrInfo.shippingFee) || 0;
-                        const currentOrder = data.find((o) => o.id === selectedOrder.id);
-
-                        setUpdating(true);
-                        try {
-                          if (fee > 0 && currentOrder) {
-                            const creditRes = await fetch("/api/credit", {
-                              method: "PUT",
-                              headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({
-                                agentId: currentOrder.agentId,
-                                action: "deduct",
-                                amount: fee,
-                                note: `Shipping fee for order ${currentOrder.orderNo}`,
-                              }),
-                            });
-                            if (!creditRes.ok) {
-                              const err = await creditRes.json();
-                              alert(lang === "en" ? "Failed to deduct shipping fee: " : lang === "zh-CN" ? "运费扣除失败: " : "運費扣除失敗: " + (err.error || "Unknown error"));
-                              return;
-                            }
-                          }
-
-                          const res = await fetch(`/api/orders/${selectedOrder.id}`, {
-                            method: "PUT",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                              status: "pending_shipment",
-                              qrCode: qrInfo.qrCode,
-                              shippingFee: fee,
-                            }),
-                          });
-                          if (res.ok) {
-                            const updated = await res.json();
-                            const updatedOrder = { ...selectedOrder, ...updated };
-                            setData(data.map((o) => o.id === selectedOrder.id ? updatedOrder : o));
-                            setSelected(updatedOrder);
-                            setQrInfo({ qrCode: "", shippingFee: "" });
-                          } else {
-                            const err = await res.json();
-                            alert(lang === "en" ? "Failed: " : lang === "zh-CN" ? "操作失败: " : "操作失敗: " + (err.error || "Unknown error"));
-                          }
-                        } catch (error: any) {
-                          console.error("Confirm error:", error, error?.message, error?.stack);
-                          alert(lang === "en" ? "Operation failed: " : lang === "zh-CN" ? "操作失败: " : "操作失敗: " + (error.message || JSON.stringify(error)));
-                        } finally {
-                          setUpdating(false);
-                        }
-                      }}
-                      disabled={updating}
-                      className="w-full btn-primary flex items-center justify-center gap-2"
-                    >
-                      {updating ? (
-                        <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      ) : (
-                        <Check className="w-4 h-4" />
-                      )}
-                      {lang === "en" ? "Confirm" : lang === "zh-CN" ? "确认" : "確認"}
+                    <button onClick={openQrEdit} className="text-xs text-amber-600 hover:text-amber-700 flex items-center gap-1">
+                      <Edit2 className="w-3 h-3" />
+                      {lang === "en" ? "Edit" : lang === "zh-CN" ? "编辑" : "編輯"}
                     </button>
+                  </div>
+
+                  {editingQrCode ? (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-xs text-amber-700 dark:text-amber-400 mb-2">
+                          {lang === "en" ? "QR Code Image *" : lang === "zh-CN" ? "二维码图片 *" : "二維碼圖片 *"}
+                        </label>
+                        <div className="border-2 border-dashed border-amber-300 dark:border-amber-700 rounded-xl p-4 text-center hover:border-amber-500 transition-colors">
+                          {tempQrCode ? (
+                            <div className="relative">
+                              <img src={tempQrCode} alt="QR Code" className="max-h-40 mx-auto rounded-lg" />
+                              <button
+                                onClick={() => setTempQrCode("")}
+                                className="absolute top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ) : (
+                            <>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                id="qr-edit-upload"
+                                onChange={(e) => handleQrImageUpload(e, true)}
+                              />
+                              <label htmlFor="qr-edit-upload" className="cursor-pointer">
+                                <Upload className="w-8 h-8 mx-auto text-amber-400 mb-2" />
+                                <div className="text-sm text-amber-600">
+                                  {uploadingQrImage ? (lang === "en" ? "Uploading..." : lang === "zh-CN" ? "上传中..." : "上傳中...") : (lang === "en" ? "Click to upload" : lang === "zh-CN" ? "点击上传" : "點擊上傳")}
+                                </div>
+                              </label>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs text-amber-700 dark:text-amber-400 mb-2">
+                          {lang === "en" ? "Shipping Fee" : lang === "zh-CN" ? "运费金额" : "運費金額"}
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">{currency}</span>
+                          <input
+                            className="input pl-12"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            placeholder="0.00"
+                            value={tempShippingFee}
+                            onChange={(e) => setTempShippingFee(e.target.value)}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <button onClick={() => setEditingQrCode(false)} className="flex-1 btn-ghost justify-center">
+                          {lang === "en" ? "Cancel" : lang === "zh-CN" ? "取消" : "取消"}
+                        </button>
+                        <button
+                          onClick={saveQrCode}
+                          disabled={!tempQrCode || updating}
+                          className="flex-1 btn-primary justify-center flex items-center gap-2 disabled:opacity-50"
+                        >
+                          {updating ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Check className="w-4 h-4" />}
+                          {lang === "en" ? "Save" : lang === "zh-CN" ? "保存" : "保存"}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      {selectedOrder.qrCode ? (
+                        <img src={selectedOrder.qrCode} alt="QR Code" className="max-w-xs rounded-lg border border-amber-200 dark:border-amber-800" />
+                      ) : (
+                        <div className="text-sm text-amber-500 italic">
+                          {lang === "en" ? "Not uploaded yet" : lang === "zh-CN" ? "尚未上传" : "尚未上傳"}
+                        </div>
+                      )}
+                      {selectedOrder.shippingFee != null && selectedOrder.shippingFee > 0 && (
+                        <div className="mt-2 text-xs text-amber-600">
+                          {lang === "en" ? "Shipping Fee: " : lang === "zh-CN" ? "运费: " : "運費: "}{formatCurrency(selectedOrder.shippingFee, currency)}
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
-              )}
 
-              {/* QR Code Display */}
-              {selectedOrder.qrCode && selectedOrder.status !== "pending_qrcode" && (
-                <div className="mt-4">
-                  <div className="text-xs text-slate-500 mb-2">{lang === "en" ? "Payment QR Code" : lang === "zh-CN" ? "支付二维码" : "支付二維碼"}</div>
-                  <img src={selectedOrder.qrCode} alt="QR Code" className="max-w-xs rounded-lg border border-slate-200 dark:border-slate-700" />
-                </div>
-              )}
+                <div className="p-4 bg-blue-50 dark:bg-blue-950/30 rounded-xl">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <PackageIcon className="w-4 h-4 text-blue-600" />
+                      <span className="text-xs font-medium text-blue-700 dark:text-blue-400">
+                        {lang === "en" ? "Waybill Image" : lang === "zh-CN" ? "快递面单" : "快遞面單"}
+                      </span>
+                    </div>
+                    <button onClick={openWaybillEdit} className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1">
+                      <Edit2 className="w-3 h-3" />
+                      {lang === "en" ? "Edit" : lang === "zh-CN" ? "编辑" : "編輯"}
+                    </button>
+                  </div>
 
-              {/* Tracking Image - Show after shipped */}
-              {selectedOrder.trackingImage && (selectedOrder.status === "shipped" || selectedOrder.status === "completed") && (
-                <div className="mt-4">
-                  <div className="text-xs text-slate-500 mb-2">{lang === "en" ? "Tracking Image" : lang === "zh-CN" ? "运单图片" : "運單圖片"}</div>
-                  <img src={selectedOrder.trackingImage} alt="Tracking" className="max-w-xs rounded-lg border border-slate-200 dark:border-slate-700" />
+                  {editingWaybill ? (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-xs text-blue-700 dark:text-blue-400 mb-2">
+                          {lang === "en" ? "Waybill Image *" : lang === "zh-CN" ? "面单图片 *" : "面單圖片 *"}
+                        </label>
+                        <div className="border-2 border-dashed border-blue-300 dark:border-blue-700 rounded-xl p-4 text-center hover:border-blue-500 transition-colors">
+                          {tempWaybillImage ? (
+                            <div className="relative">
+                              <img src={tempWaybillImage} alt="Waybill" className="max-h-40 mx-auto rounded-lg" />
+                              <button
+                                onClick={() => setTempWaybillImage("")}
+                                className="absolute top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ) : (
+                            <>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                id="waybill-edit-upload"
+                                onChange={handleWaybillImageUpload}
+                              />
+                              <label htmlFor="waybill-edit-upload" className="cursor-pointer">
+                                <Upload className="w-8 h-8 mx-auto text-blue-400 mb-2" />
+                                <div className="text-sm text-blue-600">
+                                  {uploadingWaybillImage ? (lang === "en" ? "Uploading..." : lang === "zh-CN" ? "上传中..." : "上傳中...") : (lang === "en" ? "Click to upload" : lang === "zh-CN" ? "点击上传" : "點擊上傳")}
+                                </div>
+                              </label>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <button onClick={() => setEditingWaybill(false)} className="flex-1 btn-ghost justify-center">
+                          {lang === "en" ? "Cancel" : lang === "zh-CN" ? "取消" : "取消"}
+                        </button>
+                        <button
+                          onClick={saveWaybill}
+                          disabled={!tempWaybillImage || updating}
+                          className="flex-1 btn-primary justify-center flex items-center gap-2 disabled:opacity-50"
+                        >
+                          {updating ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Check className="w-4 h-4" />}
+                          {lang === "en" ? "Save" : lang === "zh-CN" ? "保存" : "保存"}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      {selectedOrder.waybillImage ? (
+                        <img src={selectedOrder.waybillImage} alt="Waybill" className="max-w-xs rounded-lg border border-blue-200 dark:border-blue-800" />
+                      ) : (
+                        <div className="text-sm text-blue-500 italic">
+                          {lang === "en" ? "Not uploaded yet" : lang === "zh-CN" ? "尚未上传" : "尚未上傳"}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-              )}
+
+                <div className="p-4 bg-emerald-50 dark:bg-emerald-950/30 rounded-xl">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <Truck className="w-4 h-4 text-emerald-600" />
+                      <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                        {lang === "en" ? "Tracking Number" : lang === "zh-CN" ? "运单号" : "運單號"}
+                      </span>
+                    </div>
+                    <button onClick={openTrackingEdit} className="text-xs text-emerald-600 hover:text-emerald-700 flex items-center gap-1">
+                      <Edit2 className="w-3 h-3" />
+                      {lang === "en" ? "Edit" : lang === "zh-CN" ? "编辑" : "編輯"}
+                    </button>
+                  </div>
+
+                  {editingTracking ? (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-xs text-emerald-700 dark:text-emerald-400 mb-2">
+                          {lang === "en" ? "Tracking Number *" : lang === "zh-CN" ? "运单号 *" : "運單號 *"}
+                        </label>
+                        <input
+                          className="input"
+                          placeholder={lang === "en" ? "Enter tracking number" : lang === "zh-CN" ? "输入运单号" : "輸入運單號"}
+                          value={tempTrackingNumber}
+                          onChange={(e) => setTempTrackingNumber(e.target.value)}
+                        />
+                      </div>
+
+                      <div className="flex gap-2">
+                        <button onClick={() => setEditingTracking(false)} className="flex-1 btn-ghost justify-center">
+                          {lang === "en" ? "Cancel" : lang === "zh-CN" ? "取消" : "取消"}
+                        </button>
+                        <button
+                          onClick={saveTrackingNumber}
+                          disabled={!tempTrackingNumber.trim() || updating}
+                          className="flex-1 btn-primary justify-center flex items-center gap-2 disabled:opacity-50"
+                        >
+                          {updating ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Check className="w-4 h-4" />}
+                          {lang === "en" ? "Submit" : lang === "zh-CN" ? "提交" : "提交"}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-sm font-medium text-emerald-700 dark:text-emerald-400 font-mono">
+                      {selectedOrder.trackingNumber || (
+                        <span className="text-emerald-500 italic font-normal">
+                          {lang === "en" ? "Not entered yet" : lang === "zh-CN" ? "尚未填写" : "尚未填寫"}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
-            {/* Order Items */}
             <div>
               <div className="text-xs text-slate-500 mb-2 flex items-center gap-2">
                 <Package className="w-4 h-4" />
@@ -569,7 +768,6 @@ export default function OrdersPage() {
                   </div>
                 ))}
 
-                {/* 运费显示 */}
                 {selectedOrder.shippingFee && selectedOrder.shippingFee > 0 && (
                   <div className="flex items-center justify-between py-2 text-sm border-b border-slate-100 dark:border-slate-800">
                     <span className="text-slate-500">
@@ -597,20 +795,7 @@ export default function OrdersPage() {
             </div>
           )}
 
-          {/* Action Buttons */}
           <div className="flex flex-wrap gap-2">
-            {/* 待审批 → 审批通过 → 待上传二维码 */}
-            {selectedOrder.status === "pending_approval" && (
-              <button onClick={() => {
-                if (confirm(lang === "en" ? "Approve this order?" : lang === "zh-CN" ? "审批通过此订单？" : "審批通過此訂單？")) {
-                  updateOrderStatus(selectedOrder.id, "pending_qrcode");
-                }
-              }} disabled={updating} className="btn-primary flex items-center gap-2">
-                <Check className="w-4 h-4" /> {lang === "en" ? "审批通过" : lang === "zh-CN" ? "审批通过" : "審批通過"}
-              </button>
-            )}
-
-            {/* 待发货 → 发货 */}
             {selectedOrder.status === "pending_shipment" && (
               <button onClick={() => {
                 setShipInfo({
@@ -623,7 +808,6 @@ export default function OrdersPage() {
               </button>
             )}
 
-            {/* 已发货订单可以编辑运单信息 */}
             {(selectedOrder.status === "shipped" || selectedOrder.status === "completed") && (
               <button onClick={() => {
                 setShipInfo({
@@ -632,7 +816,7 @@ export default function OrdersPage() {
                 });
                 setShowShipModal(true);
               }} className="btn-ghost flex items-center gap-2">
-                <Edit2 className="w-4 h-4" /> {lang === "en" ? "编辑发货信息" : lang === "zh-CN" ? "编辑发货信息" : "編輯發貨資訊"}
+                <Edit2 className="w-4 h-4" /> {lang === "en" ? "Edit Shipping Info" : lang === "zh-CN" ? "编辑发货信息" : "編輯發貨資訊"}
               </button>
             )}
 
@@ -641,7 +825,6 @@ export default function OrdersPage() {
         </div>
       )}
 
-      {/* Shipment Modal - For shipping or editing tracking info */}
       {showShipModal && selectedOrder && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md">
@@ -661,7 +844,7 @@ export default function OrdersPage() {
             <div className="p-5 space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1.5">
-                  {lang === "en" ? "Tracking Number *" : lang === "zh-CN" ? "运单号 *" : "運單號 *"}
+                  {lang === "en" ? "Tracking Number" : lang === "zh-CN" ? "运单号" : "運單號"}
                 </label>
                 <input
                   className="input"
@@ -692,13 +875,13 @@ export default function OrdersPage() {
                         type="file"
                         accept="image/*"
                         className="hidden"
-                        id="tracking-upload"
+                        id="tracking-modal-upload"
                         onChange={handleTrackingImageUpload}
                       />
-                      <label htmlFor="tracking-upload" className="cursor-pointer">
+                      <label htmlFor="tracking-modal-upload" className="cursor-pointer">
                         <Upload className="w-8 h-8 mx-auto text-slate-400 mb-2" />
                         <div className="text-sm text-slate-500">
-                          {uploadingTrackingImage ? (lang === "en" ? "Uploading..." : lang === "zh-CN" ? "上传中..." : "上傳中...") : (lang === "en" ? "Click to upload tracking image" : lang === "zh-CN" ? "点击上传运单图片" : "點擊上傳運單圖片")}
+                          {lang === "en" ? "Click to upload tracking image" : lang === "zh-CN" ? "点击上传运单图片" : "點擊上傳運單圖片"}
                         </div>
                       </label>
                     </>
@@ -714,10 +897,6 @@ export default function OrdersPage() {
               <button
                 onClick={async () => {
                   if (selectedOrder.status === "pending_shipment") {
-                    if (!shipInfo.trackingNumber.trim()) {
-                      alert(lang === "en" ? "Please enter tracking number" : lang === "zh-CN" ? "请输入运单号" : "請輸入運單號");
-                      return;
-                    }
                     setUpdating(true);
                     try {
                       const res = await fetch(`/api/orders/${selectedOrder.id}`, {
@@ -725,8 +904,8 @@ export default function OrdersPage() {
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({
                           status: "shipped",
-                          trackingNumber: shipInfo.trackingNumber,
-                          trackingImage: shipInfo.trackingImage,
+                          trackingNumber: shipInfo.trackingNumber || selectedOrder.trackingNumber,
+                          trackingImage: shipInfo.trackingImage || selectedOrder.trackingImage,
                         }),
                       });
                       if (res.ok) {

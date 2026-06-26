@@ -198,7 +198,7 @@ async function migrateOrders(): Promise<number> {
     agent_id: o.agentId || o.agent_id,
     items: o.items || [],
     total: o.total || 0,
-    status: o.status || "pending_review",
+    status: o.status || "submitted",
     date: o.date || new Date().toISOString(),
     shipping_address: o.shippingAddress || o.shipping_address || "",
     postal_code: o.postalCode || o.postal_code || "",

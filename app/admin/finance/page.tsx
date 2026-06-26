@@ -10,7 +10,7 @@ import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer,
 
 export default function FinancePage() {
   const { t, currency, lang } = useApp();
-  const revenue = orders.reduce((s, o) => (o.status === "completed" || o.status === "shipped" || o.status === "processing" ? s + o.total : s), 0);
+  const revenue = orders.reduce((s, o) => (o.status === "completed" || o.status === "shipped" || o.status === "pending_shipment" || o.status === "waybill_uploaded" ? s + o.total : s), 0);
   const profit = Math.round(revenue * 0.42);
   const receivable = agents.reduce((s, a) => s + a.outstanding, 0);
   const monthlyRev = [

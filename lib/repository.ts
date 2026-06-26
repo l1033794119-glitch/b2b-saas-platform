@@ -413,6 +413,7 @@ function mapOrderFromRow(o: any): Order {
     shippedAt: o.shipped_at,
     trackingImage: o.tracking_image,
     qrCode: o.qr_code || o.qrCode || null,
+    waybillImage: o.waybill_image || o.waybillImage || null,
     warehouseId: o.warehouse_id || o.warehouseId || null,
     warehouse: o.warehouse || null,
   };
@@ -454,17 +455,17 @@ export async function createOrder(order: any): Promise<Order> {
     await execute(
       `INSERT INTO orders (id, order_no, agent_id, items, total, status, date,
        shipping_address, postal_code, country, contact_name, phone, email, notes,
-       tracking_number, company, shipping_fee, shipped_at, tracking_image, qr_code,
+       tracking_number, company, shipping_fee, shipped_at, tracking_image, qr_code, waybill_image,
        warehouse_id, warehouse, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id, order.orderNo, order.agentId, JSON.stringify(order.items || []),
-        order.total, order.status || "pending_review", order.date || now,
+        order.total, order.status || "submitted", order.date || now,
         order.shippingAddress || "", order.postalCode || "", order.country || "",
         order.contactName || "", order.phone || "", order.email || "",
         order.notes || "", order.trackingNumber || null, order.company || null,
         order.shippingFee || null, order.shippedAt || null, order.trackingImage || null,
-        order.qrCode || null, order.warehouseId || null, order.warehouse || null,
+        order.qrCode || null, order.waybillImage || null, order.warehouseId || null, order.warehouse || null,
         now, now
       ]
     );
@@ -472,7 +473,7 @@ export async function createOrder(order: any): Promise<Order> {
     const store = getMemoryStore();
     store.orders.unshift({
       id, orderNo: order.orderNo, agentId: order.agentId, items: order.items || [],
-      total: order.total, status: order.status || "pending_review", date: order.date || now,
+      total: order.total, status: order.status || "submitted", date: order.date || now,
       shippingAddress: order.shippingAddress || "", postalCode: order.postalCode || "",
       country: order.country || "", contactName: order.contactName || "",
       phone: order.phone || "", email: order.email || "", notes: order.notes || "",
@@ -480,6 +481,7 @@ export async function createOrder(order: any): Promise<Order> {
       shippingFee: order.shippingFee || null, shippedAt: order.shippedAt || null,
       trackingImage: order.trackingImage || null,
       qrCode: order.qrCode || null,
+      waybillImage: order.waybillImage || null,
       warehouseId: order.warehouseId || null,
       warehouse: order.warehouse || null,
     });
@@ -487,7 +489,7 @@ export async function createOrder(order: any): Promise<Order> {
 
   return {
     id, orderNo: order.orderNo, agentId: order.agentId, items: order.items || [],
-    total: order.total, status: order.status || "pending_review", date: order.date || now,
+    total: order.total, status: order.status || "submitted", date: order.date || now,
     shippingAddress: order.shippingAddress || "", postalCode: order.postalCode || "",
     country: order.country || "", contactName: order.contactName || "",
     phone: order.phone || "", email: order.email || "", notes: order.notes || "",
@@ -495,6 +497,7 @@ export async function createOrder(order: any): Promise<Order> {
     shippingFee: order.shippingFee || null, shippedAt: order.shippedAt || null,
     trackingImage: order.trackingImage || null,
     qrCode: order.qrCode || null,
+    waybillImage: order.waybillImage || null,
     warehouseId: order.warehouseId || null,
     warehouse: order.warehouse || null,
   };
@@ -523,6 +526,7 @@ export async function updateOrder(id: string, updates: any): Promise<Order | nul
     if (updates.shippedAt !== undefined) { setClauses.push("shipped_at = ?"); values.push(updates.shippedAt); }
     if (updates.trackingImage !== undefined) { setClauses.push("tracking_image = ?"); values.push(updates.trackingImage); }
     if (updates.qrCode !== undefined) { setClauses.push("qr_code = ?"); values.push(updates.qrCode); }
+    if (updates.waybillImage !== undefined) { setClauses.push("waybill_image = ?"); values.push(updates.waybillImage); }
     if (updates.warehouseId !== undefined) { setClauses.push("warehouse_id = ?"); values.push(updates.warehouseId); }
     if (updates.warehouse !== undefined) { setClauses.push("warehouse = ?"); values.push(updates.warehouse); }
 

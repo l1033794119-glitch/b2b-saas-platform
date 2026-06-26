@@ -285,11 +285,14 @@ export function StatusBadge({ status }: { status: string }) {
     pending_payment: { label: "Pending Payment", tone: "amber" as any },
     processing: { label: "Processing", tone: "blue" },
     // 订单状态
-    pending_approval: { label: "Pending Approval", tone: "amber" as any },
+    submitted: { label: "Submitted", tone: "blue" },
     pending_qrcode: { label: "Pending QR Code", tone: "orange" as any },
+    qrcode_uploaded: { label: "QR Code Uploaded", tone: "amber" as any },
+    pending_waybill: { label: "Pending Waybill", tone: "cyan" as any },
+    waybill_uploaded: { label: "Waybill Uploaded", tone: "sky" as any },
     pending_shipment: { label: "Pending Shipment", tone: "yellow" as any },
     pending: { label: "Unshipped", tone: "yellow" },
-    shipped: { label: "Shipped", tone: "sky" as any },
+    shipped: { label: "Shipped", tone: "purple" as any },
     completed: { label: "Completed", tone: "green" },
     cancelled: { label: "Cancelled", tone: "red" },
     // 代理等级

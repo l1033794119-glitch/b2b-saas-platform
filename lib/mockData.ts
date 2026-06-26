@@ -49,12 +49,13 @@ export interface Order {
   company: string;
   items: OrderItem[];
   total: number;
-  status: "pending_review" | "pending_payment" | "approved" | "processing" | "shipped" | "completed" | "cancelled";
+  status: "submitted" | "pending_qrcode" | "qrcode_uploaded" | "pending_waybill" | "waybill_uploaded" | "pending_shipment" | "shipped" | "completed" | "cancelled";
   date: string;
   shippingAddress: string;
   trackingNumber?: string;
   trackingImage?: string;
   qrCode?: string;
+  waybillImage?: string;
   warehouseId?: string;
   warehouse?: string;
   carrier?: string;
@@ -280,7 +281,7 @@ export const orders: Order[] = [
       { productId: "p2", productName: "Smart Fitness Watch", sku: "SKU-0002", qty: 15, price: 89 },
     ],
     total: 2695,
-    status: "processing",
+    status: "shipped",
     date: "2025-06-18",
     shippingAddress: "123 Oxford Street, London, W1D 1BS, United Kingdom",
     trackingNumber: "RM123456789GB",
@@ -297,7 +298,7 @@ export const orders: Order[] = [
       { productId: "p8", productName: "Yoga Mat Premium", sku: "SKU-0008", qty: 50, price: 18 },
     ],
     total: 3500,
-    status: "approved",
+    status: "pending_qrcode",
     date: "2025-06-17",
     shippingAddress: "456 George Street, Sydney, NSW 2000, Australia",
   },
@@ -358,7 +359,7 @@ export const orders: Order[] = [
       { productId: "p2", productName: "Smart Fitness Watch", sku: "SKU-0002", qty: 50, price: 95 },
     ],
     total: 4750,
-    status: "pending_review",
+    status: "submitted",
     date: "2025-06-13",
     shippingAddress: "200 Market Street, San Francisco, CA 94105, USA",
   },

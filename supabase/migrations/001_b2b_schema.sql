@@ -18,10 +18,13 @@ create type user_role as enum (
 create type agent_level as enum ('A', 'B', 'C');
 
 create type order_status as enum (
-  'pending_review',
+  'submitted',
+  'pending_qrcode',
+  'qrcode_uploaded',
+  'pending_waybill',
+  'waybill_uploaded',
+  'pending_shipment',
   'pending_payment',
-  'approved',
-  'processing',
   'shipped',
   'completed',
   'cancelled'
@@ -140,7 +143,7 @@ create table orders (
   company_id uuid references companies(id) on delete cascade,
   agent_id uuid references agents(id) on delete set null,
   order_no text unique not null,
-  status order_status not null default 'pending_review',
+  status order_status not null default 'submitted',
   subtotal numeric(12,2) not null default 0,
   shipping_fee numeric(12,2) not null default 0,
   discount numeric(12,2) not null default 0,
