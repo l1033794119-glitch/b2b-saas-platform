@@ -359,7 +359,7 @@ export const orders: Order[] = [
       { productId: "p2", productName: "Smart Fitness Watch", sku: "SKU-0002", qty: 50, price: 95 },
     ],
     total: 4750,
-    status: "submitted",
+    status: "pending_qrcode",
     date: "2025-06-13",
     shippingAddress: "200 Market Street, San Francisco, CA 94105, USA",
   },
