@@ -84,12 +84,20 @@ html, body {
 .badge-red { background: #fee2e2; color: #991b1b; }
 .badge-blue { background: #dbeafe; color: #1e40af; }
 .badge-gray { background: #f1f5f9; color: #475569; }
+.badge-amber { background: #fef3c7; color: #92400e; }
+.badge-orange { background: #ffedd5; color: #9a3412; }
+.badge-cyan { background: #cffafe; color: #0891b2; }
+.badge-purple { background: #f3e8ff; color: #7c3aed; }
 
 .dark .badge-green { background: #064e3b; color: #86efac; }
 .dark .badge-yellow { background: #422006; color: #fde68a; }
 .dark .badge-red { background: #450a0a; color: #fca5a5; }
 .dark .badge-blue { background: #1e3a8a; color: #bfdbfe; }
 .dark .badge-gray { background: #334155; color: #e2e8f0; }
+.dark .badge-amber { background: #451a03; color: #fcd34d; }
+.dark .badge-orange { background: #431407; color: #fdba74; }
+.dark .badge-cyan { background: #083344; color: #67e8f9; }
+.dark .badge-purple { background: #3b0764; color: #c4b5fd; }
 
 table.data-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
 table.data-table th { text-align: left; padding: 0.75rem 1rem; font-weight: 600; color: var(--muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.03em; border-bottom: 1px solid var(--border); }
