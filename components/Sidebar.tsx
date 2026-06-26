@@ -277,26 +277,26 @@ export function Badge({ children, tone = "gray" }: { children: React.ReactNode; 
 }
 
 export function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, { label: string; tone: "green" | "yellow" | "red" | "blue" | "gray" }> = {
-    active: { label: "Active", tone: "green" },
-    in_stock: { label: "In stock", tone: "green" },
-    out_of_stock: { label: "Out of stock", tone: "red" },
-    disabled: { label: "Disabled", tone: "gray" },
-    pending_payment: { label: "Pending Payment", tone: "amber" as any },
-    processing: { label: "Processing", tone: "blue" },
-    // 订单状态
-    pending_qrcode: { label: "Pending QR Code", tone: "orange" as any },
-    pending_delivery: { label: "Pending Delivery", tone: "amber" as any },
-    pending_tracking: { label: "Pending Tracking", tone: "cyan" as any },
-    pending: { label: "Unshipped", tone: "yellow" },
-    shipped: { label: "Shipped", tone: "purple" as any },
-    completed: { label: "Completed", tone: "green" },
-    cancelled: { label: "Cancelled", tone: "red" },
-    // 代理等级
-    A: { label: "Level A", tone: "green" },
-    B: { label: "Level B", tone: "blue" },
-    C: { label: "Level C", tone: "gray" },
+  const { lang } = useApp();
+  const map: Record<string, { labelEn: string; labelZhCN: string; labelZhTW: string; tone: "green" | "yellow" | "red" | "blue" | "gray" }> = {
+    active: { labelEn: "Active", labelZhCN: "正常", labelZhTW: "正常", tone: "green" },
+    in_stock: { labelEn: "In stock", labelZhCN: "有库存", labelZhTW: "有庫存", tone: "green" },
+    out_of_stock: { labelEn: "Out of stock", labelZhCN: "缺货", labelZhTW: "缺貨", tone: "red" },
+    disabled: { labelEn: "Disabled", labelZhCN: "已禁用", labelZhTW: "已禁用", tone: "gray" },
+    pending_payment: { labelEn: "Pending Payment", labelZhCN: "待付款", labelZhTW: "待付款", tone: "amber" as any },
+    processing: { labelEn: "Processing", labelZhCN: "处理中", labelZhTW: "處理中", tone: "blue" },
+    pending_qrcode: { labelEn: "Pending QR Code", labelZhCN: "待上传二维码", labelZhTW: "待上傳二維碼", tone: "orange" as any },
+    pending_delivery: { labelEn: "Pending Delivery", labelZhCN: "待投递", labelZhTW: "待投遞", tone: "amber" as any },
+    pending_tracking: { labelEn: "Pending Tracking", labelZhCN: "待填写运单号", labelZhTW: "待填寫運單號", tone: "cyan" as any },
+    pending: { labelEn: "Unshipped", labelZhCN: "未发货", labelZhTW: "未發貨", tone: "yellow" },
+    shipped: { labelEn: "Shipped", labelZhCN: "已发货", labelZhTW: "已發貨", tone: "purple" as any },
+    completed: { labelEn: "Completed", labelZhCN: "已完成", labelZhTW: "已完成", tone: "green" },
+    cancelled: { labelEn: "Cancelled", labelZhCN: "已取消", labelZhTW: "已取消", tone: "red" },
+    A: { labelEn: "Level A", labelZhCN: "A级", labelZhTW: "A級", tone: "green" },
+    B: { labelEn: "Level B", labelZhCN: "B级", labelZhTW: "B級", tone: "blue" },
+    C: { labelEn: "Level C", labelZhCN: "C级", labelZhTW: "C級", tone: "gray" },
   };
-  const v = map[status] || { label: status, tone: "gray" };
-  return <Badge tone={v.tone as any}>{v.label}</Badge>;
+  const v = map[status] || { labelEn: status, labelZhCN: status, labelZhTW: status, tone: "gray" as any };
+  const label = lang === "zh-CN" ? v.labelZhCN : lang === "zh-TW" ? v.labelZhTW : v.labelEn;
+  return <Badge tone={v.tone as any}>{label}</Badge>;
 }

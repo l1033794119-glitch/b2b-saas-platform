@@ -504,10 +504,19 @@ export default function OrdersPage() {
                 <span className="text-xs text-slate-500">{t("shipping_address")}</span>
               </div>
               <div className="text-sm mb-2">{selectedOrder.shippingAddress}</div>
-              <div className="text-sm text-slate-500">
-                {selectedOrder.postalCode && <span>{selectedOrder.postalCode}</span>}
-                {selectedOrder.postalCode && selectedOrder.country && <span>, </span>}
-                {selectedOrder.country && <span>{selectedOrder.country}</span>}
+              <div className="text-sm text-slate-500 space-y-1">
+                {selectedOrder.postalCode && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs">{lang === "en" ? "Postal Code:" : lang === "zh-CN" ? "邮编:" : "郵遞區號:"}</span>
+                    <span className="font-medium text-slate-700 dark:text-slate-300">{selectedOrder.postalCode}</span>
+                  </div>
+                )}
+                {selectedOrder.country && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs">{lang === "en" ? "Country:" : lang === "zh-CN" ? "国家:" : "國家:"}</span>
+                    <span className="font-medium text-slate-700 dark:text-slate-300">{selectedOrder.country}</span>
+                  </div>
+                )}
               </div>
 
               <div className="mt-5 space-y-4">
