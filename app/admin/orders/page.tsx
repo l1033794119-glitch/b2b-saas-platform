@@ -87,10 +87,14 @@ export default function OrdersPage() {
   const [editingQrCode, setEditingQrCode] = useState(false);
   const [editingWaybill, setEditingWaybill] = useState(false);
   const [editingTracking, setEditingTracking] = useState(false);
+  const [editingAddress, setEditingAddress] = useState(false);
   const [tempQrCode, setTempQrCode] = useState("");
   const [tempWaybillImage, setTempWaybillImage] = useState("");
   const [tempTrackingNumber, setTempTrackingNumber] = useState("");
   const [tempShippingFee, setTempShippingFee] = useState("");
+  const [tempAddress, setTempAddress] = useState("");
+  const [tempPostalCode, setTempPostalCode] = useState("");
+  const [tempCountry, setTempCountry] = useState("");
 
   const handleQrImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, forEdit = false) => {
     const file = e.target.files?.[0];
@@ -376,6 +380,32 @@ export default function OrdersPage() {
     }
   };
 
+  const openAddressEdit = () => {
+    setTempAddress(selectedOrder?.shippingAddress || "");
+    setTempPostalCode(selectedOrder?.postalCode || "");
+    setTempCountry(selectedOrder?.country || "");
+    setEditingAddress(true);
+  };
+
+  const saveAddress = async () => {
+    if (!selectedOrder) return;
+    if (!tempAddress.trim()) {
+      alert(lang === "en" ? "Please enter address" : lang === "zh-CN" ? "请输入地址" : "請輸入地址");
+      return;
+    }
+
+    const updates: Partial<Order> = {
+      shippingAddress: tempAddress.trim(),
+      postalCode: tempPostalCode.trim(),
+      country: tempCountry.trim(),
+    };
+
+    const ok = await updateOrder(selectedOrder.id, updates);
+    if (ok) {
+      setEditingAddress(false);
+    }
+  };
+
   return (
     <AdminLayout title={t("orders")} subtitle={`${formatNumber(filtered.length)} / ${formatNumber(data.length)} ${lang === "en" ? "orders" : lang === "zh-CN" ? "订单" : "訂單"}`}>
       <div className="card p-3 sm:p-4 mb-4">
@@ -501,25 +531,87 @@ export default function OrdersPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 mb-5">
             <div>
-              <div className="flex items-center gap-2 mb-2">
-                <MapPin className="w-4 h-4 text-slate-400" />
-                <span className="text-xs text-slate-500">{t("shipping_address")}</span>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-slate-400" />
+                  <span className="text-xs text-slate-500">{t("shipping_address")}</span>
+                </div>
+                <button onClick={openAddressEdit} className="text-xs text-indigo-600 hover:text-indigo-700 flex items-center gap-1">
+                  <Edit2 className="w-3 h-3" />
+                  {lang === "en" ? "Edit" : lang === "zh-CN" ? "编辑" : "編輯"}
+                </button>
               </div>
-              <div className="text-sm mb-2">{selectedOrder.shippingAddress}</div>
-              <div className="text-sm text-slate-500 space-y-1">
-                {selectedOrder.postalCode && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs">{lang === "en" ? "Postal Code:" : lang === "zh-CN" ? "邮编:" : "郵遞區號:"}</span>
-                    <span className="font-medium text-slate-700 dark:text-slate-300">{selectedOrder.postalCode}</span>
+
+              {editingAddress ? (
+                <div className="space-y-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+                  <div>
+                    <label className="block text-xs text-slate-500 mb-1">
+                      {lang === "en" ? "Address *" : lang === "zh-CN" ? "地址 *" : "地址 *"}
+                    </label>
+                    <textarea
+                      className="input min-h-[80px] resize-y"
+                      value={tempAddress}
+                      onChange={(e) => setTempAddress(e.target.value)}
+                      placeholder={lang === "en" ? "Enter shipping address" : lang === "zh-CN" ? "输入收货地址" : "輸入收貨地址"}
+                    />
                   </div>
-                )}
-                {selectedOrder.country && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs">{lang === "en" ? "Country:" : lang === "zh-CN" ? "国家:" : "國家:"}</span>
-                    <span className="font-medium text-slate-700 dark:text-slate-300">{selectedOrder.country}</span>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-slate-500 mb-1">
+                        {lang === "en" ? "Postal Code" : lang === "zh-CN" ? "邮编" : "郵遞區號"}
+                      </label>
+                      <input
+                        className="input"
+                        value={tempPostalCode}
+                        onChange={(e) => setTempPostalCode(e.target.value)}
+                        placeholder={lang === "en" ? "Postal code" : lang === "zh-CN" ? "邮编" : "郵遞區號"}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-slate-500 mb-1">
+                        {lang === "en" ? "Country" : lang === "zh-CN" ? "国家" : "國家"}
+                      </label>
+                      <input
+                        className="input"
+                        value={tempCountry}
+                        onChange={(e) => setTempCountry(e.target.value)}
+                        placeholder={lang === "en" ? "Country" : lang === "zh-CN" ? "国家" : "國家"}
+                      />
+                    </div>
                   </div>
-                )}
-              </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => setEditingAddress(false)} className="flex-1 btn-ghost justify-center">
+                      {lang === "en" ? "Cancel" : lang === "zh-CN" ? "取消" : "取消"}
+                    </button>
+                    <button
+                      onClick={saveAddress}
+                      disabled={!tempAddress.trim() || updating}
+                      className="flex-1 btn-primary justify-center flex items-center gap-2 disabled:opacity-50"
+                    >
+                      {updating ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Check className="w-4 h-4" />}
+                      {lang === "en" ? "Save" : lang === "zh-CN" ? "保存" : "保存"}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="text-sm mb-2">{selectedOrder.shippingAddress || "—"}</div>
+                  <div className="text-sm text-slate-500 space-y-1">
+                    {selectedOrder.postalCode && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs">{lang === "en" ? "Postal Code:" : lang === "zh-CN" ? "邮编:" : "郵遞區號:"}</span>
+                        <span className="font-medium text-slate-700 dark:text-slate-300">{selectedOrder.postalCode}</span>
+                      </div>
+                    )}
+                    {selectedOrder.country && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs">{lang === "en" ? "Country:" : lang === "zh-CN" ? "国家:" : "國家:"}</span>
+                        <span className="font-medium text-slate-700 dark:text-slate-300">{selectedOrder.country}</span>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
 
               <div className="mt-5 space-y-4">
                 <div className="p-4 bg-amber-50 dark:bg-amber-950/30 rounded-xl">
