@@ -44,7 +44,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
     // 如果状态变为已发货，设置发货时间
     if (body.status === "shipped") {
-      updates.shippedAt = body.shippedAt || formatMySQLDate();
+      updates.shippedAt = formatMySQLDate(body.shippedAt ? new Date(body.shippedAt) : new Date());
     }
 
     // 保留原有的订单信息更新
