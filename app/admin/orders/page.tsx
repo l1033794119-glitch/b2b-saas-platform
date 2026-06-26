@@ -83,6 +83,7 @@ export default function OrdersPage() {
   const [updating, setUpdating] = useState(false);
   const [uploadingQrImage, setUploadingQrImage] = useState(false);
   const [uploadingWaybillImage, setUploadingWaybillImage] = useState(false);
+  const [uploadingTrackingImage, setUploadingTrackingImage] = useState(false);
   const [trackingNumberInput, setTrackingNumberInput] = useState("");
   const [editingQrCode, setEditingQrCode] = useState(false);
   const [editingWaybill, setEditingWaybill] = useState(false);
@@ -90,6 +91,7 @@ export default function OrdersPage() {
   const [tempQrCode, setTempQrCode] = useState("");
   const [tempWaybillImage, setTempWaybillImage] = useState("");
   const [tempTrackingNumber, setTempTrackingNumber] = useState("");
+  const [tempTrackingImage, setTempTrackingImage] = useState("");
   const [tempShippingFee, setTempShippingFee] = useState("");
 
   const handleQrImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, forEdit = false) => {
@@ -149,6 +151,32 @@ export default function OrdersPage() {
   };
 
   const handleTrackingImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingTrackingImage(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setTempTrackingImage(data.url);
+      } else {
+        alert(lang === "en" ? "Upload failed" : lang === "zh-CN" ? "上传失败" : "上傳失敗");
+      }
+    } catch (error) {
+      console.error("Upload failed:", error);
+      alert(lang === "en" ? "Upload failed" : lang === "zh-CN" ? "上传失败" : "上傳失敗");
+    } finally {
+      setUploadingTrackingImage(false);
+    }
+  };
+
+  const handleTrackingImageUploadModal = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -351,6 +379,7 @@ export default function OrdersPage() {
 
   const openTrackingEdit = () => {
     setTempTrackingNumber(selectedOrder?.trackingNumber || "");
+    setTempTrackingImage(selectedOrder?.trackingImage || "");
     setEditingTracking(true);
   };
 
@@ -361,7 +390,11 @@ export default function OrdersPage() {
       return;
     }
 
-    const updates: Partial<Order> = { trackingNumber: tempTrackingNumber.trim(), shippedAt: new Date().toISOString() };
+    const updates: Partial<Order> = { 
+      trackingNumber: tempTrackingNumber.trim(), 
+      trackingImage: tempTrackingImage || selectedOrder.trackingImage,
+      shippedAt: new Date().toISOString() 
+    };
 
     if (selectedOrder.status === "pending_tracking") {
       updates.status = "shipped";
@@ -715,6 +748,41 @@ export default function OrdersPage() {
                         />
                       </div>
 
+                      <div>
+                        <label className="block text-xs text-emerald-700 dark:text-emerald-400 mb-2">
+                          {lang === "en" ? "Tracking Image" : lang === "zh-CN" ? "运单图片" : "運單圖片"}
+                        </label>
+                        <div className="border-2 border-dashed border-emerald-300 dark:border-emerald-700 rounded-xl p-4 text-center hover:border-emerald-500 transition-colors">
+                          {tempTrackingImage ? (
+                            <div className="relative">
+                              <img src={tempTrackingImage} alt="Tracking" className="max-h-40 mx-auto rounded-lg" />
+                              <button
+                                onClick={() => setTempTrackingImage("")}
+                                className="absolute top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ) : (
+                            <>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                id="tracking-edit-upload"
+                                onChange={handleTrackingImageUpload}
+                              />
+                              <label htmlFor="tracking-edit-upload" className="cursor-pointer">
+                                <Upload className="w-8 h-8 mx-auto text-emerald-400 mb-2" />
+                                <div className="text-sm text-emerald-600">
+                                  {uploadingTrackingImage ? (lang === "en" ? "Uploading..." : lang === "zh-CN" ? "上传中..." : "上傳中...") : (lang === "en" ? "Click to upload" : lang === "zh-CN" ? "点击上传" : "點擊上傳")}
+                                </div>
+                              </label>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
                       <div className="flex gap-2">
                         <button onClick={() => setEditingTracking(false)} className="flex-1 btn-ghost justify-center">
                           {lang === "en" ? "Cancel" : lang === "zh-CN" ? "取消" : "取消"}
@@ -730,11 +798,18 @@ export default function OrdersPage() {
                       </div>
                     </div>
                   ) : (
-                    <div className="text-sm font-medium text-emerald-700 dark:text-emerald-400 font-mono">
-                      {selectedOrder.trackingNumber || (
-                        <span className="text-emerald-500 italic font-normal">
-                          {lang === "en" ? "Not entered yet" : lang === "zh-CN" ? "尚未填写" : "尚未填寫"}
-                        </span>
+                    <div>
+                      <div className="text-sm font-medium text-emerald-700 dark:text-emerald-400 font-mono">
+                        {selectedOrder.trackingNumber || (
+                          <span className="text-emerald-500 italic font-normal">
+                            {lang === "en" ? "Not entered yet" : lang === "zh-CN" ? "尚未填写" : "尚未填寫"}
+                          </span>
+                        )}
+                      </div>
+                      {selectedOrder.trackingImage && (
+                        <div className="mt-3">
+                          <img src={selectedOrder.trackingImage} alt="Tracking" className="max-w-xs rounded-lg border border-emerald-200 dark:border-emerald-800" />
+                        </div>
                       )}
                     </div>
                   )}
@@ -857,7 +932,7 @@ export default function OrdersPage() {
                         accept="image/*"
                         className="hidden"
                         id="tracking-modal-upload"
-                        onChange={handleTrackingImageUpload}
+                        onChange={handleTrackingImageUploadModal}
                       />
                       <label htmlFor="tracking-modal-upload" className="cursor-pointer">
                         <Upload className="w-8 h-8 mx-auto text-slate-400 mb-2" />
