@@ -33,6 +33,7 @@ interface Order {
   trackingNumber?: string;
   trackingImage?: string;
   qrCode?: string;
+  waybillImage?: string;
   notes?: string;
   shippingFee?: number;
   shippedAt?: string;
