@@ -49,7 +49,7 @@ export interface Order {
   company: string;
   items: OrderItem[];
   total: number;
-  status: "submitted" | "pending_qrcode" | "qrcode_uploaded" | "pending_waybill" | "waybill_uploaded" | "pending_shipment" | "pending_payment" | "shipped" | "completed" | "cancelled";
+  status: "pending_qrcode" | "pending_delivery" | "pending_tracking" | "pending_payment" | "shipped" | "completed" | "cancelled";
   date: string;
   shippingAddress: string;
   trackingNumber?: string;

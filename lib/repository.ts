@@ -460,7 +460,7 @@ export async function createOrder(order: any): Promise<Order> {
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id, order.orderNo, order.agentId, JSON.stringify(order.items || []),
-        order.total, order.status || "submitted", order.date || now,
+        order.total, order.status || "pending_qrcode", order.date || now,
         order.shippingAddress || "", order.postalCode || "", order.country || "",
         order.contactName || "", order.phone || "", order.email || "",
         order.notes || "", order.trackingNumber || null, order.company || null,
@@ -473,7 +473,7 @@ export async function createOrder(order: any): Promise<Order> {
     const store = getMemoryStore();
     store.orders.unshift({
       id, orderNo: order.orderNo, agentId: order.agentId, items: order.items || [],
-      total: order.total, status: order.status || "submitted", date: order.date || now,
+      total: order.total, status: order.status || "pending_qrcode", date: order.date || now,
       shippingAddress: order.shippingAddress || "", postalCode: order.postalCode || "",
       country: order.country || "", contactName: order.contactName || "",
       phone: order.phone || "", email: order.email || "", notes: order.notes || "",
@@ -489,7 +489,7 @@ export async function createOrder(order: any): Promise<Order> {
 
   return {
     id, orderNo: order.orderNo, agentId: order.agentId, items: order.items || [],
-    total: order.total, status: order.status || "submitted", date: order.date || now,
+    total: order.total, status: order.status || "pending_qrcode", date: order.date || now,
     shippingAddress: order.shippingAddress || "", postalCode: order.postalCode || "",
     country: order.country || "", contactName: order.contactName || "",
     phone: order.phone || "", email: order.email || "", notes: order.notes || "",

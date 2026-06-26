@@ -45,12 +45,9 @@ interface FilterOption {
 }
 
 const statusConfig: Record<string, { labelEn: string; labelZhCN: string; labelZhTW: string; color: string }> = {
-  submitted: { labelEn: "Submitted", labelZhCN: "已提交", labelZhTW: "已提交", color: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400" },
   pending_qrcode: { labelEn: "Pending QR Code", labelZhCN: "待上传二维码", labelZhTW: "待上傳二維碼", color: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400" },
-  qrcode_uploaded: { labelEn: "QR Code Uploaded", labelZhCN: "已上传二维码", labelZhTW: "已上傳二維碼", color: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400" },
-  pending_waybill: { labelEn: "Pending Waybill", labelZhCN: "待上传面单", labelZhTW: "待上傳面單", color: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-400" },
-  waybill_uploaded: { labelEn: "Waybill Uploaded", labelZhCN: "已上传面单", labelZhTW: "已上傳面單", color: "bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-400" },
-  pending_shipment: { labelEn: "Pending Shipment", labelZhCN: "待发货", labelZhTW: "待發貨", color: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400" },
+  pending_delivery: { labelEn: "Pending Delivery", labelZhCN: "待投递", labelZhTW: "待投遞", color: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400" },
+  pending_tracking: { labelEn: "Pending Tracking", labelZhCN: "待填写运单号", labelZhTW: "待填寫運單號", color: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-400" },
   shipped: { labelEn: "Shipped", labelZhCN: "已发货", labelZhTW: "已發貨", color: "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-400" },
   completed: { labelEn: "Completed", labelZhCN: "已完成", labelZhTW: "已完成", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400" },
 };
@@ -73,12 +70,9 @@ export default function MyOrdersPage() {
   const getStatusFilterOptions = (): FilterOption[] => {
     return [
       { label: lang === "en" ? "All Status" : lang === "zh-CN" ? "全部状态" : "全部狀態", value: "all" },
-      { label: lang === "en" ? "Submitted" : lang === "zh-CN" ? "已提交" : "已提交", value: "submitted" },
       { label: lang === "en" ? "Pending QR Code" : lang === "zh-CN" ? "待上传二维码" : "待上傳二維碼", value: "pending_qrcode" },
-      { label: lang === "en" ? "QR Code Uploaded" : lang === "zh-CN" ? "已上传二维码" : "已上傳二維碼", value: "qrcode_uploaded" },
-      { label: lang === "en" ? "Pending Waybill" : lang === "zh-CN" ? "待上传面单" : "待上傳面單", value: "pending_waybill" },
-      { label: lang === "en" ? "Waybill Uploaded" : lang === "zh-CN" ? "已上传面单" : "已上傳面單", value: "waybill_uploaded" },
-      { label: lang === "en" ? "Pending Shipment" : lang === "zh-CN" ? "待发货" : "待發貨", value: "pending_shipment" },
+      { label: lang === "en" ? "Pending Delivery" : lang === "zh-CN" ? "待投递" : "待投遞", value: "pending_delivery" },
+      { label: lang === "en" ? "Pending Tracking" : lang === "zh-CN" ? "待填写运单号" : "待填寫運單號", value: "pending_tracking" },
       { label: lang === "en" ? "Shipped" : lang === "zh-CN" ? "已发货" : "已發貨", value: "shipped" },
       { label: lang === "en" ? "Completed" : lang === "zh-CN" ? "已完成" : "已完成", value: "completed" },
     ];
@@ -243,7 +237,7 @@ export default function MyOrdersPage() {
         </div>
         <div className="card p-4">
           <div className="text-xs text-slate-500 mb-1">{lang === "en" ? "Pending" : lang === "zh-CN" ? "待处理" : "待處理"}</div>
-          <div className="text-xl font-bold text-amber-600">{formatNumber(filteredOrders.filter((o) => ["submitted", "pending_qrcode", "qrcode_uploaded", "pending_waybill", "waybill_uploaded", "pending_shipment"].includes(o.status)).length)}</div>
+          <div className="text-xl font-bold text-amber-600">{formatNumber(filteredOrders.filter((o) => ["pending_qrcode", "pending_delivery", "pending_tracking"].includes(o.status)).length)}</div>
         </div>
       </div>
 
@@ -435,29 +429,19 @@ export default function MyOrdersPage() {
               <div className="mb-6 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
                 <div className="text-xs text-slate-500 mb-3">{lang === "en" ? "Order Status" : lang === "zh-CN" ? "订单状态" : "訂單狀態"}</div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  {/* 已提交 */}
-                  <div className={`w-3 h-3 rounded-full ${["submitted", "pending_qrcode", "qrcode_uploaded", "pending_waybill", "waybill_uploaded", "pending_shipment", "shipped", "completed"].includes(selected.status) ? "bg-emerald-500" : "bg-slate-300"}`} />
-                  <span className="text-xs whitespace-nowrap">{lang === "en" ? "Submitted" : lang === "zh-CN" ? "已提交" : "已提交"}</span>
-                  <div className={`flex-1 h-0.5 min-w-4 ${["pending_qrcode", "qrcode_uploaded", "pending_waybill", "waybill_uploaded", "pending_shipment", "shipped", "completed"].includes(selected.status) ? "bg-emerald-500" : "bg-slate-200"}`} />
-                  
                   {/* 待上传二维码 */}
-                  <div className={`w-3 h-3 rounded-full ${["pending_qrcode", "qrcode_uploaded", "pending_waybill", "waybill_uploaded", "pending_shipment", "shipped", "completed"].includes(selected.status) ? "bg-orange-500" : "bg-slate-300"}`} />
-                  <span className="text-xs whitespace-nowrap">{lang === "en" ? "QR Code" : lang === "zh-CN" ? "二维码" : "二維碼"}</span>
-                  <div className={`flex-1 h-0.5 min-w-4 ${["qrcode_uploaded", "pending_waybill", "waybill_uploaded", "pending_shipment", "shipped", "completed"].includes(selected.status) ? "bg-emerald-500" : "bg-slate-200"}`} />
+                  <div className={`w-3 h-3 rounded-full ${["pending_qrcode", "pending_delivery", "pending_tracking", "shipped", "completed"].includes(selected.status) ? "bg-orange-500" : "bg-slate-300"}`} />
+                  <span className="text-xs whitespace-nowrap">{lang === "en" ? "QR Code" : lang === "zh-CN" ? "待二维码" : "待二維碼"}</span>
+                  <div className={`flex-1 h-0.5 min-w-4 ${["pending_delivery", "pending_tracking", "shipped", "completed"].includes(selected.status) ? "bg-emerald-500" : "bg-slate-200"}`} />
                   
-                  {/* 已上传二维码 */}
-                  <div className={`w-3 h-3 rounded-full ${["qrcode_uploaded", "pending_waybill", "waybill_uploaded", "pending_shipment", "shipped", "completed"].includes(selected.status) ? "bg-amber-500" : "bg-slate-300"}`} />
-                  <span className="text-xs whitespace-nowrap">{lang === "en" ? "QR Uploaded" : lang === "zh-CN" ? "已传二维码" : "已傳二維碼"}</span>
-                  <div className={`flex-1 h-0.5 min-w-4 ${["pending_waybill", "waybill_uploaded", "pending_shipment", "shipped", "completed"].includes(selected.status) ? "bg-emerald-500" : "bg-slate-200"}`} />
+                  {/* 待投递 */}
+                  <div className={`w-3 h-3 rounded-full ${["pending_delivery", "pending_tracking", "shipped", "completed"].includes(selected.status) ? "bg-amber-500" : "bg-slate-300"}`} />
+                  <span className="text-xs whitespace-nowrap">{lang === "en" ? "Delivery" : lang === "zh-CN" ? "待投递" : "待投遞"}</span>
+                  <div className={`flex-1 h-0.5 min-w-4 ${["pending_tracking", "shipped", "completed"].includes(selected.status) ? "bg-emerald-500" : "bg-slate-200"}`} />
                   
-                  {/* 快递面单 */}
-                  <div className={`w-3 h-3 rounded-full ${["pending_waybill", "waybill_uploaded", "pending_shipment", "shipped", "completed"].includes(selected.status) ? "bg-cyan-500" : "bg-slate-300"}`} />
-                  <span className="text-xs whitespace-nowrap">{lang === "en" ? "Waybill" : lang === "zh-CN" ? "快递面单" : "快遞面單"}</span>
-                  <div className={`flex-1 h-0.5 min-w-4 ${["waybill_uploaded", "pending_shipment", "shipped", "completed"].includes(selected.status) ? "bg-emerald-500" : "bg-slate-200"}`} />
-                  
-                  {/* 待发货 */}
-                  <div className={`w-3 h-3 rounded-full ${["pending_shipment", "shipped", "completed"].includes(selected.status) ? "bg-yellow-500" : "bg-slate-300"}`} />
-                  <span className="text-xs whitespace-nowrap">{lang === "en" ? "Pending Ship" : lang === "zh-CN" ? "待发货" : "待發貨"}</span>
+                  {/* 待填写运单号 */}
+                  <div className={`w-3 h-3 rounded-full ${["pending_tracking", "shipped", "completed"].includes(selected.status) ? "bg-cyan-500" : "bg-slate-300"}`} />
+                  <span className="text-xs whitespace-nowrap">{lang === "en" ? "Tracking" : lang === "zh-CN" ? "待运单" : "待運單"}</span>
                   <div className={`flex-1 h-0.5 min-w-4 ${["shipped", "completed"].includes(selected.status) ? "bg-emerald-500" : "bg-slate-200"}`} />
                   
                   {/* 已发货 */}

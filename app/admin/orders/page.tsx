@@ -58,12 +58,9 @@ interface Warehouse {
 
 const statuses = [
   { id: "all", labelEn: "All", labelZhCN: "全部", labelZhTW: "全部" },
-  { id: "submitted", labelEn: "Submitted", labelZhCN: "已提交", labelZhTW: "已提交" },
   { id: "pending_qrcode", labelEn: "Pending QR Code", labelZhCN: "待上传二维码", labelZhTW: "待上傳二維碼" },
-  { id: "qrcode_uploaded", labelEn: "QR Code Uploaded", labelZhCN: "已上传二维码", labelZhTW: "已上傳二維碼" },
-  { id: "pending_waybill", labelEn: "Pending Waybill", labelZhCN: "待上传快递面单", labelZhTW: "待上傳快遞面單" },
-  { id: "waybill_uploaded", labelEn: "Waybill Uploaded", labelZhCN: "已上传快递面单", labelZhTW: "已上傳快遞面單" },
-  { id: "pending_shipment", labelEn: "Pending Shipment", labelZhCN: "待发货", labelZhTW: "待發貨" },
+  { id: "pending_delivery", labelEn: "Pending Delivery", labelZhCN: "待投递", labelZhTW: "待投遞" },
+  { id: "pending_tracking", labelEn: "Pending Tracking", labelZhCN: "待填写运单号", labelZhTW: "待填寫運單號" },
   { id: "shipped", labelEn: "Shipped", labelZhCN: "已发货", labelZhTW: "已發貨" },
   { id: "completed", labelEn: "Completed", labelZhCN: "已完成", labelZhTW: "已完成" },
 ];
@@ -304,11 +301,11 @@ export default function OrdersPage() {
     const fee = parseFloat(tempShippingFee) || 0;
     const updates: Partial<Order> = { qrCode: tempQrCode, shippingFee: fee };
 
-    if (selectedOrder.status === "pending_qrcode" || selectedOrder.status === "submitted") {
-      updates.status = "qrcode_uploaded";
+    if (selectedOrder.status === "pending_qrcode") {
+      updates.status = "pending_delivery";
     }
 
-    if (fee > 0 && (selectedOrder.status === "pending_qrcode" || selectedOrder.status === "submitted")) {
+    if (fee > 0 && selectedOrder.status === "pending_qrcode") {
       const creditRes = await fetch("/api/credit", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -342,8 +339,8 @@ export default function OrdersPage() {
 
     const updates: Partial<Order> = { waybillImage: tempWaybillImage };
 
-    if (selectedOrder.status === "qrcode_uploaded" || selectedOrder.status === "pending_waybill") {
-      updates.status = "waybill_uploaded";
+    if (selectedOrder.status === "pending_delivery") {
+      updates.status = "pending_tracking";
     }
 
     const ok = await updateOrder(selectedOrder.id, updates);
@@ -364,10 +361,10 @@ export default function OrdersPage() {
       return;
     }
 
-    const updates: Partial<Order> = { trackingNumber: tempTrackingNumber.trim() };
+    const updates: Partial<Order> = { trackingNumber: tempTrackingNumber.trim(), shippedAt: new Date().toISOString() };
 
-    if (selectedOrder.status === "waybill_uploaded") {
-      updates.status = "pending_shipment";
+    if (selectedOrder.status === "pending_tracking") {
+      updates.status = "shipped";
     }
 
     const ok = await updateOrder(selectedOrder.id, updates);
@@ -796,18 +793,6 @@ export default function OrdersPage() {
           )}
 
           <div className="flex flex-wrap gap-2">
-            {selectedOrder.status === "pending_shipment" && (
-              <button onClick={() => {
-                setShipInfo({
-                  trackingNumber: selectedOrder.trackingNumber || "",
-                  trackingImage: selectedOrder.trackingImage || "",
-                });
-                setShowShipModal(true);
-              }} disabled={updating} className="btn-primary flex items-center gap-2">
-                <Truck className="w-4 h-4" /> {lang === "en" ? "发货" : lang === "zh-CN" ? "发货" : "發貨"}
-              </button>
-            )}
-
             {(selectedOrder.status === "shipped" || selectedOrder.status === "completed") && (
               <button onClick={() => {
                 setShipInfo({
@@ -830,11 +815,7 @@ export default function OrdersPage() {
           <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md">
             <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
               <h2 className="text-lg font-semibold flex items-center gap-2">
-                {selectedOrder.status === "pending_shipment" ? (
-                  <><Truck className="w-5 h-5" />{lang === "en" ? "Ship Order" : lang === "zh-CN" ? "发货" : "發貨"}</>
-                ) : (
-                  <><Edit2 className="w-5 h-5" />{lang === "en" ? "Edit Shipping Info" : lang === "zh-CN" ? "编辑发货信息" : "編輯發貨資訊"}</>
-                )}
+                <><Edit2 className="w-5 h-5" />{lang === "en" ? "Edit Shipping Info" : lang === "zh-CN" ? "编辑发货信息" : "編輯發貨資訊"}</>
               </h2>
               <button onClick={() => { setShowShipModal(false); setShipInfo({ trackingNumber: "", trackingImage: "" }); }} className="w-8 h-8 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center">
                 <X className="w-5 h-5" />
@@ -896,67 +877,36 @@ export default function OrdersPage() {
               </button>
               <button
                 onClick={async () => {
-                  if (selectedOrder.status === "pending_shipment") {
-                    setUpdating(true);
-                    try {
-                      const res = await fetch(`/api/orders/${selectedOrder.id}`, {
-                        method: "PUT",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                          status: "shipped",
-                          trackingNumber: shipInfo.trackingNumber || selectedOrder.trackingNumber,
-                          trackingImage: shipInfo.trackingImage || selectedOrder.trackingImage,
-                        }),
-                      });
-                      if (res.ok) {
-                        const updated = await res.json();
-                        const updatedOrder = { ...selectedOrder, ...updated };
-                        setData(data.map((o) => o.id === selectedOrder.id ? updatedOrder : o));
-                        setSelected(updatedOrder);
-                        setShowShipModal(false);
-                        setShipInfo({ trackingNumber: "", trackingImage: "" });
-                      } else {
-                        const err = await res.json();
-                        alert(lang === "en" ? "Failed to ship: " : lang === "zh-CN" ? "发货失败: " : "發貨失敗: " + (err.error || "Unknown error"));
-                      }
-                    } catch (error) {
-                      console.error("Ship error:", error);
-                      alert(lang === "en" ? "Operation failed, please try again" : lang === "zh-CN" ? "操作失败，请重试" : "操作失敗，請重試");
-                    } finally {
-                      setUpdating(false);
+                  if (!shipInfo.trackingNumber.trim() && !shipInfo.trackingImage) {
+                    alert(lang === "en" ? "Please enter tracking number or upload image" : lang === "zh-CN" ? "请输入运单号或上传图片" : "請輸入運單號或上傳圖片");
+                    return;
+                  }
+                  setUpdating(true);
+                  try {
+                    const res = await fetch(`/api/orders/${selectedOrder.id}`, {
+                      method: "PUT",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        trackingNumber: shipInfo.trackingNumber || selectedOrder.trackingNumber,
+                        trackingImage: shipInfo.trackingImage || selectedOrder.trackingImage,
+                      }),
+                    });
+                    if (res.ok) {
+                      const updated = await res.json();
+                      const updatedOrder = { ...selectedOrder, ...updated };
+                      setData(data.map((o) => o.id === selectedOrder.id ? updatedOrder : o));
+                      setSelected(updatedOrder);
+                      setShowShipModal(false);
+                      setShipInfo({ trackingNumber: "", trackingImage: "" });
+                    } else {
+                      const err = await res.json();
+                      alert(lang === "en" ? "Save failed: " : lang === "zh-CN" ? "保存失败: " : "保存失敗: " + (err.error || "Unknown error"));
                     }
-                  } else {
-                    if (!shipInfo.trackingNumber.trim() && !shipInfo.trackingImage) {
-                      alert(lang === "en" ? "Please enter tracking number or upload image" : lang === "zh-CN" ? "请输入运单号或上传图片" : "請輸入運單號或上傳圖片");
-                      return;
-                    }
-                    setUpdating(true);
-                    try {
-                      const res = await fetch(`/api/orders/${selectedOrder.id}`, {
-                        method: "PUT",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                          trackingNumber: shipInfo.trackingNumber || selectedOrder.trackingNumber,
-                          trackingImage: shipInfo.trackingImage || selectedOrder.trackingImage,
-                        }),
-                      });
-                      if (res.ok) {
-                        const updated = await res.json();
-                        const updatedOrder = { ...selectedOrder, ...updated };
-                        setData(data.map((o) => o.id === selectedOrder.id ? updatedOrder : o));
-                        setSelected(updatedOrder);
-                        setShowShipModal(false);
-                        setShipInfo({ trackingNumber: "", trackingImage: "" });
-                      } else {
-                        const err = await res.json();
-                        alert(lang === "en" ? "Save failed: " : lang === "zh-CN" ? "保存失败: " : "保存失敗: " + (err.error || "Unknown error"));
-                      }
-                    } catch (error) {
-                      console.error("Save error:", error);
-                      alert(lang === "en" ? "Operation failed, please try again" : lang === "zh-CN" ? "操作失败，请重试" : "操作失敗，請重試");
-                    } finally {
-                      setUpdating(false);
-                    }
+                  } catch (error) {
+                    console.error("Save error:", error);
+                    alert(lang === "en" ? "Operation failed, please try again" : lang === "zh-CN" ? "操作失败，请重试" : "操作失敗，請重試");
+                  } finally {
+                    setUpdating(false);
                   }
                 }}
                 disabled={updating}
@@ -964,16 +914,10 @@ export default function OrdersPage() {
               >
                 {updating ? (
                   <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : selectedOrder.status === "pending_shipment" ? (
-                  <Truck className="w-4 h-4" />
                 ) : (
                   <Check className="w-4 h-4" />
                 )}
-                {selectedOrder.status === "pending_shipment" ? (
-                  lang === "en" ? "Confirm Shipment" : lang === "zh-CN" ? "确认发货" : "確認發貨"
-                ) : (
-                  lang === "en" ? "Save" : lang === "zh-CN" ? "保存" : "保存"
-                )}
+                {lang === "en" ? "Save" : lang === "zh-CN" ? "保存" : "保存"}
               </button>
             </div>
           </div>
