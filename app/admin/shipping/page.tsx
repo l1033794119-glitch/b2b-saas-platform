@@ -445,7 +445,7 @@ export default function ShippingPage() {
               </thead>
               <tbody>
                 {filtered.map((o) => (
-                  <tr key={o.id}>
+                  <tr key={o.id} onClick={() => selected(o.id)} className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                     <td className="font-mono text-xs">{o.orderNo}</td>
                     <td className="hidden sm:table-cell font-medium">
                       <div className="truncate max-w-[120px]">{o.contactName || o.company || "N/A"}</div>
@@ -455,7 +455,7 @@ export default function ShippingPage() {
                     <td className="hidden md:table-cell font-medium whitespace-nowrap">{formatCurrency(o.total, currency)}</td>
                     <td><Badge tone={getStatusInfo(o.status).tone as any}>{getStatusInfo(o.status).label}</Badge></td>
                     <td>
-                      <button onClick={() => selected(o.id)} className="text-indigo-600 hover:underline text-sm flex items-center gap-1">
+                      <button onClick={(e) => { e.stopPropagation(); selected(o.id); }} className="text-indigo-600 hover:underline text-sm flex items-center gap-1">
                         <Eye className="w-3.5 h-3.5" /> <span className="hidden sm:inline">{t("view")}</span>
                       </button>
                     </td>
