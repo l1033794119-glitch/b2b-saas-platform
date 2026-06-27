@@ -7,7 +7,7 @@ import { formatCurrency, formatNumber } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import {
   Truck, Package, Search, Eye, X, Phone, Mail, User,
-  MapPin, Upload, Check, Edit2, FileText
+  MapPin, Upload, Check, Edit2, FileText, QrCode
 } from "lucide-react";
 
 interface OrderItem {
@@ -284,6 +284,19 @@ export default function ShippingPage() {
               </div>
 
               <div className="mt-5 space-y-4">
+                {/* 支付二维码 - 有二维码时显示 */}
+                {selectedOrder.qrCode && (
+                  <div className="p-4 bg-amber-50 dark:bg-amber-950/30 rounded-xl">
+                    <div className="flex items-center gap-2 mb-3">
+                      <QrCode className="w-4 h-4 text-amber-600" />
+                      <span className="text-xs font-medium text-amber-700 dark:text-amber-400">
+                        {lang === "en" ? "Payment QR Code" : lang === "zh-CN" ? "支付二维码" : "支付二維碼"}
+                      </span>
+                    </div>
+                    <img src={selectedOrder.qrCode} alt="QR Code" className="max-w-full rounded-lg border border-amber-200 dark:border-amber-800" />
+                  </div>
+                )}
+
                 {/* 运单图片上传 - 待投递状态显示 */}
                 {selectedOrder.status === "pending_delivery" && (
                   <div className="p-4 bg-amber-50 dark:bg-amber-950/30 rounded-xl">
