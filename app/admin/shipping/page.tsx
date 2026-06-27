@@ -392,26 +392,8 @@ export default function ShippingPage() {
                       <div className="font-medium truncate">{item.name}</div>
                       <div className="text-xs text-slate-500">SKU: {item.sku} × {item.quantity}</div>
                     </div>
-                    <div className="font-medium">{formatCurrency(item.price * item.quantity, currency)}</div>
                   </div>
                 ))}
-
-                {selectedOrder.shippingFee && selectedOrder.shippingFee > 0 && (
-                  <div className="flex items-center justify-between py-2 text-sm border-b border-slate-100 dark:border-slate-800">
-                    <span className="text-slate-500">
-                      {lang === "en" ? "Shipping Fee" : lang === "zh-CN" ? "运费" : "運費"}
-                      {selectedOrder.shippedAt && (
-                        <span className="ml-2 text-xs text-slate-400">@ {new Date(selectedOrder.shippedAt).toLocaleDateString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit", timeZone: "Asia/Shanghai" })}</span>
-                      )}
-                    </span>
-                    <span className="font-medium">{formatCurrency(selectedOrder.shippingFee, currency)}</span>
-                  </div>
-                )}
-
-                <div className="flex items-center justify-between py-3 font-semibold text-base">
-                  <span>{t("total")}</span>
-                  <span>{formatCurrency(selectedOrder.total + (selectedOrder.shippingFee || 0), currency)}</span>
-                </div>
               </div>
             </div>
           </div>
