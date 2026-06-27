@@ -353,9 +353,9 @@ function CartInner({ t, currency, lang, agentId }: { t: any; currency: string; l
                     {lang === "en" ? "Contact Name *" : lang === "zh-CN" ? "联系人姓名 *" : "聯絡人姓名 *"}
                   </label>
                   <div className="relative">
-                    <User className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+                    <User className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input
-                      className="input pl-10"
+                      className="input pl-11"
                       placeholder={lang === "en" ? "Enter contact name" : lang === "zh-CN" ? "输入联系人姓名" : "輸入聯絡人姓名"}
                       value={shippingInfo.contactName}
                       onChange={(e) => setShippingInfo({ ...shippingInfo, contactName: e.target.value })}
@@ -368,9 +368,9 @@ function CartInner({ t, currency, lang, agentId }: { t: any; currency: string; l
                     {lang === "en" ? "Phone *" : lang === "zh-CN" ? "电话 *" : "電話 *"}
                   </label>
                   <div className="relative">
-                    <Phone className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+                    <Phone className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input
-                      className="input pl-10"
+                      className="input pl-11"
                       placeholder={lang === "en" ? "Enter phone number" : lang === "zh-CN" ? "输入电话号码" : "輸入電話號碼"}
                       value={shippingInfo.phone}
                       onChange={(e) => setShippingInfo({ ...shippingInfo, phone: e.target.value })}
@@ -383,9 +383,9 @@ function CartInner({ t, currency, lang, agentId }: { t: any; currency: string; l
                     {lang === "en" ? "Email *" : lang === "zh-CN" ? "邮箱 *" : "郵箱 *"}
                   </label>
                   <div className="relative">
-                    <Mail className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+                    <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input
-                      className="input pl-10"
+                      className="input pl-11"
                       type="email"
                       placeholder={lang === "en" ? "Enter email address" : lang === "zh-CN" ? "输入邮箱地址" : "輸入郵箱地址"}
                       value={shippingInfo.email}
