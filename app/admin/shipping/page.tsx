@@ -3,7 +3,7 @@
 import { AdminLayout } from "@/components/Layout";
 import { PageCard, StatusBadge } from "@/components/Sidebar";
 import { useApp } from "@/components/AppProvider";
-import { formatCurrency, formatNumber, handleImageUpload } from "@/lib/utils";
+import { formatCurrency, formatNumber } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import {
   Truck, Package, Search, Eye, X, Phone, Mail, User,
@@ -145,8 +145,18 @@ export default function ShippingPage() {
     if (!file) return;
     setUploadingWaybillImage(true);
     try {
-      const base64 = await handleImageUpload(file);
-      setTempWaybillImage(base64);
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setTempWaybillImage(data.url);
+      } else {
+        alert(lang === "en" ? "Upload failed" : lang === "zh-CN" ? "上传失败" : "上傳失敗");
+      }
     } catch (error: any) {
       alert(error.message || "Upload failed");
     } finally {
