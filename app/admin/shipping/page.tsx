@@ -1,7 +1,7 @@
 "use client";
 
 import { AdminLayout } from "@/components/Layout";
-import { PageCard, StatusBadge } from "@/components/Sidebar";
+import { PageCard, Badge } from "@/components/Sidebar";
 import { useApp } from "@/components/AppProvider";
 import { formatCurrency, formatNumber } from "@/lib/utils";
 import { useEffect, useState } from "react";
@@ -183,15 +183,16 @@ export default function ShippingPage() {
     setSelectedOrder(order || null);
   };
 
-  const getStatusLabel = (status: string) => {
-    const map: Record<string, { labelEn: string; labelZhCN: string; labelZhTW: string }> = {
-      pending_delivery: { labelEn: "Pending Delivery", labelZhCN: "待投递", labelZhTW: "待投遞" },
-      pending_tracking: { labelEn: "Delivered", labelZhCN: "已投递", labelZhTW: "已投遞" },
-      shipped: { labelEn: "Shipped", labelZhCN: "已发货", labelZhTW: "已發貨" },
-      completed: { labelEn: "Completed", labelZhCN: "已完成", labelZhTW: "已完成" },
+  const getStatusInfo = (status: string) => {
+    const map: Record<string, { labelEn: string; labelZhCN: string; labelZhTW: string; tone: string }> = {
+      pending_delivery: { labelEn: "Pending Delivery", labelZhCN: "待投递", labelZhTW: "待投遞", tone: "amber" },
+      pending_tracking: { labelEn: "Delivered", labelZhCN: "已投递", labelZhTW: "已投遞", tone: "cyan" },
+      shipped: { labelEn: "Shipped", labelZhCN: "已发货", labelZhTW: "已發貨", tone: "purple" },
+      completed: { labelEn: "Completed", labelZhCN: "已完成", labelZhTW: "已完成", tone: "green" },
     };
-    const v = map[status] || { labelEn: status, labelZhCN: status, labelZhTW: status };
-    return lang === "en" ? v.labelEn : lang === "zh-CN" ? v.labelZhCN : v.labelZhTW;
+    const v = map[status] || { labelEn: status, labelZhCN: status, labelZhTW: status, tone: "gray" };
+    const label = lang === "en" ? v.labelEn : lang === "zh-CN" ? v.labelZhCN : v.labelZhTW;
+    return { label, tone: v.tone };
   };
 
   return (
@@ -233,7 +234,7 @@ export default function ShippingPage() {
             <button onClick={() => { setSelectedId(null); setSelectedOrder(null); setEditingWaybill(false); }} className="text-slate-400 hover:text-slate-700 flex-shrink-0 p-1"><X className="w-5 h-5" /></button>
           </div>
           <div className="flex flex-wrap gap-2 mb-4 sm:mb-5">
-            <StatusBadge status={selectedOrder.status} />
+            <Badge tone={getStatusInfo(selectedOrder.status).tone as any}>{getStatusInfo(selectedOrder.status).label}</Badge>
             {selectedOrder.trackingNumber && (
               <span className="badge badge-blue">{selectedOrder.trackingNumber}</span>
             )}
@@ -452,7 +453,7 @@ export default function ShippingPage() {
                     </td>
                     <td className="text-sm text-slate-500 max-w-[200px] truncate">{o.shippingAddress}</td>
                     <td className="hidden md:table-cell font-medium whitespace-nowrap">{formatCurrency(o.total, currency)}</td>
-                    <td><StatusBadge status={o.status} /></td>
+                    <td><Badge tone={getStatusInfo(o.status).tone as any}>{getStatusInfo(o.status).label}</Badge></td>
                     <td>
                       <button onClick={() => selected(o.id)} className="text-indigo-600 hover:underline text-sm flex items-center gap-1">
                         <Eye className="w-3.5 h-3.5" /> <span className="hidden sm:inline">{t("view")}</span>
