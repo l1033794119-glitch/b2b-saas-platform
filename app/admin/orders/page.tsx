@@ -672,7 +672,7 @@ export default function OrdersPage() {
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">{currency}</span>
                           <input
-                            className="input pl-12"
+                            className="input !pl-14"
                             type="number"
                             step="0.01"
                             min="0"
