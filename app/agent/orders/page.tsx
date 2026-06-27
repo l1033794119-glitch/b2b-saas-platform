@@ -45,7 +45,7 @@ interface FilterOption {
 }
 
 const statusConfig: Record<string, { labelEn: string; labelZhCN: string; labelZhTW: string; color: string }> = {
-  pending_qrcode: { labelEn: "Pending QR Code", labelZhCN: "待上传二维码", labelZhTW: "待上傳二維碼", color: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400" },
+  pending_qrcode: { labelEn: "Submitted", labelZhCN: "已提交", labelZhTW: "已提交", color: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400" },
   pending_delivery: { labelEn: "Pending Delivery", labelZhCN: "待投递", labelZhTW: "待投遞", color: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400" },
   pending_tracking: { labelEn: "Pending Tracking", labelZhCN: "待填写运单号", labelZhTW: "待填寫運單號", color: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-400" },
   shipped: { labelEn: "Shipped", labelZhCN: "已发货", labelZhTW: "已發貨", color: "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-400" },
@@ -70,7 +70,7 @@ export default function MyOrdersPage() {
   const getStatusFilterOptions = (): FilterOption[] => {
     return [
       { label: lang === "en" ? "All Status" : lang === "zh-CN" ? "全部状态" : "全部狀態", value: "all" },
-      { label: lang === "en" ? "Pending QR Code" : lang === "zh-CN" ? "待上传二维码" : "待上傳二維碼", value: "pending_qrcode" },
+      { label: lang === "en" ? "Submitted" : lang === "zh-CN" ? "已提交" : "已提交", value: "pending_qrcode" },
       { label: lang === "en" ? "Pending Delivery" : lang === "zh-CN" ? "待投递" : "待投遞", value: "pending_delivery" },
       { label: lang === "en" ? "Pending Tracking" : lang === "zh-CN" ? "待填写运单号" : "待填寫運單號", value: "pending_tracking" },
       { label: lang === "en" ? "Shipped" : lang === "zh-CN" ? "已发货" : "已發貨", value: "shipped" },
@@ -429,9 +429,9 @@ export default function MyOrdersPage() {
               <div className="mb-6 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
                 <div className="text-xs text-slate-500 mb-3">{lang === "en" ? "Order Status" : lang === "zh-CN" ? "订单状态" : "訂單狀態"}</div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  {/* 待上传二维码 */}
+                  {/* 已提交 */}
                   <div className={`w-3 h-3 rounded-full ${["pending_qrcode", "pending_delivery", "pending_tracking", "shipped", "completed"].includes(selected.status) ? "bg-orange-500" : "bg-slate-300"}`} />
-                  <span className="text-xs whitespace-nowrap">{lang === "en" ? "QR Code" : lang === "zh-CN" ? "待二维码" : "待二維碼"}</span>
+                  <span className="text-xs whitespace-nowrap">{lang === "en" ? "Submitted" : lang === "zh-CN" ? "已提交" : "已提交"}</span>
                   <div className={`flex-1 h-0.5 min-w-4 ${["pending_delivery", "pending_tracking", "shipped", "completed"].includes(selected.status) ? "bg-emerald-500" : "bg-slate-200"}`} />
                   
                   {/* 待投递 */}
