@@ -36,11 +36,11 @@ export function AdminSidebar({ open, onClose }: { open: boolean; onClose: () => 
 
   // 根据用户权限过滤菜单项
   const items = allItems.filter((it) => {
-    // 无 permissions 字段（代理商或旧数据）显示所有菜单
     if (!user?.permissions) return true;
-    // permissions[key] === true 才显示
     return user.permissions[it.key] === true;
   });
+
+  const defaultHref = items.length > 0 ? items[0].href : "/admin/dashboard";
 
   return (
     <>
@@ -49,7 +49,7 @@ export function AdminSidebar({ open, onClose }: { open: boolean; onClose: () => 
         className={`fixed lg:sticky top-0 left-0 h-screen w-[260px] bg-white dark:bg-[#0f1320] border-r border-slate-200 dark:border-slate-800 z-40 flex flex-col transition-transform ${open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
       >
         <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-          <Link href="/admin/dashboard" className="flex items-center gap-2 font-semibold text-slate-900 dark:text-white">
+          <Link href={defaultHref} className="flex items-center gap-2 font-semibold text-slate-900 dark:text-white">
             <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center text-white text-sm font-bold">B</div>
             <span>B2B Console</span>
           </Link>
