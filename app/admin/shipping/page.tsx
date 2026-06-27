@@ -60,8 +60,6 @@ export default function ShippingPage() {
   const [tempWaybillImage, setTempWaybillImage] = useState("");
   const [uploadingWaybillImage, setUploadingWaybillImage] = useState(false);
 
-  const carriers = ["Royal Mail", "Evri", "DPD", "UPS", "DHL"];
-
   const statuses = [
     { id: "all", labelEn: "All", labelZhCN: "全部", labelZhTW: "全部" },
     { id: "pending_delivery", labelEn: "Pending Delivery", labelZhCN: "待投递", labelZhTW: "待投遞" },
@@ -198,18 +196,6 @@ export default function ShippingPage() {
 
   return (
     <AdminLayout title={t("shipping")} subtitle={lang === "en" ? "Carrier management & tracking" : lang === "zh-CN" ? "物流管理与追踪" : "物流管理與追蹤"}>
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
-        {carriers.map((c) => (
-          <div key={c} className="card p-4">
-            <div className="w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-950/40 text-indigo-600 flex items-center justify-center mb-3">
-              <Truck className="w-5 h-5" />
-            </div>
-            <div className="font-semibold text-sm">{c}</div>
-            <div className="text-xs text-slate-500">{lang === "en" ? "Active" : lang === "zh-CN" ? "已启用" : "已啟用"}</div>
-          </div>
-        ))}
-      </div>
-
       <div className="card p-3 sm:p-4 mb-4">
         <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-3 sm:gap-4">
           <div className="w-full sm:flex-1 sm:min-w-[200px] relative">
