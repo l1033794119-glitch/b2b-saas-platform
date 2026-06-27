@@ -411,9 +411,9 @@ export default function OrdersPage() {
       <div className="card p-3 sm:p-4 mb-4">
         <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-3 sm:gap-4">
           <div className="w-full sm:flex-1 sm:min-w-[200px] relative">
-            <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
-              className="input pl-9 py-2.5 w-full"
+              className="input !pl-11 py-2.5 w-full"
               placeholder={lang === "en" ? "Search orders..." : lang === "zh-CN" ? "搜索订单（订单号、联系人、电话、邮箱）..." : "搜尋訂單（訂單號、聯絡人、電話、郵箱）..."}
               value={q}
               onChange={(e) => setQ(e.target.value)}

@@ -350,7 +350,7 @@ export default function DashboardPage() {
               placeholder={lang === "en" ? "Search orders..." : lang === "zh-CN" ? "搜索订单/客户..." : "搜索訂單/客戶..."}
               value={searchKeyword}
               onChange={(e) => setSearchKeyword(e.target.value)}
-              className="input pl-10 py-2 text-sm w-60"
+              className="input !pl-11 py-2 text-sm w-60"
             />
             {searchKeyword && (
               <button

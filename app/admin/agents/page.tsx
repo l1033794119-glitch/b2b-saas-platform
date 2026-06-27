@@ -143,8 +143,8 @@ export default function AgentsPage() {
     <AdminLayout title={t("agents")} subtitle={`${formatNumber(data.length)} ${lang === "en" ? "agents" : lang === "zh-CN" ? "代理商" : "代理商"}`}>
       <div className="flex flex-wrap gap-3 mb-5">
         <div className="flex-1 min-w-[240px] relative">
-          <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
-          <input className="input pl-9 py-2.5" placeholder={lang === "en" ? "Search agents..." : lang === "zh-CN" ? "搜索代理商..." : "搜尋代理商..."} value={q} onChange={(e) => setQ(e.target.value)} />
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input className="input !pl-11 py-2.5" placeholder={lang === "en" ? "Search agents..." : lang === "zh-CN" ? "搜索代理商..." : "搜尋代理商..."} value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
         <select className="select py-2.5 w-auto" value={flt} onChange={(e) => setFlt(e.target.value)}>
           {[

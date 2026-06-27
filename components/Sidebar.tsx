@@ -167,11 +167,11 @@ export function Topbar({ title, onMenu, subtitle }: { title: string; onMenu: () 
         </div>
 
         <div className="hidden md:flex items-center relative">
-          <Search className="w-4 h-4 absolute left-3 text-slate-400" />
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
             placeholder={t("search") + "..."}
-            className="input pl-9 w-64 py-2 text-sm"
+            className="input !pl-11 w-64 py-2 text-sm"
           />
         </div>
 

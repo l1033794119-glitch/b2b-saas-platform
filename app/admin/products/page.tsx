@@ -127,9 +127,9 @@ export default function ProductsPage() {
     <AdminLayout title={t("products")} subtitle={`${formatNumber(data.length)} ${lang === "en" ? "items" : lang === "zh-CN" ? "项" : "項"}`}>
       <div className="flex flex-wrap items-stretch gap-3 mb-5">
         <div className="flex-1 min-w-[220px] relative">
-          <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
-            className="input pl-9 py-2.5"
+            className="input !pl-11 py-2.5"
             placeholder={lang === "en" ? "Search by name, SKU..." : lang === "zh-CN" ? "按名称、SKU 搜索..." : "按名稱、SKU 搜尋..."}
             value={query}
             onChange={(e) => setQuery(e.target.value)}

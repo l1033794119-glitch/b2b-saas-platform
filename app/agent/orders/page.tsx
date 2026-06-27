@@ -252,7 +252,7 @@ export default function MyOrdersPage() {
               placeholder={lang === "en" ? "Search orders..." : lang === "zh-CN" ? "搜索订单号/姓名/电话/运单号..." : "搜索訂單號/姓名/電話/運單號..."}
               value={searchKeyword}
               onChange={(e) => setSearchKeyword(e.target.value)}
-              className="input pl-10 w-full"
+              className="input !pl-11 w-full"
             />
             {searchKeyword && (
               <button

@@ -289,9 +289,9 @@ export default function InventoryPage() {
 
           <div className="flex flex-wrap items-center gap-3 mb-4">
             <div className="flex-1 min-w-[200px] relative">
-              <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
-                className="input pl-9 py-2.5"
+                className="input !pl-11 py-2.5"
                 placeholder={lang === "en" ? "Search products..." : "搜索商品..."}
                 value={searchQ}
                 onChange={(e) => setSearchQ(e.target.value)}

@@ -90,9 +90,9 @@ export default function CatalogPage() {
     <AgentLayout title={t("product_catalog")} subtitle={`${formatNumber(filtered.length)} ${lang === "en" ? "products" : lang === "zh-CN" ? "产品" : "產品"} | ${count} ${lang === "en" ? "items in cart" : lang === "zh-CN" ? "件购物车商品" : "件購物車商品"}`}>
       <div className="flex flex-wrap items-center gap-3 mb-5">
         <div className="flex-1 min-w-[220px] relative">
-          <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
-            className="input pl-9 py-2.5"
+            className="input !pl-11 py-2.5"
             placeholder={lang === "en" ? "Search catalog..." : lang === "zh-CN" ? "搜索产品..." : "搜尋產品..."}
             value={q}
             onChange={(e) => setQ(e.target.value)}
