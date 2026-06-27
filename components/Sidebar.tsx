@@ -11,28 +11,17 @@ import {
 import { useState } from "react";
 import { Lang, languageLabels } from "@/lib/i18n";
 import { useCart } from "@/lib/cart";
+import { adminMenuItems, getAdminDefaultHref } from "@/lib/admin-menu";
 
 export function AdminSidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { t, user } = useApp();
   const pathname = usePathname();
 
   // 菜单项：key 必须与 employees API 中的权限 key 一致
-  const allItems = [
-    { href: "/admin/dashboard", key: "dashboard", label: t("dashboard"), icon: LayoutDashboard },
-    { href: "/admin/products", key: "products", label: t("products"), icon: Package },
-    { href: "/admin/inventory", key: "inventory", label: t("inventory"), icon: Warehouse },
-    { href: "/admin/warehouse", key: "warehouse", label: t("warehouses"), icon: Warehouse },
-    { href: "/admin/agents", key: "agents", label: t("agents"), icon: Users },
-    { href: "/admin/credit", key: "credit", label: t("credit_limits") || "Credit Limits", icon: CreditCard },
-    { href: "/admin/orders", key: "orders", label: t("orders"), icon: ShoppingCart },
-    { href: "/admin/shipping", key: "shipping", label: t("shipping"), icon: Truck },
-    { href: "/admin/finance", key: "finance", label: t("finance"), icon: LineChart },
-    { href: "/admin/analytics", key: "analytics", label: t("analytics"), icon: LineChart },
-    { href: "/admin/notifications", key: "notifications", label: t("notifications"), icon: Bell },
-    { href: "/admin/employees", key: "employees", label: t("employees"), icon: UsersRound },
-    { href: "/admin/audit-logs", key: "audit_logs", label: t("audit_logs"), icon: FileText },
-    { href: "/admin/settings", key: "settings", label: t("settings"), icon: Settings },
-  ];
+  const allItems = adminMenuItems.map((it) => ({
+    ...it,
+    label: it.key === "credit" ? (t("credit_limits") || "Credit Limits") : t(it.key),
+  }));
 
   // 根据用户权限过滤菜单项
   const items = allItems.filter((it) => {
@@ -40,7 +29,7 @@ export function AdminSidebar({ open, onClose }: { open: boolean; onClose: () => 
     return user.permissions[it.key] === true;
   });
 
-  const defaultHref = items.length > 0 ? items[0].href : "/admin/dashboard";
+  const defaultHref = getAdminDefaultHref(user?.permissions);
 
   return (
     <>

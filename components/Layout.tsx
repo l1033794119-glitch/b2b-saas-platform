@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { AdminSidebar, AgentSidebar, Topbar } from "./Sidebar";
 import { useApp } from "./AppProvider";
 import { useRouter, usePathname } from "next/navigation";
+import { getAdminDefaultHref } from "@/lib/admin-menu";
 
 export function AdminLayout({ children, title, subtitle }:
   { children: React.ReactNode; title: string; subtitle?: string }) {
@@ -22,6 +23,14 @@ export function AdminLayout({ children, title, subtitle }:
   useEffect(() => {
     if ((!user || !isAdmin) && pathname !== "/admin/login") {
       router.push("/admin/login");
+    }
+    if (user && isAdmin && user.permissions) {
+      const defaultHref = getAdminDefaultHref(user.permissions);
+      const isDashboard = pathname === "/admin/dashboard";
+      const hasDashboardAccess = user.permissions.dashboard === true;
+      if (isDashboard && !hasDashboardAccess) {
+        router.push(defaultHref);
+      }
     }
   }, [user, isAdmin, router, pathname]);
 

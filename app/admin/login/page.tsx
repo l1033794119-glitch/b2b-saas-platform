@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import { Lang } from "@/lib/i18n";
 import { useApp, languageLabels } from "@/components/AppProvider";
 import { Globe, Lock, Shield } from "lucide-react";
+import { getAdminDefaultHref } from "@/lib/admin-menu";
 
 export default function AdminLogin() {
   const { t, lang, setLang, login, user } = useApp();
@@ -17,10 +18,9 @@ export default function AdminLogin() {
 
   useEffect(() => {
     if (user) {
-      // 只有管理员角色才能跳转到仪表盘
       const adminRoles = ["super_admin", "warehouse_manager", "finance_manager", "operations_manager", "customer_service"];
       if (adminRoles.includes(user.role)) {
-        router.push("/admin/dashboard");
+        router.push(getAdminDefaultHref(user.permissions));
       }
     }
   }, [user, router]);
@@ -35,7 +35,8 @@ export default function AdminLogin() {
       setError(lang === "en" ? "Invalid admin credentials" : lang === "zh-CN" ? "管理员凭据无效" : "管理員憑證無效");
       return;
     }
-    router.push("/admin/dashboard");
+    const userData = JSON.parse(localStorage.getItem("app.user") || "{}");
+    router.push(getAdminDefaultHref(userData.permissions));
   };
 
   const langs: Lang[] = ["en", "zh-CN", "zh-TW"];
