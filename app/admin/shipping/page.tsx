@@ -451,6 +451,7 @@ export default function ShippingPage() {
                   <th>{t("order_no")}</th>
                   <th className="hidden sm:table-cell">{lang === "en" ? "Customer" : lang === "zh-CN" ? "收件人" : "收件人"}</th>
                   <th>{t("shipping_address")}</th>
+                  <th className="hidden md:table-cell">{lang === "en" ? "Postal Code" : lang === "zh-CN" ? "邮编" : "郵遞區號"}</th>
                   <th>{lang === "en" ? "Status" : lang === "zh-CN" ? "状态" : "狀態"}</th>
                   <th>{t("actions")}</th>
                 </tr>
@@ -464,6 +465,7 @@ export default function ShippingPage() {
                       {o.phone && <div className="text-xs text-slate-400 truncate max-w-[120px]">{o.phone}</div>}
                     </td>
                     <td className="text-sm text-slate-500 max-w-[200px] truncate">{o.shippingAddress}</td>
+                    <td className="hidden md:table-cell text-sm text-slate-500 font-mono">{o.postalCode || "—"}</td>
                     <td><Badge tone={getStatusInfo(o.status).tone as any}>{getStatusInfo(o.status).label}</Badge></td>
                     <td>
                       <button onClick={(e) => { e.stopPropagation(); selected(o.id); }} className="text-indigo-600 hover:underline text-sm flex items-center gap-1">
