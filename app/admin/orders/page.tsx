@@ -5,7 +5,7 @@ import { AdminLayout } from "@/components/Layout";
 import { PageCard, StatusBadge } from "@/components/Sidebar";
 import { useApp } from "@/components/AppProvider";
 import { formatCurrency, formatNumber } from "@/lib/utils";
-import { Eye, Truck, FileText, Search, X, Phone, Mail, User, MapPin, Package, Image, Upload, Check, AlertCircle, Edit2, QrCode, Package as PackageIcon } from "lucide-react";
+import { Eye, Truck, FileText, Search, X, Phone, Mail, User, MapPin, Package, Image, Upload, Check, AlertCircle, Edit2, QrCode, Package as PackageIcon, Download } from "lucide-react";
 
 interface OrderItem {
   productId: string;
@@ -293,6 +293,71 @@ export default function OrdersPage() {
 
   const selectedOrder = data.find((o) => o.id === selected);
 
+  const exportCSV = () => {
+    if (filtered.length === 0) return;
+
+    const escapeCSV = (val: any) => {
+      if (val === null || val === undefined) return "";
+      const s = String(val);
+      if (s.includes(",") || s.includes('"') || s.includes("\n")) {
+        return '"' + s.replace(/"/g, '""') + '"';
+      }
+      return s;
+    };
+
+    const statusLabels: Record<string, string> = {
+      pending_qrcode: "Pending QR Code",
+      pending_delivery: "Pending Delivery",
+      pending_tracking: "Pending Tracking",
+      shipped: "Shipped",
+      completed: "Completed",
+    };
+
+    const headers = [
+      "Order No", "Date", "Status", "Agent Company", "Agent Email",
+      "Contact Name", "Phone", "Email", "Country", "Postal Code",
+      "Shipping Address", "Warehouse", "Items", "Total Amount", "Shipping Fee",
+      "Tracking Number", "Notes",
+    ];
+
+    const rows = filtered.map((o) => {
+      const agent = agents.find((a) => a.id === o.agentId);
+      const itemsStr = (o.items || [])
+        .map((it: any) => `${it.name} x${it.quantity} @${it.price}`)
+        .join("; ");
+      return [
+        o.orderNo,
+        o.date,
+        statusLabels[o.status] || o.status,
+        agent?.company || o.company || "",
+        agent?.email || "",
+        o.contactName || "",
+        o.phone || "",
+        o.email || "",
+        o.country || "",
+        o.postalCode || "",
+        o.shippingAddress || "",
+        o.warehouse || "",
+        itemsStr,
+        o.total,
+        o.shippingFee || 0,
+        o.trackingNumber || "",
+        o.notes || "",
+      ].map(escapeCSV).join(",");
+    });
+
+    const csv = "\uFEFF" + headers.join(",") + "\n" + rows.join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `orders_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const openQrEdit = () => {
     setTempQrCode(selectedOrder?.qrCode || "");
     setTempShippingFee(selectedOrder?.shippingFee?.toString() || "");
@@ -409,6 +474,21 @@ export default function OrdersPage() {
   return (
     <AdminLayout title={t("orders")} subtitle={`${formatNumber(filtered.length)} / ${formatNumber(data.length)} ${lang === "en" ? "orders" : lang === "zh-CN" ? "订单" : "訂單"}`}>
       <div className="card p-3 sm:p-4 mb-4">
+        <div className="flex items-center justify-between mb-3 gap-3">
+          <div className="text-sm font-medium text-slate-700 dark:text-slate-300">
+            {lang === "en" ? "Filters" : lang === "zh-CN" ? "筛选条件" : "篩選條件"}
+          </div>
+          <button
+            onClick={exportCSV}
+            disabled={filtered.length === 0}
+            className="btn-primary py-1.5 px-3 text-sm flex items-center gap-1.5 flex-shrink-0"
+          >
+            <Download className="w-4 h-4" />
+            {lang === "en" ? "Export CSV" : lang === "zh-CN" ? "导出CSV" : "匯出CSV"}
+            <span className="text-xs opacity-75">({filtered.length})</span>
+          </button>
+        </div>
+
         <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-3 sm:gap-4">
           <div className="w-full sm:flex-1 sm:min-w-[200px] relative">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -449,18 +529,18 @@ export default function OrdersPage() {
               </select>
             </div>
           </div>
+        </div>
 
-          <div className="flex gap-1.5 flex-wrap w-full sm:w-auto">
-            {statuses.map((s) => (
-              <button
-                key={s.id}
-                onClick={() => setFlt(s.id)}
-                className={`px-3 py-1.5 text-xs sm:text-sm rounded-lg border border-slate-200 dark:border-slate-800 ${flt === s.id ? "bg-indigo-600 text-white border-indigo-600" : ""}`}
-              >
-                {lang === "en" ? s.labelEn : lang === "zh-CN" ? s.labelZhCN : s.labelZhTW}
-              </button>
-            ))}
-          </div>
+        <div className="flex gap-1.5 flex-wrap mt-3">
+          {statuses.map((s) => (
+            <button
+              key={s.id}
+              onClick={() => setFlt(s.id)}
+              className={`px-3 py-1.5 text-xs sm:text-sm rounded-lg border border-slate-200 dark:border-slate-800 ${flt === s.id ? "bg-indigo-600 text-white border-indigo-600" : ""}`}
+            >
+              {lang === "en" ? s.labelEn : lang === "zh-CN" ? s.labelZhCN : s.labelZhTW}
+            </button>
+          ))}
         </div>
 
         <div className="flex flex-wrap items-end gap-3 mt-3">
