@@ -64,10 +64,12 @@ export async function POST(req: NextRequest) {
         if (product.warehouseId) warehouseIds.add(product.warehouseId);
         if (product.warehouse) warehouseNames.add(product.warehouse);
         
+        const productImages = typeof product.images === 'string' ? JSON.parse(product.images) : (product.images || []);
         orderItemsWithWarehouse.push({
           ...item,
           warehouseId: product.warehouseId || null,
           warehouse: product.warehouse || null,
+          image: item.image || (productImages.length > 0 ? productImages[0] : "") || "",
         });
       } else {
         orderItemsWithWarehouse.push(item);

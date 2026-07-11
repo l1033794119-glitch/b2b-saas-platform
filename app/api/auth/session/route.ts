@@ -14,6 +14,9 @@ export async function POST(req: NextRequest) {
   try {
     const { email, password, admin } = await req.json();
     
+    const forwardedProto = req.headers.get("x-forwarded-proto");
+    const isHttps = forwardedProto === "https" || req.nextUrl.protocol === "https:";
+    
     if (admin) {
       const employees: any[] = await query("SELECT * FROM employees WHERE email = ?", [email]);
       const employee = employees[0];
@@ -59,7 +62,7 @@ export async function POST(req: NextRequest) {
       
       response.cookies.set("session_id", sessionId, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production" && req.nextUrl.protocol === "https:",
+        secure: process.env.NODE_ENV === "production" && isHttps,
         sameSite: "lax",
         maxAge: 30 * 24 * 60 * 60,
         path: "/",
@@ -105,7 +108,7 @@ export async function POST(req: NextRequest) {
       
       response.cookies.set("session_id", sessionId, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production" && req.nextUrl.protocol === "https:",
+        secure: process.env.NODE_ENV === "production" && isHttps,
         sameSite: "lax",
         maxAge: 30 * 24 * 60 * 60,
         path: "/",
@@ -200,6 +203,9 @@ export async function DELETE(req: NextRequest) {
   try {
     const sessionId = req.cookies.get("session_id")?.value;
     
+    const forwardedProto = req.headers.get("x-forwarded-proto");
+    const isHttps = forwardedProto === "https" || req.nextUrl.protocol === "https:";
+    
     if (sessionId) {
       try {
         await execute("DELETE FROM sessions WHERE session_id = ?", [sessionId]);
@@ -211,7 +217,7 @@ export async function DELETE(req: NextRequest) {
     const response = NextResponse.json({ success: true });
     response.cookies.set("session_id", "", {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: process.env.NODE_ENV === "production" && isHttps,
       sameSite: "lax",
       maxAge: 0,
       path: "/",
