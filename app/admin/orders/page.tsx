@@ -75,6 +75,7 @@ export default function OrdersPage() {
   const [agentFilter, setAgentFilter] = useState("all");
   const [warehouseFilter, setWarehouseFilter] = useState("all");
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
@@ -213,10 +214,32 @@ export default function OrdersPage() {
     }
   };
 
+  const fetchProducts = async () => {
+    try {
+      const res = await fetch("/api/products");
+      if (res.ok) {
+        const productsData = await res.json();
+        setProducts(productsData);
+      }
+    } catch (error) {
+      console.error("Failed to fetch products:", error);
+    }
+  };
+
+  const getProductImage = (productId?: string) => {
+    if (!productId) return "";
+    const p = products.find((x) => x.id === productId);
+    if (p && Array.isArray(p.images) && p.images.length > 0) {
+      return p.images[0];
+    }
+    return "";
+  };
+
   useEffect(() => {
     fetchOrders();
     fetchAgents();
     fetchWarehouses();
+    fetchProducts();
   }, []);
 
   const [updatingOrderIds, setUpdatingOrderIds] = useState<Set<string>>(new Set());
@@ -934,22 +957,25 @@ export default function OrdersPage() {
                 {lang === "en" ? "Items" : lang === "zh-CN" ? "商品" : "商品"} ({selectedOrder.items.length})
               </div>
               <div className="text-sm max-h-60 overflow-y-auto">
-                {selectedOrder.items.map((item, idx) => (
-                  <div key={idx} className="flex items-center gap-3 py-2 border-b border-slate-100 dark:border-slate-800 last:border-0">
-                    <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-lg overflow-hidden flex-shrink-0">
-                      {item.image ? (
-                        <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-lg">📦</div>
-                      )}
+                {selectedOrder.items.map((item, idx) => {
+                  const productImage = getProductImage(item.productId) || item.image;
+                  return (
+                    <div key={idx} className="flex items-center gap-3 py-2 border-b border-slate-100 dark:border-slate-800 last:border-0">
+                      <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-lg overflow-hidden flex-shrink-0">
+                        {productImage ? (
+                          <img src={productImage} alt={item.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-lg">📦</div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium truncate">{item.name}</div>
+                        <div className="text-xs text-slate-500">SKU: {item.sku} × {item.quantity}</div>
+                      </div>
+                      <div className="font-medium">{formatCurrency(item.price * item.quantity, currency)}</div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium truncate">{item.name}</div>
-                      <div className="text-xs text-slate-500">SKU: {item.sku} × {item.quantity}</div>
-                    </div>
-                    <div className="font-medium">{formatCurrency(item.price * item.quantity, currency)}</div>
-                  </div>
-                ))}
+                  );
+                })}
 
                 {selectedOrder.shippingFee && selectedOrder.shippingFee > 0 && (
                   <div className="flex items-center justify-between py-2 text-sm border-b border-slate-100 dark:border-slate-800">
