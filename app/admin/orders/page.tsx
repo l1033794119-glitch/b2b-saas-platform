@@ -956,26 +956,43 @@ export default function OrdersPage() {
                 <Package className="w-4 h-4" />
                 {lang === "en" ? "Items" : lang === "zh-CN" ? "商品" : "商品"} ({selectedOrder.items.length})
               </div>
-              <div className="text-sm max-h-60 overflow-y-auto">
+              <div className="text-sm max-h-[500px] overflow-y-auto">
                 {selectedOrder.items.map((item, idx) => {
                   const productImage = getProductImage(item.productId) || item.image;
                   return (
-                    <div key={idx} className="flex items-center gap-3 py-2 border-b border-slate-100 dark:border-slate-800 last:border-0">
-                      <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-lg overflow-hidden flex-shrink-0">
+                    <div key={idx} className="flex items-center gap-3 py-3 border-b border-slate-100 dark:border-slate-800 last:border-0">
+                      <div className="relative w-14 h-14 bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden flex-shrink-0">
                         {productImage ? (
                           <img src={productImage} alt={item.name} className="w-full h-full object-cover" />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-lg">📦</div>
+                          <div className="w-full h-full flex items-center justify-center text-xl">📦</div>
                         )}
+                        <div className="absolute -top-2 -right-2 w-7 h-7 bg-indigo-600 text-white text-sm font-bold rounded-full flex items-center justify-center shadow-md border-2 border-white dark:border-slate-900">
+                          {item.quantity}
+                        </div>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="font-medium truncate">{item.name}</div>
-                        <div className="text-xs text-slate-500">SKU: {item.sku} × {item.quantity}</div>
+                        <div className="font-semibold text-sm truncate">{item.name}</div>
+                        <div className="text-xs text-slate-500 font-mono">SKU: {item.sku}</div>
                       </div>
-                      <div className="font-medium">{formatCurrency(item.price * item.quantity, currency)}</div>
+                      <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                        <div className="text-lg font-bold text-indigo-600">×{item.quantity}</div>
+                        <div className="text-xs text-slate-400">{lang === "en" ? "pieces" : lang === "zh-CN" ? "件" : "件"}</div>
+                        <div className="text-sm font-medium text-slate-700 dark:text-slate-300">{formatCurrency(item.price * item.quantity, currency)}</div>
+                      </div>
                     </div>
                   );
                 })}
+                <div className="mt-3 p-3 bg-indigo-50 dark:bg-indigo-950/30 rounded-xl">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-indigo-700 dark:text-indigo-400">
+                      {lang === "en" ? "Total Items" : lang === "zh-CN" ? "商品总数" : "商品總數"}
+                    </span>
+                    <span className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
+                      {selectedOrder.items.reduce((sum: number, it: any) => sum + it.quantity, 0)}
+                    </span>
+                  </div>
+                </div>
 
                 {selectedOrder.shippingFee && selectedOrder.shippingFee > 0 && (
                   <div className="flex items-center justify-between py-2 text-sm border-b border-slate-100 dark:border-slate-800">
