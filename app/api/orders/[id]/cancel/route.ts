@@ -6,6 +6,7 @@ import {
   getProductById,
   updateProductStock,
   addInventoryLog,
+  repayCredit,
 } from "@/lib/repository";
 
 function formatMySQLDate(date: Date = new Date()): string {
@@ -122,22 +123,12 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
       try {
         const refundAmount = order.total || 0;
-        const creditResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/api/credit`,
-          {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              agentId: order.agentId,
-              action: "add",
-              amount: refundAmount,
-              note: `取消订单退款 ${order.orderNo}`,
-            }),
-          }
-        );
-
-        if (!creditResponse.ok) {
-          console.error("Credit refund failed for order", params.id);
+        if (refundAmount > 0) {
+          await repayCredit(
+            order.agentId,
+            refundAmount,
+            `取消订单退款 ${order.orderNo}`
+          );
         }
       } catch (creditError) {
         console.error("Credit refund error:", creditError);
