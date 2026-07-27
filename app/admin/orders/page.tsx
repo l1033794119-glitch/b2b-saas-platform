@@ -456,7 +456,7 @@ export default function OrdersPage() {
   // 加载图片到 Canvas
   const loadImageToCanvas = (imageUrl: string): Promise<HTMLCanvasElement> => {
     return new Promise((resolve, reject) => {
-      const img = new Image();
+      const img = new (window as any).Image();
       img.crossOrigin = "anonymous";
       img.onload = () => {
         const canvas = document.createElement("canvas");
