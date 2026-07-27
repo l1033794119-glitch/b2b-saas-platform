@@ -6,7 +6,7 @@ import { PageCard, StatusBadge } from "@/components/Sidebar";
 import { useApp } from "@/components/AppProvider";
 import { formatCurrency, formatNumber } from "@/lib/utils";
 import { Eye, Truck, FileText, Search, X, Phone, Mail, User, MapPin, Package, Image, Upload, Check, AlertCircle, Edit2, QrCode, Package as PackageIcon, Download, ScanLine, Zap } from "lucide-react";
-import { BrowserMultiFormatReader } from "@zxing/library";
+import { BrowserMultiFormatReader, MultiFormatReader, DecodeHintType } from "@zxing/library";
 
 interface OrderItem {
   productId: string;
@@ -453,37 +453,30 @@ export default function OrdersPage() {
     setScanSuccess(false);
   };
 
-  // 将图片调整大小并转换为 blob URL
-  const resizeImage = async (imageUrl: string, maxSize: number = 1024): Promise<string> => {
+  // 加载图片到 Image 对象
+  const loadImage = async (imageUrl: string): Promise<HTMLImageElement> => {
     return new Promise((resolve, reject) => {
       const img = new (window as any).Image();
-      img.onload = () => {
-        let width = img.width;
-        let height = img.height;
-        const scale = Math.min(maxSize / width, maxSize / height, 1);
-        width = Math.round(width * scale);
-        height = Math.round(height * scale);
-
-        const canvas = document.createElement("canvas");
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) {
-          reject(new Error("Failed to create canvas context"));
-          return;
-        }
-        ctx.drawImage(img, 0, 0, width, height);
-        canvas.toBlob((blob) => {
-          if (blob) {
-            resolve(URL.createObjectURL(blob));
-          } else {
-            reject(new Error("Failed to create blob"));
-          }
-        }, "image/jpeg", 0.8);
-      };
+      img.crossOrigin = "anonymous";
+      img.onload = () => resolve(img);
       img.onerror = () => reject(new Error("Image load failed"));
       img.src = imageUrl;
     });
+  };
+
+  // 将图片转换为灰度 ImageData
+  const convertToGrayscale = (canvas: HTMLCanvasElement): ImageData => {
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas context not available");
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    for (let i = 0; i < data.length; i += 4) {
+      const avg = (data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114) | 0;
+      data[i] = avg;
+      data[i + 1] = avg;
+      data[i + 2] = avg;
+    }
+    return imageData;
   };
 
   // 条形码识别：从面单图片识别条形码
@@ -504,13 +497,46 @@ export default function OrdersPage() {
     setScanSuccess(false);
 
     try {
-      const reader = new BrowserMultiFormatReader();
-      let tempBlobUrl: string | null = null;
+      const img = await loadImage(imageUrl);
+      
+      const hints = new Map<string, any>();
+      hints.set(DecodeHintType.TRY_HARDER, true);
+      hints.set(DecodeHintType.POSSIBLE_FORMATS, [
+        "CODE_128",
+        "CODE_39",
+        "EAN_13",
+        "EAN_8",
+        "UPC_A",
+        "UPC_E",
+        "ITF",
+        "QR_CODE",
+        "DATA_MATRIX",
+        "AZTEC",
+        "PDF_417",
+      ]);
 
-      // 方法1：先调整图片大小，然后用 URL 方式识别
+      const reader = new MultiFormatReader();
+      reader.setHints(hints);
+
+      const scale = Math.min(1, 1500 / Math.max(img.width, img.height));
+      const width = Math.round(img.width * scale);
+      const height = Math.round(img.height * scale);
+
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        throw new Error("Canvas context not available");
+      }
+      ctx.drawImage(img, 0, 0, width, height);
+
+      // 尝试多种方法识别
+      const imageData = convertToGrayscale(canvas);
+
+      // 方法1：直接识别
       try {
-        tempBlobUrl = await resizeImage(imageUrl, 1024);
-        const result = await reader.decodeFromImageUrl(tempBlobUrl);
+        const result = reader.decode(imageData);
         if (result && result.getText()) {
           const code = result.getText().trim();
           setTempTrackingNumber(code);
@@ -518,38 +544,37 @@ export default function OrdersPage() {
           setScanError("");
           return;
         }
-      } catch (resizeErr) {
-        console.log("Resized URL scan failed:", resizeErr);
-      } finally {
-        if (tempBlobUrl) {
-          URL.revokeObjectURL(tempBlobUrl);
-        }
+      } catch (e) {
+        console.log("Direct decode failed:", e);
       }
 
-      // 方法2：直接用原始 URL 识别
+      // 方法2：缩小后识别
       try {
-        const result = await reader.decodeFromImageUrl(imageUrl);
-        if (result && result.getText()) {
-          const code = result.getText().trim();
-          setTempTrackingNumber(code);
-          setScanSuccess(true);
-          setScanError("");
-          return;
+        const smallCanvas = document.createElement("canvas");
+        const smallScale = Math.min(1, 800 / Math.max(width, height));
+        smallCanvas.width = Math.round(width * smallScale);
+        smallCanvas.height = Math.round(height * smallScale);
+        const smallCtx = smallCanvas.getContext("2d");
+        if (smallCtx) {
+          smallCtx.drawImage(canvas, 0, 0, smallCanvas.width, smallCanvas.height);
+          const smallImageData = convertToGrayscale(smallCanvas);
+          const result = reader.decode(smallImageData);
+          if (result && result.getText()) {
+            const code = result.getText().trim();
+            setTempTrackingNumber(code);
+            setScanSuccess(true);
+            setScanError("");
+            return;
+          }
         }
-      } catch (urlErr) {
-        console.log("Original URL scan failed:", urlErr);
+      } catch (e) {
+        console.log("Small image decode failed:", e);
       }
 
-      // 方法3：使用 Image 元素方式识别
+      // 方法3：BrowserMultiFormatReader URL 方式
       try {
-        const img = new (window as any).Image();
-        img.crossOrigin = "anonymous";
-        await new Promise<void>((resolve, reject) => {
-          img.onload = () => resolve();
-          img.onerror = () => reject(new Error("Image load failed"));
-          img.src = imageUrl;
-        });
-        const result = await reader.decodeFromImage(img);
+        const browserReader = new BrowserMultiFormatReader();
+        const result = await browserReader.decodeFromImageUrl(imageUrl);
         if (result && result.getText()) {
           const code = result.getText().trim();
           setTempTrackingNumber(code);
@@ -557,8 +582,23 @@ export default function OrdersPage() {
           setScanError("");
           return;
         }
-      } catch (imgErr) {
-        console.log("Image element scan failed:", imgErr);
+      } catch (e) {
+        console.log("BrowserMultiFormatReader URL failed:", e);
+      }
+
+      // 方法4：BrowserMultiFormatReader Image 方式
+      try {
+        const browserReader = new BrowserMultiFormatReader();
+        const result = await browserReader.decodeFromImage(img);
+        if (result && result.getText()) {
+          const code = result.getText().trim();
+          setTempTrackingNumber(code);
+          setScanSuccess(true);
+          setScanError("");
+          return;
+        }
+      } catch (e) {
+        console.log("BrowserMultiFormatReader Image failed:", e);
       }
 
       setScanError(lang === "en" ? "No barcode detected. Please enter tracking number manually" : lang === "zh-CN" ? "未识别到条形码，请手动输入运单号" : "未識別到條形碼，請手動輸入運單號");
