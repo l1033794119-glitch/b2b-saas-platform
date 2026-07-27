@@ -277,6 +277,7 @@ export function StatusBadge({ status }: { status: string }) {
     pending_qrcode: { labelEn: "Pending QR Code", labelZhCN: "待上传二维码", labelZhTW: "待上傳二維碼", tone: "orange" as any },
     pending_delivery: { labelEn: "Pending Delivery", labelZhCN: "待投递", labelZhTW: "待投遞", tone: "amber" as any },
     pending_tracking: { labelEn: "Pending Tracking", labelZhCN: "待填写运单号", labelZhTW: "待填寫運單號", tone: "cyan" as any },
+    pending_cancellation: { labelEn: "Pending Cancellation", labelZhCN: "取消待审核", labelZhTW: "取消待審核", tone: "rose" as any },
     pending: { labelEn: "Unshipped", labelZhCN: "未发货", labelZhTW: "未發貨", tone: "yellow" },
     shipped: { labelEn: "Shipped", labelZhCN: "已发货", labelZhTW: "已發貨", tone: "purple" as any },
     completed: { labelEn: "Completed", labelZhCN: "已完成", labelZhTW: "已完成", tone: "green" },

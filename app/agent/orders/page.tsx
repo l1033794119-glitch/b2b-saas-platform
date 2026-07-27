@@ -5,7 +5,7 @@ import { AgentLayout } from "@/components/Layout";
 import { StatusBadge } from "@/components/Sidebar";
 import { useApp } from "@/components/AppProvider";
 import { formatCurrency, formatNumber } from "@/lib/utils";
-import { Eye, Package, MapPin, Phone, Mail, User, Truck, Check, Search, Filter, Calendar, ChevronDown, X } from "lucide-react";
+import { Eye, Package, MapPin, Phone, Mail, User, Truck, Check, Search, Filter, Calendar, ChevronDown, X, XCircle } from "lucide-react";
 
 interface OrderItem {
   productId: string;
@@ -37,6 +37,11 @@ interface Order {
   notes?: string;
   shippingFee?: number;
   shippedAt?: string;
+  cancelReason?: string | null;
+  previousStatus?: string | null;
+  cancelRequestedAt?: string | null;
+  cancelledAt?: string | null;
+  cancelledBy?: string | null;
 }
 
 interface FilterOption {
@@ -48,8 +53,10 @@ const statusConfig: Record<string, { labelEn: string; labelZhCN: string; labelZh
   pending_qrcode: { labelEn: "Submitted", labelZhCN: "已提交", labelZhTW: "已提交", color: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400" },
   pending_delivery: { labelEn: "Pending Delivery", labelZhCN: "待投递", labelZhTW: "待投遞", color: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400" },
   pending_tracking: { labelEn: "Pending Tracking", labelZhCN: "待填写运单号", labelZhTW: "待填寫運單號", color: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-400" },
+  pending_cancellation: { labelEn: "Pending Cancellation", labelZhCN: "取消待审核", labelZhTW: "取消待審核", color: "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-400" },
   shipped: { labelEn: "Shipped", labelZhCN: "已发货", labelZhTW: "已發貨", color: "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-400" },
   completed: { labelEn: "Completed", labelZhCN: "已完成", labelZhTW: "已完成", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400" },
+  cancelled: { labelEn: "Cancelled", labelZhCN: "已取消", labelZhTW: "已取消", color: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400" },
 };
 
 export default function MyOrdersPage() {
@@ -65,6 +72,9 @@ export default function MyOrdersPage() {
   const [searchKeyword, setSearchKeyword] = useState<string>("");
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [showDateDropdown, setShowDateDropdown] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelling, setCancelling] = useState(false);
 
   // 获取状态筛选选项
   const getStatusFilterOptions = (): FilterOption[] => {
@@ -73,8 +83,10 @@ export default function MyOrdersPage() {
       { label: lang === "en" ? "Submitted" : lang === "zh-CN" ? "已提交" : "已提交", value: "pending_qrcode" },
       { label: lang === "en" ? "Pending Delivery" : lang === "zh-CN" ? "待投递" : "待投遞", value: "pending_delivery" },
       { label: lang === "en" ? "Pending Tracking" : lang === "zh-CN" ? "待填写运单号" : "待填寫運單號", value: "pending_tracking" },
+      { label: lang === "en" ? "Pending Cancellation" : lang === "zh-CN" ? "取消待审核" : "取消待審核", value: "pending_cancellation" },
       { label: lang === "en" ? "Shipped" : lang === "zh-CN" ? "已发货" : "已發貨", value: "shipped" },
       { label: lang === "en" ? "Completed" : lang === "zh-CN" ? "已完成" : "已完成", value: "completed" },
+      { label: lang === "en" ? "Cancelled" : lang === "zh-CN" ? "已取消" : "已取消", value: "cancelled" },
     ];
   };
 
@@ -207,6 +219,39 @@ export default function MyOrdersPage() {
     const interval = setInterval(fetchOrders, 5000);
     return () => clearInterval(interval);
   }, [user?.id]);
+
+  const canCancelOrder = (status: string) => {
+    return ["pending_qrcode", "pending_delivery", "pending_tracking"].includes(status);
+  };
+
+  const handleCancelOrder = async () => {
+    if (!selected || !cancelReason.trim()) return;
+
+    setCancelling(true);
+    try {
+      const res = await fetch(`/api/orders/${selected.id}/cancel`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cancelReason: cancelReason.trim() }),
+      });
+
+      if (res.ok) {
+        const updated = await res.json();
+        setOrders(orders.map((o) => o.id === selected.id ? updated : o));
+        setSelected(updated);
+        setShowCancelModal(false);
+        setCancelReason("");
+      } else {
+        const err = await res.json();
+        alert(err.error || "取消失败");
+      }
+    } catch (error) {
+      console.error("Cancel order error:", error);
+      alert("取消失败，请重试");
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   const getStatusLabel = (status: string) => {
     const config = statusConfig[status] || { labelEn: status, labelZhCN: status, labelZhTW: status, color: "bg-slate-100 text-slate-700" };
@@ -550,7 +595,31 @@ export default function MyOrdersPage() {
                     <span className="text-lg font-bold text-indigo-600">{formatCurrency(selected.total + (selected.shippingFee || 0), currency)}</span>
                   </div>
 
+                  {/* Cancel Reason Display */}
+                  {selected.cancelReason && (
+                    <div className="mt-4 p-3 bg-rose-50 dark:bg-rose-950/30 rounded-lg">
+                      <div className="text-xs text-rose-600 dark:text-rose-400 mb-1">
+                        {selected.status === "cancelled"
+                          ? (lang === "en" ? "Cancel Reason" : lang === "zh-CN" ? "取消原因" : "取消原因")
+                          : (lang === "en" ? "Pending Cancel Reason" : lang === "zh-CN" ? "申请取消原因" : "申請取消原因")}
+                      </div>
+                      <div className="text-sm text-rose-700 dark:text-rose-300">{selected.cancelReason}</div>
+                    </div>
+                  )}
+
                   {/* Action Buttons */}
+                  {canCancelOrder(selected.status) && (
+                    <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                      <button
+                        onClick={() => { setShowCancelModal(true); setCancelReason(""); }}
+                        className="w-full btn-ghost text-rose-600 border-rose-200 hover:bg-rose-50 dark:text-rose-400 dark:border-rose-800 dark:hover:bg-rose-950/30 flex items-center justify-center gap-2"
+                      >
+                        <XCircle className="w-4 h-4" />
+                        {lang === "en" ? "Cancel Order" : lang === "zh-CN" ? "取消订单" : "取消訂單"}
+                      </button>
+                    </div>
+                  )}
+
                   {selected.status === "shipped" && (
                     <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
                       <button
@@ -581,6 +650,72 @@ export default function MyOrdersPage() {
           </div>
         )}
       </div>
+
+      {/* Cancel Order Modal */}
+      {showCancelModal && selected && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-md mx-4 overflow-hidden">
+            <div className="flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-800">
+              <h2 className="text-lg font-semibold text-rose-600">
+                {lang === "en" ? "Cancel Order" : lang === "zh-CN" ? "取消订单" : "取消訂單"}
+              </h2>
+              <button
+                onClick={() => { setShowCancelModal(false); setCancelReason(""); }}
+                className="w-8 h-8 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <div className="text-sm text-slate-600 dark:text-slate-400">
+                {lang === "en" ? "Order: " : lang === "zh-CN" ? "订单号：" : "訂單號："}
+                <span className="font-mono font-medium">{selected.orderNo}</span>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  {lang === "en" ? "Cancel Reason *" : lang === "zh-CN" ? "取消原因 *" : "取消原因 *"}
+                </label>
+                <textarea
+                  className="input w-full min-h-[100px] resize-y"
+                  placeholder={lang === "en" ? "Please enter the reason for cancellation" : lang === "zh-CN" ? "请输入取消原因" : "請輸入取消原因"}
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                />
+              </div>
+
+              <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg">
+                <p className="text-xs text-amber-700 dark:text-amber-400">
+                  {lang === "en"
+                    ? "⚠️ After submitting the cancellation request, it needs administrator approval. The order amount will be refunded to your credit limit after approval."
+                    : lang === "zh-CN"
+                    ? "⚠️ 提交取消申请后需管理员审核，审核通过后订单金额将退还到您的信用额度。"
+                    : "⚠️ 提交取消申請後需管理員審核，審核通過後訂單金額將退還到您的信用額度。"}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-2 p-5 border-t border-slate-200 dark:border-slate-800">
+              <button
+                onClick={() => { setShowCancelModal(false); setCancelReason(""); }}
+                disabled={cancelling}
+                className="flex-1 btn-ghost py-2.5"
+              >
+                {lang === "en" ? "Cancel" : "取消"}
+              </button>
+              <button
+                onClick={handleCancelOrder}
+                disabled={!cancelReason.trim() || cancelling}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {cancelling && <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                {lang === "en" ? "Submit Request" : lang === "zh-CN" ? "提交申请" : "提交申請"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AgentLayout>
   );
 }

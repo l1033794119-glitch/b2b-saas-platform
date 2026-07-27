@@ -416,6 +416,11 @@ function mapOrderFromRow(o: any): Order {
     waybillImage: o.waybill_image || o.waybillImage || null,
     warehouseId: o.warehouse_id || o.warehouseId || null,
     warehouse: o.warehouse || null,
+    cancelReason: o.cancel_reason || null,
+    previousStatus: o.previous_status || null,
+    cancelRequestedAt: o.cancel_requested_at || null,
+    cancelledAt: o.cancelled_at || null,
+    cancelledBy: o.cancelled_by || null,
   };
 }
 
@@ -529,6 +534,11 @@ export async function updateOrder(id: string, updates: any): Promise<Order | nul
     if (updates.waybillImage !== undefined) { setClauses.push("waybill_image = ?"); values.push(updates.waybillImage); }
     if (updates.warehouseId !== undefined) { setClauses.push("warehouse_id = ?"); values.push(updates.warehouseId); }
     if (updates.warehouse !== undefined) { setClauses.push("warehouse = ?"); values.push(updates.warehouse); }
+    if (updates.cancelReason !== undefined) { setClauses.push("cancel_reason = ?"); values.push(updates.cancelReason); }
+    if (updates.previousStatus !== undefined) { setClauses.push("previous_status = ?"); values.push(updates.previousStatus); }
+    if (updates.cancelRequestedAt !== undefined) { setClauses.push("cancel_requested_at = ?"); values.push(updates.cancelRequestedAt); }
+    if (updates.cancelledAt !== undefined) { setClauses.push("cancelled_at = ?"); values.push(updates.cancelledAt); }
+    if (updates.cancelledBy !== undefined) { setClauses.push("cancelled_by = ?"); values.push(updates.cancelledBy); }
 
     setClauses.push("updated_at = ?");
     values.push(formatMySQLDate());

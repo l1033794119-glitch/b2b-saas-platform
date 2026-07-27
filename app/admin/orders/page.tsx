@@ -5,7 +5,7 @@ import { AdminLayout } from "@/components/Layout";
 import { PageCard, StatusBadge } from "@/components/Sidebar";
 import { useApp } from "@/components/AppProvider";
 import { formatCurrency, formatNumber } from "@/lib/utils";
-import { Eye, Truck, FileText, Search, X, Phone, Mail, User, MapPin, Package, Image, Upload, Check, AlertCircle, Edit2, QrCode, Package as PackageIcon, Download, Zap } from "lucide-react";
+import { Eye, Truck, FileText, Search, X, Phone, Mail, User, MapPin, Package, Image, Upload, Check, AlertCircle, Edit2, QrCode, Package as PackageIcon, Download, Zap, XCircle } from "lucide-react";
 interface OrderItem {
   productId: string;
   name: string;
@@ -39,6 +39,11 @@ interface Order {
   shippedAt?: string;
   warehouseId?: string;
   warehouse?: string;
+  cancelReason?: string | null;
+  previousStatus?: string | null;
+  cancelRequestedAt?: string | null;
+  cancelledAt?: string | null;
+  cancelledBy?: string | null;
 }
 
 interface Agent {
@@ -57,11 +62,13 @@ interface Warehouse {
 
 const statuses = [
   { id: "all", labelEn: "All", labelZhCN: "全部", labelZhTW: "全部" },
+  { id: "pending_cancellation", labelEn: "Pending Cancellation", labelZhCN: "取消待审核", labelZhTW: "取消待審核" },
   { id: "pending_qrcode", labelEn: "Pending QR Code", labelZhCN: "待上传二维码", labelZhTW: "待上傳二維碼" },
   { id: "pending_delivery", labelEn: "Pending Delivery", labelZhCN: "待投递", labelZhTW: "待投遞" },
   { id: "pending_tracking", labelEn: "Pending Tracking", labelZhCN: "待填写运单号", labelZhTW: "待填寫運單號" },
   { id: "shipped", labelEn: "Shipped", labelZhCN: "已发货", labelZhTW: "已發貨" },
   { id: "completed", labelEn: "Completed", labelZhCN: "已完成", labelZhTW: "已完成" },
+  { id: "cancelled", labelEn: "Cancelled", labelZhCN: "已取消", labelZhTW: "已取消" },
 ];
 
 export default function OrdersPage() {
@@ -567,6 +574,66 @@ export default function OrdersPage() {
     const ok = await updateOrder(selectedOrder.id, updates);
     if (ok) {
       setEditingTracking(false);
+    }
+  };
+
+  const handleApproveCancel = async () => {
+    if (!selectedOrder) return;
+    if (!confirm(lang === "en" ? "Are you sure you want to approve the cancellation? The order amount will be refunded to the agent and inventory will be restored." : lang === "zh-CN" ? "确定要批准取消吗？订单金额将退还给代理商，库存将恢复。" : "確定要批准取消嗎？訂單金額將退還給代理商，庫存將恢復。")) {
+      return;
+    }
+
+    setUpdating(true);
+    try {
+      const res = await fetch(`/api/orders/${selectedOrder.id}/cancel`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "approve", adminName: "admin" }),
+      });
+
+      if (res.ok) {
+        const updated = await res.json();
+        setData(data.map((o) => o.id === selectedOrder.id ? updated : o));
+        setSelectedOrder(updated);
+      } else {
+        const err = await res.json();
+        alert(err.error || "操作失败");
+      }
+    } catch (error) {
+      console.error("Approve cancel error:", error);
+      alert("操作失败，请重试");
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleRejectCancel = async () => {
+    if (!selectedOrder) return;
+    if (!confirm(lang === "en" ? "Are you sure you want to reject the cancellation? The order will be restored to its previous status." : lang === "zh-CN" ? "确定要拒绝取消吗？订单将恢复到之前的状态。" : "確定要拒絕取消嗎？訂單將恢復到之前的狀態。")) {
+      return;
+    }
+
+    setUpdating(true);
+    try {
+      const res = await fetch(`/api/orders/${selectedOrder.id}/cancel`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "reject", adminName: "admin" }),
+      });
+
+      if (res.ok) {
+        const updated = await res.json();
+        setData(data.map((o) => o.id === selectedOrder.id ? updated : o));
+        setSelectedOrder(updated);
+      } else {
+        const err = await res.json();
+        alert(err.error || "操作失败");
+      }
+    } catch (error) {
+      console.error("Reject cancel error:", error);
+      alert("操作失败，请重试");
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -1082,6 +1149,54 @@ export default function OrdersPage() {
                 </div>
               </div>
             </div>
+
+            {/* 取消订单审核区域 */}
+            {(selectedOrder.status === "pending_cancellation" || selectedOrder.status === "cancelled") && selectedOrder.cancelReason && (
+              <div className="p-4 bg-rose-50 dark:bg-rose-950/30 rounded-xl">
+                <div className="flex items-center gap-2 mb-3">
+                  <XCircle className="w-4 h-4 text-rose-600" />
+                  <span className="text-xs font-medium text-rose-700 dark:text-rose-400">
+                    {selectedOrder.status === "cancelled"
+                      ? (lang === "en" ? "Cancel Reason" : lang === "zh-CN" ? "取消原因" : "取消原因")
+                      : (lang === "en" ? "Cancel Request Pending Review" : lang === "zh-CN" ? "取消申请待审核" : "取消申請待審核")}
+                  </span>
+                </div>
+                <div className="text-sm text-rose-700 dark:text-rose-300 mb-3">{selectedOrder.cancelReason}</div>
+
+                {selectedOrder.status === "pending_cancellation" && (
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={handleApproveCancel}
+                      disabled={updating}
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {updating ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Check className="w-4 h-4" />}
+                      {lang === "en" ? "Approve Cancel" : lang === "zh-CN" ? "批准取消" : "批准取消"}
+                    </button>
+                    <button
+                      onClick={handleRejectCancel}
+                      disabled={updating}
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {updating ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <X className="w-4 h-4" />}
+                      {lang === "en" ? "Reject" : lang === "zh-CN" ? "拒绝" : "拒絕"}
+                    </button>
+                  </div>
+                )}
+
+                {selectedOrder.status === "cancelled" && selectedOrder.cancelledBy && (
+                  <div className="text-xs text-rose-500">
+                    {lang === "en" ? "Cancelled by: " : lang === "zh-CN" ? "操作人：" : "操作人："}{selectedOrder.cancelledBy}
+                    {selectedOrder.cancelledAt && (
+                      <span className="ml-2">
+                        {lang === "en" ? "At: " : lang === "zh-CN" ? "时间：" : "時間："}
+                        {new Date(selectedOrder.cancelledAt).toLocaleString("zh-CN", { timeZone: "Asia/Shanghai" })}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
             <div>
               <div className="text-xs text-slate-500 mb-2 flex items-center gap-2">
