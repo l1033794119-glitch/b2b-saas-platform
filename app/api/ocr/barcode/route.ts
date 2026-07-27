@@ -1,6 +1,7 @@
 "use server";
 
 import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
 
 interface OCRResult {
   success: boolean;
@@ -10,6 +11,83 @@ interface OCRResult {
 
 const encodeImageToBase64 = (imageBuffer: Buffer): string => {
   return imageBuffer.toString("base64");
+};
+
+const getAliyunSignature = (params: Record<string, string>, accessKeySecret: string): string => {
+  const sortedParams = Object.keys(params).sort().reduce((acc, key) => {
+    acc[key] = params[key];
+    return acc;
+  }, {} as Record<string, string>);
+
+  const stringToSign = Object.keys(sortedParams)
+    .map((key) => `${encodeURIComponent(key)}=${encodeURIComponent(sortedParams[key])}`)
+    .join("&");
+
+  const sign = crypto.createHmac("sha1", accessKeySecret + "&").update(stringToSign).digest("base64");
+  return sign;
+};
+
+const callAliyunOCR = async (imageBase64: string): Promise<OCRResult> => {
+  try {
+    const accessKeyId = process.env.ALIYUN_ACCESS_KEY_ID;
+    const accessKeySecret = process.env.ALIYUN_ACCESS_KEY_SECRET;
+    
+    if (!accessKeyId || !accessKeySecret) {
+      return { success: false, message: "Aliyun credentials not configured" };
+    }
+
+    const timestamp = new Date().toISOString();
+    const nonce = Math.random().toString(36).substring(2, 15);
+
+    const params: Record<string, string> = {
+      Action: "RecognizeBarcode",
+      Format: "JSON",
+      ImageURL: `data:image/png;base64,${imageBase64}`,
+      RegionId: "cn-hangzhou",
+      Timestamp: timestamp,
+      Version: "2019-12-30",
+      AccessKeyId: accessKeyId,
+      SignatureMethod: "HMAC-SHA1",
+      SignatureNonce: nonce,
+      SignatureVersion: "1.0",
+    };
+
+    const signature = getAliyunSignature(params, accessKeySecret);
+
+    const response = await fetch("https://ocr.cn-hangzhou.aliyuncs.com/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        ...params,
+        Signature: signature,
+      }),
+    });
+
+    const result = await response.json();
+    
+    if (result.Code === 200 && result.Data && result.Data.BarcodeList) {
+      const barcode = result.Data.BarcodeList[0];
+      if (barcode && barcode.BarcodeValue) {
+        return { success: true, code: barcode.BarcodeValue };
+      }
+    }
+
+    if (result.Code === 200 && result.Data && result.Data.Content) {
+      const text = result.Data.Content;
+      const barcodeMatch = text.match(/[A-Za-z0-9]{8,20}/);
+      if (barcodeMatch) {
+        return { success: true, code: barcodeMatch[0] };
+      }
+      return { success: true, code: text.trim().replace(/\s+/g, "") };
+    }
+
+    return { success: false, message: result.Message || "Aliyun OCR failed" };
+  } catch (error) {
+    console.error("Aliyun OCR error:", error);
+    return { success: false, message: "Aliyun OCR service unavailable" };
+  }
 };
 
 const callOnlineOCR = async (imageBase64: string): Promise<OCRResult> => {
@@ -52,92 +130,6 @@ const callOnlineOCR = async (imageBase64: string): Promise<OCRResult> => {
   }
 };
 
-const callAliyunOCR = async (imageBase64: string): Promise<OCRResult> => {
-  try {
-    const accessKeyId = process.env.ALIYUN_ACCESS_KEY_ID;
-    const accessKeySecret = process.env.ALIYUN_ACCESS_KEY_SECRET;
-    
-    if (!accessKeyId || !accessKeySecret) {
-      return { success: false, message: "Aliyun credentials not configured" };
-    }
-
-    const response = await fetch(
-      "https://ocrapi-advanced.aliyuncs.com/ocrservice/advanced",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ImageType: "URL",
-          ImageValue: `data:image/png;base64,${imageBase64}`,
-          DataType: 2,
-        }),
-      }
-    );
-
-    const result = await response.json();
-    
-    if (result.Code === 1000) {
-      const text = result.Data.Paragraphs
-        .map((p: any) => p.Text)
-        .join("\n");
-      const barcodeMatch = text.match(/[A-Za-z0-9]{8,20}/);
-      if (barcodeMatch) {
-        return { success: true, code: barcodeMatch[0] };
-      }
-      return { success: true, code: text.trim().replace(/\s+/g, "") };
-    }
-
-    return { success: false, message: result.Message || "Aliyun OCR failed" };
-  } catch (error) {
-    console.error("Aliyun OCR error:", error);
-    return { success: false, message: "Aliyun OCR service unavailable" };
-  }
-};
-
-const callTencentOCR = async (imageBase64: string): Promise<OCRResult> => {
-  try {
-    const secretId = process.env.TENCENT_SECRET_ID;
-    const secretKey = process.env.TENCENT_SECRET_KEY;
-    
-    if (!secretId || !secretKey) {
-      return { success: false, message: "Tencent credentials not configured" };
-    }
-
-    const response = await fetch("https://ocr.tencentcloudapi.com/", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        Action: "GeneralBasicOCR",
-        Version: "2018-11-19",
-        Region: "ap-beijing",
-        ImageBase64: imageBase64,
-      }),
-    });
-
-    const result = await response.json();
-    
-    if (result.Response && result.Response.TextDetections) {
-      const text = result.Response.TextDetections
-        .map((d: any) => d.DetectedText)
-        .join("\n");
-      const barcodeMatch = text.match(/[A-Za-z0-9]{8,20}/);
-      if (barcodeMatch) {
-        return { success: true, code: barcodeMatch[0] };
-      }
-      return { success: true, code: text.trim().replace(/\s+/g, "") };
-    }
-
-    return { success: false, message: "Tencent OCR failed" };
-  } catch (error) {
-    console.error("Tencent OCR error:", error);
-    return { success: false, message: "Tencent OCR service unavailable" };
-  }
-};
-
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
@@ -156,7 +148,6 @@ export async function POST(request: NextRequest) {
 
     const ocrServices = [
       () => callAliyunOCR(imageBase64),
-      () => callTencentOCR(imageBase64),
       () => callOnlineOCR(imageBase64),
     ];
 
