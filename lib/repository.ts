@@ -489,6 +489,11 @@ export async function createOrder(order: any): Promise<Order> {
       waybillImage: order.waybillImage || null,
       warehouseId: order.warehouseId || null,
       warehouse: order.warehouse || null,
+      cancelReason: null,
+      previousStatus: null,
+      cancelRequestedAt: null,
+      cancelledAt: null,
+      cancelledBy: null,
     });
   }
 
@@ -505,6 +510,11 @@ export async function createOrder(order: any): Promise<Order> {
     waybillImage: order.waybillImage || null,
     warehouseId: order.warehouseId || null,
     warehouse: order.warehouse || null,
+    cancelReason: null,
+    previousStatus: null,
+    cancelRequestedAt: null,
+    cancelledAt: null,
+    cancelledBy: null,
   };
 }
 
