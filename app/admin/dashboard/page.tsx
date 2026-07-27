@@ -280,7 +280,7 @@ export default function DashboardPage() {
         o.items.forEach((item: any) => {
           const key = item.productId || item.sku || item.name;
           const product = products.find((p: any) => p.id === item.productId);
-          const image = product?.images?.[0] || "";
+          const image = item.image || product?.images?.[0] || "";
           const existing = productMap.get(key);
           if (existing) {
             existing.qty += item.quantity || item.qty || 1;
