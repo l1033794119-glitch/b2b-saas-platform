@@ -271,6 +271,36 @@ export default function DashboardPage() {
       .slice(0, 5);
   }, [filteredOrders]);
 
+  // 计算所有已售商品统计（含图片和名称，按数量排序）
+  const allProductSales = useMemo(() => {
+    const productMap = new Map<string, { name: string; sku: string; image: string; qty: number; revenue: number }>();
+
+    filteredOrders.forEach((o: any) => {
+      if (o.items && Array.isArray(o.items)) {
+        o.items.forEach((item: any) => {
+          const key = item.productId || item.sku || item.name;
+          const product = products.find((p: any) => p.id === item.productId);
+          const image = product?.images?.[0] || "";
+          const existing = productMap.get(key);
+          if (existing) {
+            existing.qty += item.quantity || item.qty || 1;
+            existing.revenue += (item.price || 0) * (item.quantity || item.qty || 1);
+          } else {
+            productMap.set(key, {
+              name: item.name,
+              sku: item.sku || "",
+              image,
+              qty: item.quantity || item.qty || 1,
+              revenue: (item.price || 0) * (item.quantity || item.qty || 1),
+            });
+          }
+        });
+      }
+    });
+
+    return Array.from(productMap.values()).sort((a, b) => b.qty - a.qty);
+  }, [filteredOrders, products]);
+
   // 计算活跃代理商（基于筛选后订单）
   const activeAgents = useMemo(() => {
     const agentMap = new Map<string, { name: string; company: string; orderCount: number; totalRevenue: number }>();
@@ -630,6 +660,60 @@ export default function DashboardPage() {
                 )}
               </div>
             </div>
+          </div>
+
+          {/* 商品销售总数统计 */}
+          <div className="card p-5 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-base font-semibold">
+                  {lang === "en" ? "Product Sales Summary" : lang === "zh-CN" ? "商品销售总数统计" : "商品銷售總數統計"}
+                </h2>
+                <div className="text-xs text-slate-500">
+                  {lang === "en"
+                    ? "Total quantity sold per SKU (with product image)"
+                    : lang === "zh-CN"
+                    ? "每个SKU已售出总数量（含产品图片）"
+                    : "每個SKU已售出總數量（含產品圖片）"}
+                </div>
+              </div>
+              {allProductSales.length > 0 && (
+                <div className="text-right">
+                  <div className="text-xs text-slate-500">{lang === "en" ? "Total Items Sold" : lang === "zh-CN" ? "已售总件数" : "已售總件數"}</div>
+                  <div className="text-2xl font-bold text-indigo-600">
+                    {formatNumber(allProductSales.reduce((s, p) => s + p.qty, 0))}
+                  </div>
+                </div>
+              )}
+            </div>
+            {allProductSales.length > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                {allProductSales.map((p, idx) => (
+                  <div key={p.sku + idx} className="rounded-xl border border-slate-200 dark:border-slate-800 p-3 hover:shadow-md transition-shadow">
+                    <div className="relative w-full aspect-square bg-slate-100 dark:bg-slate-800 rounded-lg overflow-hidden mb-3">
+                      {p.image ? (
+                        <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-3xl">📦</div>
+                      )}
+                      <div className="absolute top-2 right-2 min-w-[32px] h-8 px-2 bg-indigo-600 text-white text-sm font-bold rounded-lg flex items-center justify-center shadow-md">
+                        ×{p.qty}
+                      </div>
+                    </div>
+                    <div className="text-sm font-medium truncate">{p.name}</div>
+                    <div className="text-xs text-slate-500 font-mono truncate">{p.sku}</div>
+                    <div className="mt-2 flex items-center justify-between">
+                      <span className="text-xs text-slate-500">{lang === "en" ? "Qty" : lang === "zh-CN" ? "数量" : "數量"}</span>
+                      <span className="text-lg font-bold text-emerald-600">{formatNumber(p.qty)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-slate-400 text-sm">
+                {lang === "en" ? "No product sales data in selected period" : lang === "zh-CN" ? "所选时段暂无产品销售数据" : "所選時段暫無產品銷售數據"}
+              </div>
+            )}
           </div>
 
           {/* 最近订单 & 活跃代理商 */}

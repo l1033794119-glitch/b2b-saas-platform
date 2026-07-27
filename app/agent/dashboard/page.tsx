@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { AgentLayout } from "@/components/Layout";
 import { StatCard, StatusBadge } from "@/components/Sidebar";
 import { useApp } from "@/components/AppProvider";
@@ -47,6 +47,7 @@ export default function AgentDashboard() {
   const { t, user, currency, lang } = useApp();
   const [credit, setCredit] = useState<CreditRecord | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [dateFilter, setDateFilter] = useState<string>("this_month");
   const [customDateRange, setCustomDateRange] = useState<{ start: string; end: string }>({ start: "", end: "" });
@@ -145,6 +146,11 @@ export default function AgentDashboard() {
         setOrders(myOrders);
       });
 
+    // 获取产品列表（用于显示商品图片）
+    fetch("/api/products")
+      .then((r) => r.ok ? r.json() : [])
+      .then((data) => { if (Array.isArray(data)) setProducts(data); });
+
     // 获取通知（如果 API 存在）
     fetch("/api/notifications")
       .then((r) => r.ok ? r.json() : [])
@@ -161,6 +167,37 @@ export default function AgentDashboard() {
   const shippingRecords = getShippingFeeRecords();
   const unreadCount = notifications.filter((n) => !n.read).length;
   const dateOptions = getDateFilterOptions();
+
+  // 计算已购买商品统计（按SKU聚合，含图片和名称）
+  const purchasedProducts = useMemo(() => {
+    const productMap = new Map<string, { name: string; sku: string; image: string; qty: number; total: number }>();
+
+    filteredOrders.forEach((o) => {
+      if (o.items && Array.isArray(o.items)) {
+        o.items.forEach((item: any) => {
+          const key = item.productId || item.sku || item.name;
+          const product = products.find((p: any) => p.id === item.productId);
+          const image = product?.images?.[0] || "";
+          const qty = item.quantity || item.qty || 1;
+          const existing = productMap.get(key);
+          if (existing) {
+            existing.qty += qty;
+            existing.total += (item.price || 0) * qty;
+          } else {
+            productMap.set(key, {
+              name: item.name,
+              sku: item.sku || "",
+              image,
+              qty,
+              total: (item.price || 0) * qty,
+            });
+          }
+        });
+      }
+    });
+
+    return Array.from(productMap.values()).sort((a, b) => b.qty - a.qty);
+  }, [filteredOrders, products]);
 
   return (
     <AgentLayout title={lang === "en" ? "Welcome back" : lang === "zh-CN" ? "欢迎回来" : "歡迎回來"} subtitle={user?.company || user?.name}>
@@ -221,6 +258,61 @@ export default function AgentDashboard() {
         <StatCard label={lang === "en" ? "Total spent" : lang === "zh-CN" ? "累计消费" : "累計消費"} value={formatCurrency(stats.totalSpent, currency)} icon={CreditCard} accent="emerald" />
         <StatCard label={lang === "en" ? "Shipping fees" : lang === "zh-CN" ? "运费支出" : "運費支出"} value={formatCurrency(stats.totalShippingFees, currency)} icon={Truck} accent="amber" />
         <StatCard label={lang === "en" ? "Credit available" : lang === "zh-CN" ? "可用额度" : "可用額度"} value={formatCurrency(credit?.available ?? 0, currency)} icon={CreditCard} accent="amber" />
+      </div>
+
+      {/* 已购买商品统计 */}
+      <div className="card p-5 mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-base font-semibold">
+              {lang === "en" ? "Purchased Products" : lang === "zh-CN" ? "已购买商品统计" : "已購買商品統計"}
+            </h2>
+            <div className="text-xs text-slate-500">
+              {lang === "en"
+                ? "Total quantity purchased per product"
+                : lang === "zh-CN"
+                ? "每个商品已购买总数量"
+                : "每個商品已購買總數量"}
+            </div>
+          </div>
+          {purchasedProducts.length > 0 && (
+            <div className="text-right">
+              <div className="text-xs text-slate-500">{lang === "en" ? "Total Items" : lang === "zh-CN" ? "总件数" : "總件數"}</div>
+              <div className="text-2xl font-bold text-indigo-600">
+                {formatNumber(purchasedProducts.reduce((s, p) => s + p.qty, 0))}
+              </div>
+            </div>
+          )}
+        </div>
+        {purchasedProducts.length > 0 ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {purchasedProducts.map((p, idx) => (
+              <div key={p.sku + idx} className="rounded-xl border border-slate-200 dark:border-slate-800 p-3 hover:shadow-md transition-shadow">
+                <div className="relative w-full aspect-square bg-slate-100 dark:bg-slate-800 rounded-lg overflow-hidden mb-3">
+                  {p.image ? (
+                    <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-3xl">📦</div>
+                  )}
+                  <div className="absolute top-2 right-2 min-w-[32px] h-8 px-2 bg-indigo-600 text-white text-sm font-bold rounded-lg flex items-center justify-center shadow-md">
+                    ×{p.qty}
+                  </div>
+                </div>
+                <div className="text-sm font-medium truncate">{p.name}</div>
+                <div className="text-xs text-slate-500 font-mono truncate">{p.sku}</div>
+                <div className="mt-2 flex items-center justify-between">
+                  <span className="text-xs text-slate-500">{lang === "en" ? "Qty" : lang === "zh-CN" ? "数量" : "數量"}</span>
+                  <span className="text-lg font-bold text-emerald-600">{formatNumber(p.qty)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8 text-slate-500">
+            <Package className="w-12 h-12 mx-auto mb-3 opacity-30" />
+            <p>{lang === "en" ? "No purchased products in this period" : lang === "zh-CN" ? "该时段暂无已购买商品" : "該時段暫無已購買商品"}</p>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
