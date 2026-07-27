@@ -453,7 +453,40 @@ export default function OrdersPage() {
     setScanSuccess(false);
   };
 
-  // 条形码识别：从面单图片识别条形码
+  // 加载图片到 Canvas
+  const loadImageToCanvas = (imageUrl: string): Promise<HTMLCanvasElement> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          reject(new Error("Failed to create canvas context"));
+          return;
+        }
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+        resolve(canvas);
+      };
+      img.onerror = () => {
+        reject(new Error("Failed to load image"));
+      };
+      img.src = imageUrl;
+    });
+  };
+
+  // 从 Canvas 获取 ImageData
+  const getImageData = (canvas: HTMLCanvasElement): ImageData => {
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      throw new Error("Failed to get canvas context");
+    }
+    return ctx.getImageData(0, 0, canvas.width, canvas.height);
+  };
+
+  // 条形码识别：从面单图片识别条形码和二维码
   const startBarcodeScan = async () => {
     if (!selectedOrder?.waybillImage && !tempWaybillImage) {
       setScanError(lang === "en" ? "Please upload waybill image first" : lang === "zh-CN" ? "请先上传快递面单图片" : "請先上傳快遞面單圖片");
@@ -472,24 +505,65 @@ export default function OrdersPage() {
 
     try {
       const reader = new BrowserMultiFormatReader();
-      // 从图片URL识别条形码
-      const result = await reader.decodeFromImageUrl(imageUrl);
-      if (result && result.getText()) {
-        const code = result.getText().trim();
-        setTempTrackingNumber(code);
-        setScanSuccess(true);
-        setScanError("");
-      } else {
-        setScanError(lang === "en" ? "No barcode detected in image" : lang === "zh-CN" ? "图片中未识别到条形码" : "圖片中未識別到條形碼");
+
+      // 方法1：使用 Canvas 方式识别（更可靠）
+      try {
+        const canvas = await loadImageToCanvas(imageUrl);
+        const imageData = getImageData(canvas);
+        const result = await reader.decodeFromImageData(imageData);
+        if (result && result.getText()) {
+          const code = result.getText().trim();
+          setTempTrackingNumber(code);
+          setScanSuccess(true);
+          setScanError("");
+          return;
+        }
+      } catch (canvasErr) {
+        console.log("Canvas scan failed, trying URL method:", canvasErr);
       }
+
+      // 方法2：使用 URL 方式识别
+      try {
+        const result = await reader.decodeFromImageUrl(imageUrl);
+        if (result && result.getText()) {
+          const code = result.getText().trim();
+          setTempTrackingNumber(code);
+          setScanSuccess(true);
+          setScanError("");
+          return;
+        }
+      } catch (urlErr) {
+        console.log("URL scan failed:", urlErr);
+      }
+
+      // 方法3：尝试调整图片尺寸后识别
+      try {
+        const canvas = await loadImageToCanvas(imageUrl);
+        const resizedCanvas = document.createElement("canvas");
+        const scale = Math.min(1, 1024 / Math.max(canvas.width, canvas.height));
+        resizedCanvas.width = canvas.width * scale;
+        resizedCanvas.height = canvas.height * scale;
+        const ctx = resizedCanvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(canvas, 0, 0, resizedCanvas.width, resizedCanvas.height);
+          const imageData = ctx.getImageData(0, 0, resizedCanvas.width, resizedCanvas.height);
+          const result = await reader.decodeFromImageData(imageData);
+          if (result && result.getText()) {
+            const code = result.getText().trim();
+            setTempTrackingNumber(code);
+            setScanSuccess(true);
+            setScanError("");
+            return;
+          }
+        }
+      } catch (resizeErr) {
+        console.log("Resized scan failed:", resizeErr);
+      }
+
+      setScanError(lang === "en" ? "No barcode or QR code detected. Please enter tracking number manually" : lang === "zh-CN" ? "未识别到条形码或二维码，请手动输入运单号" : "未識別到條形碼或二維碼，請手動輸入運單號");
     } catch (err: any) {
       console.error("Barcode scan error:", err);
-      const errMsg = err?.message || String(err);
-      if (errMsg.includes("No MultiFormat Readers") || errMsg.includes("No barcode") || errMsg.includes("not found")) {
-        setScanError(lang === "en" ? "No barcode detected in image, please enter manually" : lang === "zh-CN" ? "未识别到条形码，请手动输入" : "未識別到條形碼，請手動輸入");
-      } else {
-        setScanError(lang === "en" ? "Recognition failed, please enter manually" : lang === "zh-CN" ? "识别失败，请手动输入" : "識別失敗，請手動輸入");
-      }
+      setScanError(lang === "en" ? "Recognition failed, please enter manually" : lang === "zh-CN" ? "识别失败，请手动输入" : "識別失敗，請手動輸入");
     } finally {
       setScanning(false);
     }
