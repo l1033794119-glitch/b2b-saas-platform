@@ -60,6 +60,11 @@ export interface Order {
   warehouse?: string;
   carrier?: string;
   notes?: string;
+  cancelReason?: string | null;
+  previousStatus?: string | null;
+  cancelRequestedAt?: string | null;
+  cancelledAt?: string | null;
+  cancelledBy?: string | null;
 }
 
 export interface Warehouse {

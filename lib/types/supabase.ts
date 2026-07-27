@@ -399,6 +399,11 @@ export interface Order {
   waybillImage: string | null;
   warehouseId: string | null;
   warehouse: string | null;
+  cancelReason: string | null;
+  previousStatus: string | null;
+  cancelRequestedAt: string | null;
+  cancelledAt: string | null;
+  cancelledBy: string | null;
 }
 
 export interface CreditRecord {
