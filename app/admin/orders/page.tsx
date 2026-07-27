@@ -594,7 +594,6 @@ export default function OrdersPage() {
       if (res.ok) {
         const updated = await res.json();
         setData(data.map((o) => o.id === selectedOrder.id ? updated : o));
-        setSelectedOrder(updated);
       } else {
         const err = await res.json();
         alert(err.error || "操作失败");
@@ -624,7 +623,6 @@ export default function OrdersPage() {
       if (res.ok) {
         const updated = await res.json();
         setData(data.map((o) => o.id === selectedOrder.id ? updated : o));
-        setSelectedOrder(updated);
       } else {
         const err = await res.json();
         alert(err.error || "操作失败");
