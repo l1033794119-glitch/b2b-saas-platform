@@ -5,9 +5,7 @@ import { AdminLayout } from "@/components/Layout";
 import { PageCard, StatusBadge } from "@/components/Sidebar";
 import { useApp } from "@/components/AppProvider";
 import { formatCurrency, formatNumber } from "@/lib/utils";
-import { Eye, Truck, FileText, Search, X, Phone, Mail, User, MapPin, Package, Image, Upload, Check, AlertCircle, Edit2, QrCode, Package as PackageIcon, Download, ScanLine, Zap } from "lucide-react";
-import { BrowserMultiFormatReader } from "@zxing/library";
-
+import { Eye, Truck, FileText, Search, X, Phone, Mail, User, MapPin, Package, Image, Upload, Check, AlertCircle, Edit2, QrCode, Package as PackageIcon, Download, Zap } from "lucide-react";
 interface OrderItem {
   productId: string;
   name: string;
@@ -97,10 +95,7 @@ export default function OrdersPage() {
   const [tempAddress, setTempAddress] = useState("");
   const [tempPostalCode, setTempPostalCode] = useState("");
   const [tempCountry, setTempCountry] = useState("");
-  const [scanning, setScanning] = useState(false);
-  const [scanError, setScanError] = useState("");
-  const [scanSuccess, setScanSuccess] = useState(false);
-  const scanControlsRef = useRef<{ stop: () => void } | null>(null);
+
 
   const handleQrImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, forEdit = false) => {
     const file = e.target.files?.[0];
@@ -449,8 +444,6 @@ export default function OrdersPage() {
   const openTrackingEdit = () => {
     setTempTrackingNumber(selectedOrder?.trackingNumber || "");
     setEditingTracking(true);
-    setScanError("");
-    setScanSuccess(false);
   };
 
   // 图像二值化处理
@@ -515,170 +508,6 @@ export default function OrdersPage() {
   };
 
   // 预处理图片并转换为 blob URL
-  const preprocessImage = async (imageUrl: string, maxSize: number = 1024, processType: 'original' | 'binary' | 'contrast' | 'denoise' = 'original'): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const img = new (window as any).Image();
-      img.onload = () => {
-        let width = img.width;
-        let height = img.height;
-        const scale = Math.min(maxSize / width, maxSize / height, 1);
-        width = Math.round(width * scale);
-        height = Math.round(height * scale);
-
-        const canvas = document.createElement("canvas");
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) {
-          reject(new Error("Canvas context not available"));
-          return;
-        }
-        ctx.drawImage(img, 0, 0, width, height);
-
-        switch (processType) {
-          case 'binary':
-            binarizeImage(canvas, 140);
-            break;
-          case 'contrast':
-            enhanceContrast(canvas, 2.5);
-            break;
-          case 'denoise':
-            denoiseImage(canvas);
-            break;
-        }
-
-        canvas.toBlob((blob) => {
-          if (blob) {
-            resolve(URL.createObjectURL(blob));
-          } else {
-            reject(new Error("Failed to create blob"));
-          }
-        }, "image/png", 1.0);
-      };
-      img.onerror = () => reject(new Error("Image load failed"));
-      img.src = imageUrl;
-    });
-  };
-
-  // 将 base64 图片转为 File 对象
-  const base64ToFile = async (base64Data: string): Promise<File> => {
-    const response = await fetch(base64Data);
-    const blob = await response.blob();
-    return new File([blob], "waybill.png", { type: "image/png" });
-  };
-
-  // 调用云端 OCR API 识别条形码
-  const callCloudOCR = async (imageUrl: string): Promise<string | null> => {
-    try {
-      const file = await base64ToFile(imageUrl);
-      const formData = new FormData();
-      formData.append("image", file);
-
-      const response = await fetch("/api/ocr/barcode", {
-        method: "POST",
-        body: formData,
-      });
-
-      const result = await response.json();
-      if (result.success && result.code) {
-        return result.code;
-      }
-      return null;
-    } catch (error) {
-      console.error("Cloud OCR error:", error);
-      return null;
-    }
-  };
-
-  // 条形码识别：从面单图片识别条形码（本地 + 云端）
-  const startBarcodeScan = async () => {
-    if (!selectedOrder?.waybillImage && !tempWaybillImage) {
-      setScanError(lang === "en" ? "Please upload waybill image first" : lang === "zh-CN" ? "请先上传快递面单图片" : "請先上傳快遞面單圖片");
-      return;
-    }
-
-    const imageUrl = tempWaybillImage || selectedOrder?.waybillImage;
-    if (!imageUrl) {
-      setScanError(lang === "en" ? "No waybill image found" : lang === "zh-CN" ? "未找到面单图片" : "未找到面單圖片");
-      return;
-    }
-
-    setScanning(true);
-    setScanError("");
-    setScanSuccess(false);
-
-    try {
-      const reader = new BrowserMultiFormatReader();
-
-      const sizes = [1024, 800];
-      const processTypes: Array<'original' | 'binary' | 'contrast' | 'denoise'> = ['original', 'contrast', 'binary'];
-
-      for (const size of sizes) {
-        for (const processType of processTypes) {
-          try {
-            const processedUrl = await preprocessImage(imageUrl, size, processType);
-            const result = await reader.decodeFromImageUrl(processedUrl);
-            if (result && result.getText()) {
-              const code = result.getText().trim();
-              setTempTrackingNumber(code);
-              setScanSuccess(true);
-              setScanError("");
-              URL.revokeObjectURL(processedUrl);
-              return;
-            }
-            URL.revokeObjectURL(processedUrl);
-          } catch (e) {
-            console.log(`Local ${size}px, process ${processType} failed:`, e);
-          }
-        }
-      }
-
-      try {
-        const img = new (window as any).Image();
-        img.crossOrigin = "anonymous";
-        await new Promise<void>((resolve, reject) => {
-          img.onload = () => resolve();
-          img.onerror = () => reject(new Error("Image load failed"));
-          img.src = imageUrl;
-        });
-        const result = await reader.decodeFromImage(img);
-        if (result && result.getText()) {
-          const code = result.getText().trim();
-          setTempTrackingNumber(code);
-          setScanSuccess(true);
-          setScanError("");
-          return;
-        }
-      } catch (e) {
-        console.log("Local Image element scan failed:", e);
-      }
-
-      const cloudCode = await callCloudOCR(imageUrl);
-      if (cloudCode) {
-        setTempTrackingNumber(cloudCode);
-        setScanSuccess(true);
-        setScanError("");
-        return;
-      }
-
-      setScanError(lang === "en" ? "No barcode detected. Please enter tracking number manually" : lang === "zh-CN" ? "未识别到条形码，请手动输入运单号" : "未識別到條形碼，請手動輸入運單號");
-    } catch (err: any) {
-      console.error("Barcode scan error:", err);
-      setScanError(lang === "en" ? "Recognition failed, please enter manually" : lang === "zh-CN" ? "识别失败，请手动输入" : "識別失敗，請手動輸入");
-    } finally {
-      setScanning(false);
-    }
-  };
-
-  // 停止扫描
-  const stopScan = () => {
-    if (scanControlsRef.current) {
-      scanControlsRef.current.stop();
-      scanControlsRef.current = null;
-    }
-    setScanning(false);
-  };
-
   // 确认发货：保存运单号并将状态改为已发货
   const confirmShip = async () => {
     if (!selectedOrder) return;
@@ -699,12 +528,9 @@ export default function OrdersPage() {
     const ok = await updateOrder(selectedOrder.id, updates);
     if (ok) {
       setEditingTracking(false);
-      setScanSuccess(false);
-      setScanError("");
     }
   };
 
-  // 仅保存运单号（不改变状态）
   const saveTrackingNumberOnly = async () => {
     if (!selectedOrder) return;
     if (!tempTrackingNumber.trim()) {
@@ -719,8 +545,6 @@ export default function OrdersPage() {
     const ok = await updateOrder(selectedOrder.id, updates);
     if (ok) {
       setEditingTracking(false);
-      setScanSuccess(false);
-      setScanError("");
     }
   };
 
@@ -1200,49 +1024,25 @@ export default function OrdersPage() {
                           className="input"
                           placeholder={lang === "en" ? "Enter tracking number" : lang === "zh-CN" ? "输入运单号" : "輸入運單號"}
                           value={tempTrackingNumber}
-                          onChange={(e) => { setTempTrackingNumber(e.target.value); setScanSuccess(false); setScanError(""); }}
+                          onChange={(e) => setTempTrackingNumber(e.target.value)}
                         />
                       </div>
 
-                      {/* 识别状态提示 */}
-                      {scanning && (
-                        <div className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 rounded-lg p-2.5">
-                          <span className="w-4 h-4 border-2 border-blue-300 border-t-blue-600 rounded-full animate-spin" />
-                          {lang === "en" ? "Scanning barcode..." : lang === "zh-CN" ? "正在识别条形码..." : "正在識別條形碼..."}
-                        </div>
-                      )}
-                      {scanSuccess && (
-                        <div className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg p-2.5">
-                          <Check className="w-4 h-4" />
-                          {lang === "en" ? "Barcode detected!" : lang === "zh-CN" ? "条形码识别成功！" : "條形碼識別成功！"}
-                        </div>
-                      )}
-                      {scanError && (
-                        <div className="flex items-center gap-2 text-sm text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/30 rounded-lg p-2.5">
-                          <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                          <span>{scanError}</span>
-                        </div>
-                      )}
-
                       {/* 操作按钮组 */}
                       <div className="flex flex-wrap gap-2">
-                        {/* 开始识别按钮 */}
-                        <button
-                          onClick={startBarcodeScan}
-                          disabled={scanning || updating || (!selectedOrder?.waybillImage && !tempWaybillImage)}
-                          className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {scanning ? (
-                            <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                          ) : (
-                            <ScanLine className="w-4 h-4" />
-                          )}
-                          {lang === "en" ? "Scan Barcode" : lang === "zh-CN" ? "开始识别" : "開始識別"}
+                        {/* 取消按钮 */}
+                        <button onClick={() => setEditingTracking(false)} className="flex-1 btn-ghost justify-center">
+                          {lang === "en" ? "Cancel" : lang === "zh-CN" ? "取消" : "取消"}
                         </button>
 
-                        {/* 取消按钮 */}
-                        <button onClick={() => { setEditingTracking(false); setScanError(""); setScanSuccess(false); }} className="flex-1 btn-ghost justify-center">
-                          {lang === "en" ? "Cancel" : lang === "zh-CN" ? "取消" : "取消"}
+                        {/* 保存按钮（仅保存运单号，不改变状态） */}
+                        <button
+                          onClick={saveTrackingNumberOnly}
+                          disabled={!tempTrackingNumber.trim() || updating}
+                          className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {updating ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Check className="w-4 h-4" />}
+                          {lang === "en" ? "Save" : lang === "zh-CN" ? "保存" : "保存"}
                         </button>
 
                         {/* 确认发货按钮（保存运单号 + 状态改为已发货） */}
@@ -1270,17 +1070,10 @@ export default function OrdersPage() {
                         <div className="flex flex-wrap gap-2">
                           <button
                             onClick={openTrackingEdit}
-                            className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium rounded-lg transition-colors"
-                          >
-                            <ScanLine className="w-4 h-4" />
-                            {lang === "en" ? "Scan Barcode" : lang === "zh-CN" ? "开始识别" : "開始識別"}
-                          </button>
-                          <button
-                            onClick={openTrackingEdit}
                             className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors"
                           >
                             <Edit2 className="w-4 h-4" />
-                            {lang === "en" ? "Enter Manually" : lang === "zh-CN" ? "手动输入" : "手動輸入"}
+                            {lang === "en" ? "Enter Tracking Number" : lang === "zh-CN" ? "输入运单号" : "輸入運單號"}
                           </button>
                         </div>
                       )}
