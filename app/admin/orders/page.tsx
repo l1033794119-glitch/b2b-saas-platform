@@ -453,7 +453,40 @@ export default function OrdersPage() {
     setScanSuccess(false);
   };
 
-  // 条形码识别：从面单图片识别条形码和二维码
+  // 将图片调整大小并转换为 blob URL
+  const resizeImage = async (imageUrl: string, maxSize: number = 1024): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const img = new (window as any).Image();
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+        const scale = Math.min(maxSize / width, maxSize / height, 1);
+        width = Math.round(width * scale);
+        height = Math.round(height * scale);
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          reject(new Error("Failed to create canvas context"));
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob((blob) => {
+          if (blob) {
+            resolve(URL.createObjectURL(blob));
+          } else {
+            reject(new Error("Failed to create blob"));
+          }
+        }, "image/jpeg", 0.8);
+      };
+      img.onerror = () => reject(new Error("Image load failed"));
+      img.src = imageUrl;
+    });
+  };
+
+  // 条形码识别：从面单图片识别条形码
   const startBarcodeScan = async () => {
     if (!selectedOrder?.waybillImage && !tempWaybillImage) {
       setScanError(lang === "en" ? "Please upload waybill image first" : lang === "zh-CN" ? "请先上传快递面单图片" : "請先上傳快遞面單圖片");
@@ -472,8 +505,28 @@ export default function OrdersPage() {
 
     try {
       const reader = new BrowserMultiFormatReader();
+      let tempBlobUrl: string | null = null;
 
-      // 方法1：使用 URL 方式识别
+      // 方法1：先调整图片大小，然后用 URL 方式识别
+      try {
+        tempBlobUrl = await resizeImage(imageUrl, 1024);
+        const result = await reader.decodeFromImageUrl(tempBlobUrl);
+        if (result && result.getText()) {
+          const code = result.getText().trim();
+          setTempTrackingNumber(code);
+          setScanSuccess(true);
+          setScanError("");
+          return;
+        }
+      } catch (resizeErr) {
+        console.log("Resized URL scan failed:", resizeErr);
+      } finally {
+        if (tempBlobUrl) {
+          URL.revokeObjectURL(tempBlobUrl);
+        }
+      }
+
+      // 方法2：直接用原始 URL 识别
       try {
         const result = await reader.decodeFromImageUrl(imageUrl);
         if (result && result.getText()) {
@@ -484,10 +537,10 @@ export default function OrdersPage() {
           return;
         }
       } catch (urlErr) {
-        console.log("URL scan failed:", urlErr);
+        console.log("Original URL scan failed:", urlErr);
       }
 
-      // 方法2：使用 Image 元素方式识别
+      // 方法3：使用 Image 元素方式识别
       try {
         const img = new (window as any).Image();
         img.crossOrigin = "anonymous";
@@ -508,7 +561,7 @@ export default function OrdersPage() {
         console.log("Image element scan failed:", imgErr);
       }
 
-      setScanError(lang === "en" ? "No barcode or QR code detected. Please enter tracking number manually" : lang === "zh-CN" ? "未识别到条形码或二维码，请手动输入运单号" : "未識別到條形碼或二維碼，請手動輸入運單號");
+      setScanError(lang === "en" ? "No barcode detected. Please enter tracking number manually" : lang === "zh-CN" ? "未识别到条形码，请手动输入运单号" : "未識別到條形碼，請手動輸入運單號");
     } catch (err: any) {
       console.error("Barcode scan error:", err);
       setScanError(lang === "en" ? "Recognition failed, please enter manually" : lang === "zh-CN" ? "识别失败，请手动输入" : "識別失敗，請手動輸入");
