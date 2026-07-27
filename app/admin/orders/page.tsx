@@ -453,39 +453,6 @@ export default function OrdersPage() {
     setScanSuccess(false);
   };
 
-  // 加载图片到 Canvas
-  const loadImageToCanvas = (imageUrl: string): Promise<HTMLCanvasElement> => {
-    return new Promise((resolve, reject) => {
-      const img = new (window as any).Image();
-      img.crossOrigin = "anonymous";
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        const ctx = canvas.getContext("2d");
-        if (!ctx) {
-          reject(new Error("Failed to create canvas context"));
-          return;
-        }
-        canvas.width = img.width;
-        canvas.height = img.height;
-        ctx.drawImage(img, 0, 0);
-        resolve(canvas);
-      };
-      img.onerror = () => {
-        reject(new Error("Failed to load image"));
-      };
-      img.src = imageUrl;
-    });
-  };
-
-  // 从 Canvas 获取 ImageData
-  const getImageData = (canvas: HTMLCanvasElement): ImageData => {
-    const ctx = canvas.getContext("2d");
-    if (!ctx) {
-      throw new Error("Failed to get canvas context");
-    }
-    return ctx.getImageData(0, 0, canvas.width, canvas.height);
-  };
-
   // 条形码识别：从面单图片识别条形码和二维码
   const startBarcodeScan = async () => {
     if (!selectedOrder?.waybillImage && !tempWaybillImage) {
@@ -506,23 +473,7 @@ export default function OrdersPage() {
     try {
       const reader = new BrowserMultiFormatReader();
 
-      // 方法1：使用 Canvas 方式识别（更可靠）
-      try {
-        const canvas = await loadImageToCanvas(imageUrl);
-        const imageData = getImageData(canvas);
-        const result = await reader.decodeFromImageData(imageData);
-        if (result && result.getText()) {
-          const code = result.getText().trim();
-          setTempTrackingNumber(code);
-          setScanSuccess(true);
-          setScanError("");
-          return;
-        }
-      } catch (canvasErr) {
-        console.log("Canvas scan failed, trying URL method:", canvasErr);
-      }
-
-      // 方法2：使用 URL 方式识别
+      // 方法1：使用 URL 方式识别
       try {
         const result = await reader.decodeFromImageUrl(imageUrl);
         if (result && result.getText()) {
@@ -536,28 +487,25 @@ export default function OrdersPage() {
         console.log("URL scan failed:", urlErr);
       }
 
-      // 方法3：尝试调整图片尺寸后识别
+      // 方法2：使用 Image 元素方式识别
       try {
-        const canvas = await loadImageToCanvas(imageUrl);
-        const resizedCanvas = document.createElement("canvas");
-        const scale = Math.min(1, 1024 / Math.max(canvas.width, canvas.height));
-        resizedCanvas.width = canvas.width * scale;
-        resizedCanvas.height = canvas.height * scale;
-        const ctx = resizedCanvas.getContext("2d");
-        if (ctx) {
-          ctx.drawImage(canvas, 0, 0, resizedCanvas.width, resizedCanvas.height);
-          const imageData = ctx.getImageData(0, 0, resizedCanvas.width, resizedCanvas.height);
-          const result = await reader.decodeFromImageData(imageData);
-          if (result && result.getText()) {
-            const code = result.getText().trim();
-            setTempTrackingNumber(code);
-            setScanSuccess(true);
-            setScanError("");
-            return;
-          }
+        const img = new (window as any).Image();
+        img.crossOrigin = "anonymous";
+        await new Promise<void>((resolve, reject) => {
+          img.onload = () => resolve();
+          img.onerror = () => reject(new Error("Image load failed"));
+          img.src = imageUrl;
+        });
+        const result = await reader.decodeFromImage(img);
+        if (result && result.getText()) {
+          const code = result.getText().trim();
+          setTempTrackingNumber(code);
+          setScanSuccess(true);
+          setScanError("");
+          return;
         }
-      } catch (resizeErr) {
-        console.log("Resized scan failed:", resizeErr);
+      } catch (imgErr) {
+        console.log("Image element scan failed:", imgErr);
       }
 
       setScanError(lang === "en" ? "No barcode or QR code detected. Please enter tracking number manually" : lang === "zh-CN" ? "未识别到条形码或二维码，请手动输入运单号" : "未識別到條形碼或二維碼，請手動輸入運單號");
