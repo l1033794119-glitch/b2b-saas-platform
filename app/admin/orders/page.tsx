@@ -1007,10 +1007,12 @@ export default function OrdersPage() {
                         {lang === "en" ? "Tracking Number" : lang === "zh-CN" ? "运单号" : "運單號"}
                       </span>
                     </div>
-                    <button onClick={openTrackingEdit} className="text-xs text-emerald-600 hover:text-emerald-700 flex items-center gap-1">
-                      <Edit2 className="w-3 h-3" />
-                      {lang === "en" ? "Edit" : lang === "zh-CN" ? "编辑" : "編輯"}
-                    </button>
+                    {!editingTracking && (
+                      <button onClick={openTrackingEdit} className="text-xs text-emerald-600 hover:text-emerald-700 flex items-center gap-1">
+                        <Edit2 className="w-3 h-3" />
+                        {lang === "en" ? "Edit" : lang === "zh-CN" ? "编辑" : "編輯"}
+                      </button>
+                    )}
                   </div>
 
                   {editingTracking ? (
@@ -1080,11 +1082,32 @@ export default function OrdersPage() {
                       </div>
                     </div>
                   ) : (
-                    <div className="text-sm font-medium text-emerald-700 dark:text-emerald-400 font-mono">
-                      {selectedOrder.trackingNumber || (
-                        <span className="text-emerald-500 italic font-normal">
-                          {lang === "en" ? "Not entered yet" : lang === "zh-CN" ? "尚未填写" : "尚未填寫"}
-                        </span>
+                    <div>
+                      <div className="text-sm font-medium text-emerald-700 dark:text-emerald-400 font-mono mb-3">
+                        {selectedOrder.trackingNumber || (
+                          <span className="text-emerald-500 italic font-normal">
+                            {lang === "en" ? "Not entered yet" : lang === "zh-CN" ? "尚未填写" : "尚未填寫"}
+                          </span>
+                        )}
+                      </div>
+                      {/* 未填写运单号时，直接显示操作按钮 */}
+                      {!selectedOrder.trackingNumber && (selectedOrder.status === "pending_tracking" || selectedOrder.status === "pending_delivery") && (
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            onClick={openTrackingEdit}
+                            className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium rounded-lg transition-colors"
+                          >
+                            <ScanLine className="w-4 h-4" />
+                            {lang === "en" ? "Scan Barcode" : lang === "zh-CN" ? "开始识别" : "開始識別"}
+                          </button>
+                          <button
+                            onClick={openTrackingEdit}
+                            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                            {lang === "en" ? "Enter Manually" : lang === "zh-CN" ? "手动输入" : "手動輸入"}
+                          </button>
+                        </div>
                       )}
                     </div>
                   )}
