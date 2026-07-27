@@ -499,7 +499,7 @@ export default function OrdersPage() {
     try {
       const img = await loadImage(imageUrl);
       
-      const hints = new Map<string, any>();
+      const hints = new Map<DecodeHintType, any>();
       hints.set(DecodeHintType.TRY_HARDER, true);
       hints.set(DecodeHintType.POSSIBLE_FORMATS, [
         "CODE_128",
