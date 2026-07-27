@@ -453,8 +453,69 @@ export default function OrdersPage() {
     setScanSuccess(false);
   };
 
-  // 将图片调整大小并转换为 blob URL
-  const resizeImage = async (imageUrl: string, maxSize: number = 1024): Promise<string> => {
+  // 图像二值化处理
+  const binarizeImage = (canvas: HTMLCanvasElement, threshold: number = 128): void => {
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    for (let i = 0; i < data.length; i += 4) {
+      const avg = (data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114) | 0;
+      const val = avg >= threshold ? 255 : 0;
+      data[i] = val;
+      data[i + 1] = val;
+      data[i + 2] = val;
+    }
+    ctx.putImageData(imageData, 0, 0);
+  };
+
+  // 对比度增强
+  const enhanceContrast = (canvas: HTMLCanvasElement, factor: number = 2): void => {
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    for (let i = 0; i < data.length; i += 4) {
+      data[i] = Math.min(255, Math.max(0, (data[i] - 128) * factor + 128));
+      data[i + 1] = Math.min(255, Math.max(0, (data[i + 1] - 128) * factor + 128));
+      data[i + 2] = Math.min(255, Math.max(0, (data[i + 2] - 128) * factor + 128));
+    }
+    ctx.putImageData(imageData, 0, 0);
+  };
+
+  // 简单降噪处理
+  const denoiseImage = (canvas: HTMLCanvasElement): void => {
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    const width = canvas.width;
+    const height = canvas.height;
+    const output = new Uint8ClampedArray(data.length);
+    for (let y = 1; y < height - 1; y++) {
+      for (let x = 1; x < width - 1; x++) {
+        const idx = (y * width + x) * 4;
+        let sumR = 0, sumG = 0, sumB = 0;
+        for (let dy = -1; dy <= 1; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            const nIdx = ((y + dy) * width + (x + dx)) * 4;
+            sumR += data[nIdx];
+            sumG += data[nIdx + 1];
+            sumB += data[nIdx + 2];
+          }
+        }
+        output[idx] = sumR / 9;
+        output[idx + 1] = sumG / 9;
+        output[idx + 2] = sumB / 9;
+        output[idx + 3] = 255;
+      }
+    }
+    const outImageData = new ImageData(output, width, height);
+    ctx.putImageData(outImageData, 0, 0);
+  };
+
+  // 预处理图片并转换为 blob URL
+  const preprocessImage = async (imageUrl: string, maxSize: number = 1024, processType: 'original' | 'binary' | 'contrast' | 'denoise' = 'original'): Promise<string> => {
     return new Promise((resolve, reject) => {
       const img = new (window as any).Image();
       img.onload = () => {
@@ -473,13 +534,26 @@ export default function OrdersPage() {
           return;
         }
         ctx.drawImage(img, 0, 0, width, height);
+
+        switch (processType) {
+          case 'binary':
+            binarizeImage(canvas, 140);
+            break;
+          case 'contrast':
+            enhanceContrast(canvas, 2.5);
+            break;
+          case 'denoise':
+            denoiseImage(canvas);
+            break;
+        }
+
         canvas.toBlob((blob) => {
           if (blob) {
             resolve(URL.createObjectURL(blob));
           } else {
             reject(new Error("Failed to create blob"));
           }
-        }, "image/jpeg", 0.8);
+        }, "image/png", 1.0);
       };
       img.onerror = () => reject(new Error("Image load failed"));
       img.src = imageUrl;
@@ -506,22 +580,26 @@ export default function OrdersPage() {
     try {
       const reader = new BrowserMultiFormatReader();
 
-      const sizes = [1500, 1024, 800, 600];
+      const sizes = [1024, 800];
+      const processTypes: Array<'original' | 'binary' | 'contrast' | 'denoise'> = ['original', 'contrast', 'binary'];
+
       for (const size of sizes) {
-        try {
-          const resizedUrl = await resizeImage(imageUrl, size);
-          const result = await reader.decodeFromImageUrl(resizedUrl);
-          if (result && result.getText()) {
-            const code = result.getText().trim();
-            setTempTrackingNumber(code);
-            setScanSuccess(true);
-            setScanError("");
-            URL.revokeObjectURL(resizedUrl);
-            return;
+        for (const processType of processTypes) {
+          try {
+            const processedUrl = await preprocessImage(imageUrl, size, processType);
+            const result = await reader.decodeFromImageUrl(processedUrl);
+            if (result && result.getText()) {
+              const code = result.getText().trim();
+              setTempTrackingNumber(code);
+              setScanSuccess(true);
+              setScanError("");
+              URL.revokeObjectURL(processedUrl);
+              return;
+            }
+            URL.revokeObjectURL(processedUrl);
+          } catch (e) {
+            console.log(`Size ${size}px, process ${processType} failed:`, e);
           }
-          URL.revokeObjectURL(resizedUrl);
-        } catch (e) {
-          console.log(`Resize ${size}px failed:`, e);
         }
       }
 
