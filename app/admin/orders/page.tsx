@@ -560,7 +560,37 @@ export default function OrdersPage() {
     });
   };
 
-  // 条形码识别：从面单图片识别条形码
+  // 将 base64 图片转为 File 对象
+  const base64ToFile = async (base64Data: string): Promise<File> => {
+    const response = await fetch(base64Data);
+    const blob = await response.blob();
+    return new File([blob], "waybill.png", { type: "image/png" });
+  };
+
+  // 调用云端 OCR API 识别条形码
+  const callCloudOCR = async (imageUrl: string): Promise<string | null> => {
+    try {
+      const file = await base64ToFile(imageUrl);
+      const formData = new FormData();
+      formData.append("image", file);
+
+      const response = await fetch("/api/ocr/barcode", {
+        method: "POST",
+        body: formData,
+      });
+
+      const result = await response.json();
+      if (result.success && result.code) {
+        return result.code;
+      }
+      return null;
+    } catch (error) {
+      console.error("Cloud OCR error:", error);
+      return null;
+    }
+  };
+
+  // 条形码识别：从面单图片识别条形码（本地 + 云端）
   const startBarcodeScan = async () => {
     if (!selectedOrder?.waybillImage && !tempWaybillImage) {
       setScanError(lang === "en" ? "Please upload waybill image first" : lang === "zh-CN" ? "请先上传快递面单图片" : "請先上傳快遞面單圖片");
@@ -598,7 +628,7 @@ export default function OrdersPage() {
             }
             URL.revokeObjectURL(processedUrl);
           } catch (e) {
-            console.log(`Size ${size}px, process ${processType} failed:`, e);
+            console.log(`Local ${size}px, process ${processType} failed:`, e);
           }
         }
       }
@@ -620,7 +650,15 @@ export default function OrdersPage() {
           return;
         }
       } catch (e) {
-        console.log("Image element scan failed:", e);
+        console.log("Local Image element scan failed:", e);
+      }
+
+      const cloudCode = await callCloudOCR(imageUrl);
+      if (cloudCode) {
+        setTempTrackingNumber(cloudCode);
+        setScanSuccess(true);
+        setScanError("");
+        return;
       }
 
       setScanError(lang === "en" ? "No barcode detected. Please enter tracking number manually" : lang === "zh-CN" ? "未识别到条形码，请手动输入运单号" : "未識別到條形碼，請手動輸入運單號");
