@@ -5,7 +5,7 @@ import { AgentLayout } from "@/components/Layout";
 import { StatusBadge } from "@/components/Sidebar";
 import { useApp } from "@/components/AppProvider";
 import { formatCurrency, formatNumber } from "@/lib/utils";
-import { Eye, Package, MapPin, Phone, Mail, User, Truck, Check, Search, Filter, Calendar, ChevronDown, X, XCircle } from "lucide-react";
+import { Eye, Package, MapPin, Phone, Mail, User, Truck, Check, Search, Filter, Calendar, ChevronDown, X, XCircle, Copy } from "lucide-react";
 
 interface OrderItem {
   productId: string;
@@ -178,8 +178,11 @@ export default function MyOrdersPage() {
       filtered = filtered.filter((o) =>
         o.orderNo.toLowerCase().includes(keyword) ||
         o.contactName?.toLowerCase().includes(keyword) ||
-        o.phone?.includes(keyword) ||
-        o.trackingNumber?.toLowerCase().includes(keyword)
+        o.phone?.toLowerCase().includes(keyword) ||
+        o.email?.toLowerCase().includes(keyword) ||
+        o.trackingNumber?.toLowerCase().includes(keyword) ||
+        o.postalCode?.toLowerCase().includes(keyword) ||
+        o.shippingAddress?.toLowerCase().includes(keyword)
       );
     }
 
@@ -193,6 +196,21 @@ export default function MyOrdersPage() {
     setCustomDateRange({ start: "", end: "" });
     setSearchKeyword("");
     setPage(1);
+  };
+
+  const handleCopy = (text: string) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(() => {
+      alert(lang === "en" ? "Copied to clipboard" : lang === "zh-CN" ? "已复制到剪贴板" : "已複製到剪貼簿");
+    }).catch(() => {
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+      alert(lang === "en" ? "Copied to clipboard" : lang === "zh-CN" ? "已复制到剪贴板" : "已複製到剪貼簿");
+    });
   };
 
   // 计算运费总计
@@ -315,7 +333,7 @@ export default function MyOrdersPage() {
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              placeholder={lang === "en" ? "Search orders..." : lang === "zh-CN" ? "搜索订单号/姓名/电话/运单号..." : "搜索訂單號/姓名/電話/運單號..."}
+              placeholder={lang === "en" ? "Search orders..." : lang === "zh-CN" ? "搜索订单号/姓名/电话/运单号/邮编..." : "搜索訂單號/姓名/電話/運單號/郵遞區號..."}
               value={searchKeyword}
               onChange={(e) => setSearchKeyword(e.target.value)}
               className="input !pl-11 w-full"
@@ -441,46 +459,100 @@ export default function MyOrdersPage() {
                     const pageItems = filteredOrders.slice(startIdx, endIdx);
                     return (
                       <>
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>{t("order_no")}</th>
-                      <th>{lang === "en" ? "Products" : lang === "zh-CN" ? "商品" : "商品"}</th>
-                      <th>{lang === "en" ? "Customer" : lang === "zh-CN" ? "客户" : "客戶"}</th>
-                      <th>{t("amount")}</th>
-                      <th>{lang === "en" ? "Shipping Fee" : lang === "zh-CN" ? "运费" : "運費"}</th>
-                      <th>{t("status")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pageItems.map((o) => (
-                      <tr
-                        key={o.id}
-                        onClick={() => setSelected(o)}
-                        className={`cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 ${selected?.id === o.id ? "bg-indigo-50 dark:bg-indigo-950/30" : ""}`}
-                      >
-                        <td className="font-mono text-xs">{o.orderNo}</td>
-                        <td className="text-sm max-w-[150px]">
-                          <div className="truncate">{o.items.map((i) => i.name).join(", ")}</div>
-                          <div className="text-xs text-slate-400">{o.items.length} {lang === "en" ? "items" : lang === "zh-CN" ? "件" : "件"}</div>
-                        </td>
-                        <td className="text-sm">
-                          <div>{o.contactName || "—"}</div>
-                          <div className="text-xs text-slate-400">{o.phone || "—"}</div>
-                        </td>
-                        <td className="font-medium">{formatCurrency(o.total, currency)}</td>
-                        <td className={o.shippingFee ? "text-orange-600 font-medium" : "text-slate-400"}>
-                          {o.shippingFee ? formatCurrency(o.shippingFee, currency) : "—"}
-                        </td>
-                        <td>
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusConfig[o.status]?.color || "bg-slate-100 text-slate-700"}`}>
-                            {getStatusLabel(o.status)}
-                          </span>
-                        </td>
+                <div className="hidden sm:block">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>{t("order_no")}</th>
+                        <th>{lang === "en" ? "Products" : lang === "zh-CN" ? "商品" : "商品"}</th>
+                        <th>{lang === "en" ? "Customer" : lang === "zh-CN" ? "客户" : "客戶"}</th>
+                        <th>{t("amount")}</th>
+                        <th>{lang === "en" ? "Shipping Fee" : lang === "zh-CN" ? "运费" : "運費"}</th>
+                        <th>{t("status")}</th>
+                        <th>{t("actions")}</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {pageItems.map((o) => (
+                        <tr key={o.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                          <td className="font-mono text-xs">{o.orderNo}</td>
+                          <td className="text-sm max-w-[150px]">
+                            <div className="truncate">{o.items.map((i) => i.name).join(", ")}</div>
+                            <div className="text-xs text-slate-400">{o.items.length} {lang === "en" ? "items" : lang === "zh-CN" ? "件" : "件"}</div>
+                          </td>
+                          <td className="text-sm">
+                            <div>{o.contactName || "—"}</div>
+                            <div className="text-xs text-slate-400">{o.phone || "—"}</div>
+                          </td>
+                          <td className="font-medium">{formatCurrency(o.total, currency)}</td>
+                          <td className={o.shippingFee ? "text-orange-600 font-medium" : "text-slate-400"}>
+                            {o.shippingFee ? formatCurrency(o.shippingFee, currency) : "—"}
+                          </td>
+                          <td>
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusConfig[o.status]?.color || "bg-slate-100 text-slate-700"}`}>
+                              {getStatusLabel(o.status)}
+                            </span>
+                          </td>
+                          <td>
+                            <button onClick={() => setSelected(o)} className="text-emerald-500 hover:underline text-sm flex items-center gap-1">
+                              <Eye className="w-3.5 h-3.5" /> <span>{t("view")}</span>
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="sm:hidden space-y-3">
+                  {pageItems.map((o) => (
+                    <div
+                      key={o.id}
+                      className="card p-4"
+                    >
+                      <div className="flex items-start justify-between gap-3 mb-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="font-mono text-xs text-slate-500 mb-1">{o.orderNo}</div>
+                          <div className="font-semibold text-sm truncate">{o.contactName || "—"}</div>
+                          {o.phone && <div className="text-xs text-slate-400 truncate">{o.phone}</div>}
+                        </div>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium flex-shrink-0 ${statusConfig[o.status]?.color || "bg-slate-100 text-slate-700"}`}>
+                          {getStatusLabel(o.status)}
+                        </span>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-3 text-xs mb-3">
+                        <div>
+                          <div className="text-slate-500 mb-0.5">{lang === "en" ? "Products" : lang === "zh-CN" ? "商品" : "商品"}</div>
+                          <div className="font-medium truncate">{o.items.length} {lang === "en" ? "items" : lang === "zh-CN" ? "件" : "件"}</div>
+                        </div>
+                        <div>
+                          <div className="text-slate-500 mb-0.5">{t("order_date")}</div>
+                          <div className="font-medium whitespace-nowrap">{new Date(o.date).toLocaleDateString("zh-CN", { month: "2-digit", day: "2-digit", timeZone: "Asia/Shanghai" })}</div>
+                        </div>
+                        <div>
+                          <div className="text-slate-500 mb-0.5">{t("amount")}</div>
+                          <div className="font-medium">{formatCurrency(o.total, currency)}</div>
+                        </div>
+                        {o.shippingFee && (
+                          <div>
+                            <div className="text-slate-500 mb-0.5">{lang === "en" ? "Shipping Fee" : lang === "zh-CN" ? "运费" : "運費"}</div>
+                            <div className="font-medium text-orange-600">{formatCurrency(o.shippingFee, currency)}</div>
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center justify-between pt-3 border-t border-white/5">
+                        <div className="text-xs text-slate-500">
+                          {new Date(o.date).toLocaleDateString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Shanghai" })}
+                        </div>
+                        <button onClick={() => setSelected(o)} className="btn-primary px-4 py-2 text-sm">
+                          {t("view")}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
 
                 <div className="flex items-center justify-between px-4 py-3 border-t border-white/5">
                   <div className="text-xs text-slate-500">
@@ -591,11 +663,56 @@ export default function MyOrdersPage() {
                     <MapPin className="w-4 h-4 text-slate-400" />
                     <span className="text-xs text-slate-500">{lang === "en" ? "Shipping Address" : lang === "zh-CN" ? "收货地址" : "收貨地址"}</span>
                   </div>
-                  <div className="text-sm mb-2">{selected.shippingAddress}</div>
-                  <div className="text-sm text-slate-500">
-                    {selected.postalCode && <span>{selected.postalCode}</span>}
-                    {selected.postalCode && selected.country && <span>, </span>}
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="text-sm flex-1">{selected.shippingAddress}</div>
+                    {selected.shippingAddress && (
+                      <button onClick={(e) => { e.stopPropagation(); handleCopy(selected.shippingAddress!); }} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '28px', padding: '4px', color: '#64748b', background: 'transparent', border: '1px solid #334155', borderRadius: '6px', cursor: 'pointer', flexShrink: 0 }} onMouseEnter={(e) => { e.currentTarget.style.color = '#10b981'; e.currentTarget.style.borderColor = '#10b981'; e.currentTarget.style.background = 'rgba(16, 185, 129, 0.1)'; }} onMouseLeave={(e) => { e.currentTarget.style.color = '#64748b'; e.currentTarget.style.borderColor = '#334155'; e.currentTarget.style.background = 'transparent'; }} title={lang === "en" ? "Copy" : lang === "zh-CN" ? "复制" : "複製"}>
+                        <Copy style={{ width: '16px', height: '16px' }} />
+                      </button>
+                    )}
+                  </div>
+                  <div className="text-sm text-slate-500 flex items-center gap-2 flex-wrap">
+                    {selected.postalCode && (
+                      <span className="flex items-center gap-1">
+                        <span>{selected.postalCode}</span>
+                        <button onClick={(e) => { e.stopPropagation(); handleCopy(selected.postalCode!); }} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '22px', height: '22px', padding: '2px', color: '#64748b', background: 'transparent', border: '1px solid #334155', borderRadius: '4px', cursor: 'pointer' }} onMouseEnter={(e) => { e.currentTarget.style.color = '#10b981'; e.currentTarget.style.borderColor = '#10b981'; }} onMouseLeave={(e) => { e.currentTarget.style.color = '#64748b'; e.currentTarget.style.borderColor = '#334155'; }} title={lang === "en" ? "Copy" : lang === "zh-CN" ? "复制" : "複製"}>
+                          <Copy style={{ width: '12px', height: '12px' }} />
+                        </button>
+                      </span>
+                    )}
+                    {selected.postalCode && selected.country && <span>,</span>}
                     {selected.country && <span>{selected.country}</span>}
+                  </div>
+
+                  {/* 客户联系信息 */}
+                  <div className="mt-4 space-y-2 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+                    {selected.contactName && (
+                      <div className="flex items-center gap-2">
+                        <User className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                        <span className="text-xs sm:text-sm flex-1">{selected.contactName}</span>
+                        <button onClick={(e) => { e.stopPropagation(); handleCopy(selected.contactName!); }} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px', padding: '4px', color: '#64748b', background: 'transparent', border: '1px solid #334155', borderRadius: '6px', cursor: 'pointer', flexShrink: 0 }} onMouseEnter={(e) => { e.currentTarget.style.color = '#10b981'; e.currentTarget.style.borderColor = '#10b981'; e.currentTarget.style.background = 'rgba(16, 185, 129, 0.1)'; }} onMouseLeave={(e) => { e.currentTarget.style.color = '#64748b'; e.currentTarget.style.borderColor = '#334155'; e.currentTarget.style.background = 'transparent'; }} title={lang === "en" ? "Copy" : lang === "zh-CN" ? "复制" : "複製"}>
+                          <Copy style={{ width: '14px', height: '14px' }} />
+                        </button>
+                      </div>
+                    )}
+                    {selected.phone && (
+                      <div className="flex items-center gap-2">
+                        <Phone className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                        <span className="text-xs sm:text-sm flex-1">{selected.phone}</span>
+                        <button onClick={(e) => { e.stopPropagation(); handleCopy(selected.phone!); }} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px', padding: '4px', color: '#64748b', background: 'transparent', border: '1px solid #334155', borderRadius: '6px', cursor: 'pointer', flexShrink: 0 }} onMouseEnter={(e) => { e.currentTarget.style.color = '#10b981'; e.currentTarget.style.borderColor = '#10b981'; e.currentTarget.style.background = 'rgba(16, 185, 129, 0.1)'; }} onMouseLeave={(e) => { e.currentTarget.style.color = '#64748b'; e.currentTarget.style.borderColor = '#334155'; e.currentTarget.style.background = 'transparent'; }} title={lang === "en" ? "Copy" : lang === "zh-CN" ? "复制" : "複製"}>
+                          <Copy style={{ width: '14px', height: '14px' }} />
+                        </button>
+                      </div>
+                    )}
+                    {selected.email && (
+                      <div className="flex items-center gap-2">
+                        <Mail className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                        <span className="text-xs sm:text-sm flex-1 truncate">{selected.email}</span>
+                        <button onClick={(e) => { e.stopPropagation(); handleCopy(selected.email!); }} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px', padding: '4px', color: '#64748b', background: 'transparent', border: '1px solid #334155', borderRadius: '6px', cursor: 'pointer', flexShrink: 0 }} onMouseEnter={(e) => { e.currentTarget.style.color = '#10b981'; e.currentTarget.style.borderColor = '#10b981'; e.currentTarget.style.background = 'rgba(16, 185, 129, 0.1)'; }} onMouseLeave={(e) => { e.currentTarget.style.color = '#64748b'; e.currentTarget.style.borderColor = '#334155'; e.currentTarget.style.background = 'transparent'; }} title={lang === "en" ? "Copy" : lang === "zh-CN" ? "复制" : "複製"}>
+                          <Copy style={{ width: '14px', height: '14px' }} />
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   {/* Waybill Image Display */}

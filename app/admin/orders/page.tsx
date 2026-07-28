@@ -5,7 +5,7 @@ import { AdminLayout } from "@/components/Layout";
 import { PageCard, StatusBadge } from "@/components/Sidebar";
 import { useApp } from "@/components/AppProvider";
 import { formatCurrency, formatNumber } from "@/lib/utils";
-import { Eye, Truck, FileText, Search, X, Phone, Mail, User, MapPin, Package, Image, Upload, Check, AlertCircle, Edit2, QrCode, Package as PackageIcon, Download, Zap, XCircle } from "lucide-react";
+import { Eye, Truck, FileText, Search, X, Phone, Mail, User, MapPin, Package, Image, Upload, Check, AlertCircle, Edit2, QrCode, Package as PackageIcon, Download, Zap, XCircle, Copy } from "lucide-react";
 interface OrderItem {
   productId: string;
   name: string;
@@ -321,8 +321,10 @@ export default function OrdersPage() {
       o.orderNo.toLowerCase().includes(searchText) ||
       (o.contactName && o.contactName.toLowerCase().includes(searchText)) ||
       (o.company && o.company.toLowerCase().includes(searchText)) ||
-      (o.phone && o.phone.includes(searchText)) ||
-      (o.email && o.email.toLowerCase().includes(searchText));
+      (o.phone && o.phone.toLowerCase().includes(searchText)) ||
+      (o.email && o.email.toLowerCase().includes(searchText)) ||
+      (o.postalCode && o.postalCode.toLowerCase().includes(searchText)) ||
+      (o.shippingAddress && o.shippingAddress.toLowerCase().includes(searchText));
 
     const mf = flt === "all" || o.status === flt;
 
@@ -342,6 +344,22 @@ export default function OrdersPage() {
   });
 
   const selectedOrder = data.find((o) => o.id === selected);
+
+  const handleCopy = (text: string) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(() => {
+      alert(lang === "en" ? "Copied to clipboard" : lang === "zh-CN" ? "已复制到剪贴板" : "已複製到剪貼簿");
+    }).catch(() => {
+      // Fallback
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+      alert(lang === "en" ? "Copied to clipboard" : lang === "zh-CN" ? "已复制到剪贴板" : "已複製到剪貼簿");
+    });
+  };
 
   const exportCSV = () => {
     if (filtered.length === 0) return;
@@ -704,7 +722,7 @@ export default function OrdersPage() {
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               className="input !pl-11 py-2.5 w-full"
-              placeholder={lang === "en" ? "Search orders..." : lang === "zh-CN" ? "搜索订单（订单号、联系人、电话、邮箱）..." : "搜尋訂單（訂單號、聯絡人、電話、郵箱）..."}
+              placeholder={lang === "en" ? "Search orders..." : lang === "zh-CN" ? "搜索订单（订单号、联系人、电话、邮箱、邮编、地址）..." : "搜尋訂單（訂單號、聯絡人、電話、郵箱、郵遞區號、地址）..."}
               value={q}
               onChange={(e) => setQ(e.target.value)}
             />
@@ -813,19 +831,28 @@ export default function OrdersPage() {
             {selectedOrder.contactName && (
               <div className="flex items-center gap-2">
                 <User className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                <span className="text-xs sm:text-sm truncate">{selectedOrder.contactName}</span>
+                <span className="text-xs sm:text-sm truncate flex-1">{selectedOrder.contactName}</span>
+                <button onClick={(e) => { e.stopPropagation(); handleCopy(selectedOrder.contactName!); }} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px', padding: '4px', color: '#64748b', background: 'transparent', border: '1px solid #334155', borderRadius: '6px', cursor: 'pointer', flexShrink: 0 }} onMouseEnter={(e) => { e.currentTarget.style.color = '#10b981'; e.currentTarget.style.borderColor = '#10b981'; e.currentTarget.style.background = 'rgba(16, 185, 129, 0.1)'; }} onMouseLeave={(e) => { e.currentTarget.style.color = '#64748b'; e.currentTarget.style.borderColor = '#334155'; e.currentTarget.style.background = 'transparent'; }} title={lang === "en" ? "Copy" : lang === "zh-CN" ? "复制" : "複製"}>
+                  <Copy style={{ width: '14px', height: '14px' }} />
+                </button>
               </div>
             )}
             {selectedOrder.phone && (
               <div className="flex items-center gap-2">
                 <Phone className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                <span className="text-xs sm:text-sm truncate">{selectedOrder.phone}</span>
+                <span className="text-xs sm:text-sm truncate flex-1">{selectedOrder.phone}</span>
+                <button onClick={(e) => { e.stopPropagation(); handleCopy(selectedOrder.phone!); }} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px', padding: '4px', color: '#64748b', background: 'transparent', border: '1px solid #334155', borderRadius: '6px', cursor: 'pointer', flexShrink: 0 }} onMouseEnter={(e) => { e.currentTarget.style.color = '#10b981'; e.currentTarget.style.borderColor = '#10b981'; e.currentTarget.style.background = 'rgba(16, 185, 129, 0.1)'; }} onMouseLeave={(e) => { e.currentTarget.style.color = '#64748b'; e.currentTarget.style.borderColor = '#334155'; e.currentTarget.style.background = 'transparent'; }} title={lang === "en" ? "Copy" : lang === "zh-CN" ? "复制" : "複製"}>
+                  <Copy style={{ width: '14px', height: '14px' }} />
+                </button>
               </div>
             )}
             {selectedOrder.email && (
               <div className="flex items-center gap-2">
                 <Mail className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                <span className="text-xs sm:text-sm truncate">{selectedOrder.email}</span>
+                <span className="text-xs sm:text-sm truncate flex-1">{selectedOrder.email}</span>
+                <button onClick={(e) => { e.stopPropagation(); handleCopy(selectedOrder.email!); }} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px', padding: '4px', color: '#64748b', background: 'transparent', border: '1px solid #334155', borderRadius: '6px', cursor: 'pointer', flexShrink: 0 }} onMouseEnter={(e) => { e.currentTarget.style.color = '#10b981'; e.currentTarget.style.borderColor = '#10b981'; e.currentTarget.style.background = 'rgba(16, 185, 129, 0.1)'; }} onMouseLeave={(e) => { e.currentTarget.style.color = '#64748b'; e.currentTarget.style.borderColor = '#334155'; e.currentTarget.style.background = 'transparent'; }} title={lang === "en" ? "Copy" : lang === "zh-CN" ? "复制" : "複製"}>
+                  <Copy style={{ width: '14px', height: '14px' }} />
+                </button>
               </div>
             )}
           </div>
@@ -896,12 +923,22 @@ export default function OrdersPage() {
                 </div>
               ) : (
                 <>
-                  <div className="text-sm mb-2">{selectedOrder.shippingAddress || "—"}</div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="text-sm flex-1">{selectedOrder.shippingAddress || "—"}</div>
+                    {selectedOrder.shippingAddress && (
+                      <button onClick={(e) => { e.stopPropagation(); handleCopy(selectedOrder.shippingAddress!); }} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '28px', padding: '4px', color: '#64748b', background: 'transparent', border: '1px solid #334155', borderRadius: '6px', cursor: 'pointer', flexShrink: 0 }} onMouseEnter={(e) => { e.currentTarget.style.color = '#10b981'; e.currentTarget.style.borderColor = '#10b981'; e.currentTarget.style.background = 'rgba(16, 185, 129, 0.1)'; }} onMouseLeave={(e) => { e.currentTarget.style.color = '#64748b'; e.currentTarget.style.borderColor = '#334155'; e.currentTarget.style.background = 'transparent'; }} title={lang === "en" ? "Copy" : lang === "zh-CN" ? "复制" : "複製"}>
+                        <Copy style={{ width: '16px', height: '16px' }} />
+                      </button>
+                    )}
+                  </div>
                   <div className="text-sm text-slate-500 space-y-1">
                     {selectedOrder.postalCode && (
                       <div className="flex items-center gap-2">
                         <span className="text-xs">{lang === "en" ? "Postal Code:" : lang === "zh-CN" ? "邮编:" : "郵遞區號:"}</span>
                         <span className="font-medium text-slate-700 dark:text-slate-300">{selectedOrder.postalCode}</span>
+                        <button onClick={(e) => { e.stopPropagation(); handleCopy(selectedOrder.postalCode!); }} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px', padding: '2px', color: '#64748b', background: 'transparent', border: '1px solid #334155', borderRadius: '4px', cursor: 'pointer', flexShrink: 0, marginLeft: 'auto' }} onMouseEnter={(e) => { e.currentTarget.style.color = '#10b981'; e.currentTarget.style.borderColor = '#10b981'; }} onMouseLeave={(e) => { e.currentTarget.style.color = '#64748b'; e.currentTarget.style.borderColor = '#334155'; }} title={lang === "en" ? "Copy" : lang === "zh-CN" ? "复制" : "複製"}>
+                          <Copy style={{ width: '12px', height: '12px' }} />
+                        </button>
                       </div>
                     )}
                     {selectedOrder.country && (
@@ -1464,6 +1501,10 @@ export default function OrdersPage() {
               const startIdx = (currentPage - 1) * PAGE_SIZE;
               const endIdx = startIdx + PAGE_SIZE;
               const pageItems = filtered.slice(startIdx, endIdx);
+              // 待投递状态下统计重复收件人
+              const dupNames = flt === "pending_delivery"
+                ? new Set(filtered.filter(o => o.contactName).map(o => o.contactName!).filter((name, i, arr) => arr.indexOf(name) !== i))
+                : new Set<string>();
               return (
                 <>
             <div className="hidden sm:block">
@@ -1484,6 +1525,7 @@ export default function OrdersPage() {
                 <tbody>
                   {pageItems.map((o) => {
                     const agent = agents.find((a) => a.id === o.agentId);
+                    const isDup = o.contactName && dupNames.has(o.contactName);
                     return (
                       <tr key={o.id}>
                         <td className="font-mono text-xs">{o.orderNo}</td>
@@ -1492,7 +1534,14 @@ export default function OrdersPage() {
                           {agent?.email && <div className="text-xs text-slate-400">{agent.email}</div>}
                         </td>
                         <td className="font-medium">
-                          <div className="truncate max-w-[140px]">{o.contactName || o.company || "N/A"}</div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="truncate max-w-[140px]">{o.contactName || o.company || "N/A"}</span>
+                            {isDup && (
+                              <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '4px', background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.3)', whiteSpace: 'nowrap' }}>
+                                {lang === "en" ? "Multiple Orders" : lang === "zh-CN" ? "多订单" : "多訂單"}
+                              </span>
+                            )}
+                          </div>
                           {o.phone && <div className="text-xs text-slate-400 truncate max-w-[140px]">{o.phone}</div>}
                         </td>
                         <td className="hidden xl:table-cell text-sm text-slate-500 font-mono">{o.postalCode || "—"}</td>
@@ -1515,11 +1564,17 @@ export default function OrdersPage() {
             <div className="sm:hidden space-y-3">
               {pageItems.map((o) => {
                 const agent = agents.find((a) => a.id === o.agentId);
+                const isDup = o.contactName && dupNames.has(o.contactName);
                 return (
                   <div
                     key={o.id}
-                    className="card p-4"
+                    className="card p-4 relative"
                   >
+                    {isDup && (
+                      <span style={{ position: 'absolute', top: '8px', right: '8px', fontSize: '10px', padding: '2px 8px', borderRadius: '4px', background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.3)', whiteSpace: 'nowrap' }}>
+                        {lang === "en" ? "Multiple Orders" : lang === "zh-CN" ? "该客户有多个订单" : "該客戶有多個訂單"}
+                      </span>
+                    )}
                     <div className="flex items-start justify-between gap-3 mb-3">
                       <div className="flex-1 min-w-0">
                         <div className="font-mono text-xs text-slate-500 mb-1">{o.orderNo}</div>

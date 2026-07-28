@@ -7,7 +7,7 @@ import { formatCurrency, formatNumber } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import {
   Truck, Package, Search, Eye, X, Phone, Mail, User,
-  MapPin, Upload, Check, Edit2, FileText, QrCode
+  MapPin, Upload, Check, Edit2, FileText, QrCode, Copy
 } from "lucide-react";
 
 interface OrderItem {
@@ -118,7 +118,9 @@ export default function ShippingPage() {
         o.orderNo.toLowerCase().includes(searchText) ||
         (o.contactName && o.contactName.toLowerCase().includes(searchText)) ||
         (o.company && o.company.toLowerCase().includes(searchText)) ||
-        (o.shippingAddress && o.shippingAddress.toLowerCase().includes(searchText))
+        (o.shippingAddress && o.shippingAddress.toLowerCase().includes(searchText)) ||
+        (o.postalCode && o.postalCode.toLowerCase().includes(searchText)) ||
+        (o.phone && o.phone.toLowerCase().includes(searchText))
       );
     }
     return true;
@@ -215,6 +217,21 @@ export default function ShippingPage() {
     return { label, tone: v.tone };
   };
 
+  const handleCopy = (text: string) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(() => {
+      alert(lang === "en" ? "Copied to clipboard" : lang === "zh-CN" ? "已复制到剪贴板" : "已複製到剪貼簿");
+    }).catch(() => {
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+      alert(lang === "en" ? "Copied to clipboard" : lang === "zh-CN" ? "已复制到剪贴板" : "已複製到剪貼簿");
+    });
+  };
+
   return (
     <AdminLayout title={t("shipping")} subtitle={lang === "en" ? "Carrier management & tracking" : lang === "zh-CN" ? "物流管理与追踪" : "物流管理與追蹤"}>
       <div className="card p-3 sm:p-4 mb-4">
@@ -223,7 +240,7 @@ export default function ShippingPage() {
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               className="input !pl-11 py-2.5 w-full"
-              placeholder={lang === "en" ? "Search shipments..." : lang === "zh-CN" ? "搜索物流订单（订单号、地址、收件人）..." : "搜尋物流訂單（訂單號、地址、收件人）..."}
+              placeholder={lang === "en" ? "Search shipments..." : lang === "zh-CN" ? "搜索物流订单（订单号、地址、收件人、邮编）..." : "搜尋物流訂單（訂單號、地址、收件人、郵遞區號）..."}
               value={q}
               onChange={(e) => setQ(e.target.value)}
             />
@@ -275,19 +292,28 @@ export default function ShippingPage() {
             {selectedOrder.contactName && (
               <div className="flex items-center gap-2">
                 <User className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                <span className="text-xs sm:text-sm truncate">{selectedOrder.contactName}</span>
+                <span className="text-xs sm:text-sm truncate flex-1">{selectedOrder.contactName}</span>
+                <button onClick={(e) => { e.stopPropagation(); handleCopy(selectedOrder.contactName!); }} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px', padding: '4px', color: '#64748b', background: 'transparent', border: '1px solid #334155', borderRadius: '6px', cursor: 'pointer', flexShrink: 0 }} onMouseEnter={(e) => { e.currentTarget.style.color = '#10b981'; e.currentTarget.style.borderColor = '#10b981'; e.currentTarget.style.background = 'rgba(16, 185, 129, 0.1)'; }} onMouseLeave={(e) => { e.currentTarget.style.color = '#64748b'; e.currentTarget.style.borderColor = '#334155'; e.currentTarget.style.background = 'transparent'; }} title={lang === "en" ? "Copy" : lang === "zh-CN" ? "复制" : "複製"}>
+                  <Copy style={{ width: '14px', height: '14px' }} />
+                </button>
               </div>
             )}
             {selectedOrder.phone && (
               <div className="flex items-center gap-2">
                 <Phone className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                <span className="text-xs sm:text-sm truncate">{selectedOrder.phone}</span>
+                <span className="text-xs sm:text-sm truncate flex-1">{selectedOrder.phone}</span>
+                <button onClick={(e) => { e.stopPropagation(); handleCopy(selectedOrder.phone!); }} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px', padding: '4px', color: '#64748b', background: 'transparent', border: '1px solid #334155', borderRadius: '6px', cursor: 'pointer', flexShrink: 0 }} onMouseEnter={(e) => { e.currentTarget.style.color = '#10b981'; e.currentTarget.style.borderColor = '#10b981'; e.currentTarget.style.background = 'rgba(16, 185, 129, 0.1)'; }} onMouseLeave={(e) => { e.currentTarget.style.color = '#64748b'; e.currentTarget.style.borderColor = '#334155'; e.currentTarget.style.background = 'transparent'; }} title={lang === "en" ? "Copy" : lang === "zh-CN" ? "复制" : "複製"}>
+                  <Copy style={{ width: '14px', height: '14px' }} />
+                </button>
               </div>
             )}
             {selectedOrder.email && (
               <div className="flex items-center gap-2">
                 <Mail className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                <span className="text-xs sm:text-sm truncate">{selectedOrder.email}</span>
+                <span className="text-xs sm:text-sm truncate flex-1">{selectedOrder.email}</span>
+                <button onClick={(e) => { e.stopPropagation(); handleCopy(selectedOrder.email!); }} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px', padding: '4px', color: '#64748b', background: 'transparent', border: '1px solid #334155', borderRadius: '6px', cursor: 'pointer', flexShrink: 0 }} onMouseEnter={(e) => { e.currentTarget.style.color = '#10b981'; e.currentTarget.style.borderColor = '#10b981'; e.currentTarget.style.background = 'rgba(16, 185, 129, 0.1)'; }} onMouseLeave={(e) => { e.currentTarget.style.color = '#64748b'; e.currentTarget.style.borderColor = '#334155'; e.currentTarget.style.background = 'transparent'; }} title={lang === "en" ? "Copy" : lang === "zh-CN" ? "复制" : "複製"}>
+                  <Copy style={{ width: '14px', height: '14px' }} />
+                </button>
               </div>
             )}
           </div>
@@ -298,12 +324,22 @@ export default function ShippingPage() {
                 <MapPin className="w-4 h-4 text-slate-400" />
                 <span className="text-xs text-slate-500">{t("shipping_address")}</span>
               </div>
-              <div className="text-sm mb-2">{selectedOrder.shippingAddress || "—"}</div>
+              <div className="flex items-center gap-2 mb-2">
+                <div className="text-sm flex-1">{selectedOrder.shippingAddress || "—"}</div>
+                {selectedOrder.shippingAddress && (
+                  <button onClick={(e) => { e.stopPropagation(); handleCopy(selectedOrder.shippingAddress!); }} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '28px', padding: '4px', color: '#64748b', background: 'transparent', border: '1px solid #334155', borderRadius: '6px', cursor: 'pointer', flexShrink: 0 }} onMouseEnter={(e) => { e.currentTarget.style.color = '#10b981'; e.currentTarget.style.borderColor = '#10b981'; e.currentTarget.style.background = 'rgba(16, 185, 129, 0.1)'; }} onMouseLeave={(e) => { e.currentTarget.style.color = '#64748b'; e.currentTarget.style.borderColor = '#334155'; e.currentTarget.style.background = 'transparent'; }} title={lang === "en" ? "Copy" : lang === "zh-CN" ? "复制" : "複製"}>
+                    <Copy style={{ width: '16px', height: '16px' }} />
+                  </button>
+                )}
+              </div>
               <div className="text-sm text-slate-500 space-y-1">
                 {selectedOrder.postalCode && (
                   <div className="flex items-center gap-2">
                     <span className="text-xs">{lang === "en" ? "Postal Code:" : lang === "zh-CN" ? "邮编:" : "郵遞區號:"}</span>
                     <span className="font-medium text-slate-700 dark:text-slate-300">{selectedOrder.postalCode}</span>
+                    <button onClick={(e) => { e.stopPropagation(); handleCopy(selectedOrder.postalCode!); }} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px', padding: '2px', color: '#64748b', background: 'transparent', border: '1px solid #334155', borderRadius: '4px', cursor: 'pointer', flexShrink: 0, marginLeft: 'auto' }} onMouseEnter={(e) => { e.currentTarget.style.color = '#10b981'; e.currentTarget.style.borderColor = '#10b981'; }} onMouseLeave={(e) => { e.currentTarget.style.color = '#64748b'; e.currentTarget.style.borderColor = '#334155'; }} title={lang === "en" ? "Copy" : lang === "zh-CN" ? "复制" : "複製"}>
+                      <Copy style={{ width: '12px', height: '12px' }} />
+                    </button>
                   </div>
                 )}
                 {selectedOrder.country && (
@@ -501,6 +537,10 @@ export default function ShippingPage() {
               const startIdx = (currentPage - 1) * PAGE_SIZE;
               const endIdx = startIdx + PAGE_SIZE;
               const pageItems = filtered.slice(startIdx, endIdx);
+              // 待投递状态下统计重复收件人
+              const dupNames = flt === "pending_delivery"
+                ? new Set(filtered.filter(o => o.contactName).map(o => o.contactName!).filter((name, i, arr) => arr.indexOf(name) !== i))
+                : new Set<string>();
               return (
                 <>
             <div className="hidden sm:block">
@@ -516,11 +556,20 @@ export default function ShippingPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {pageItems.map((o) => (
+                  {pageItems.map((o) => {
+                    const isDup = o.contactName && dupNames.has(o.contactName);
+                    return (
                     <tr key={o.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                       <td className="font-mono text-xs">{o.orderNo}</td>
                       <td className="font-medium">
-                        <div className="truncate max-w-[140px]">{o.contactName || o.company || "N/A"}</div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="truncate max-w-[140px]">{o.contactName || o.company || "N/A"}</span>
+                          {isDup && (
+                            <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '4px', background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.3)', whiteSpace: 'nowrap' }}>
+                              {lang === "en" ? "Multiple Orders" : lang === "zh-CN" ? "多订单" : "多訂單"}
+                            </span>
+                          )}
+                        </div>
                         {o.phone && <div className="text-xs text-slate-400 truncate max-w-[140px]">{o.phone}</div>}
                       </td>
                       <td className="hidden md:table-cell text-sm text-slate-500 max-w-[200px] truncate">{o.shippingAddress}</td>
@@ -532,17 +581,25 @@ export default function ShippingPage() {
                         </button>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
 
             <div className="sm:hidden space-y-3">
-              {pageItems.map((o) => (
+              {pageItems.map((o) => {
+                const isDup = o.contactName && dupNames.has(o.contactName);
+                return (
                 <div
                   key={o.id}
-                  className="card p-4"
+                  className="card p-4 relative"
                 >
+                  {isDup && (
+                    <span style={{ position: 'absolute', top: '8px', right: '8px', fontSize: '10px', padding: '2px 8px', borderRadius: '4px', background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.3)', whiteSpace: 'nowrap' }}>
+                      {lang === "en" ? "Multiple Orders" : lang === "zh-CN" ? "该客户有多个订单" : "該客戶有多個訂單"}
+                    </span>
+                  )}
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <div className="flex-1 min-w-0">
                       <div className="font-mono text-xs text-slate-500 mb-1">{o.orderNo}</div>
@@ -573,7 +630,8 @@ export default function ShippingPage() {
                     </button>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
 
             <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/5">
