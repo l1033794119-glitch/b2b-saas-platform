@@ -255,8 +255,8 @@ export default function CreditLimitsPage() {
 
       {/* Modal */}
       {modalOpen && selectedAgent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-md mx-4 overflow-hidden">
+        <div className="modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="modal-card bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-md mx-4 overflow-hidden">
             <div className="flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-800">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-emerald-500/15 flex items-center justify-center">

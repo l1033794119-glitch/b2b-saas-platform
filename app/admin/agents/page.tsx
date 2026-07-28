@@ -249,8 +249,8 @@ function AgentForm({ agent, onSave, onClose, lang, currency, status, message }: 
   const set = (key: keyof Agent, val: any) => setForm((f) => ({ ...f, [key]: val }));
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-lg mx-4 overflow-hidden">
+    <div className="modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div className="modal-card bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-lg mx-4 overflow-hidden">
         <div className="flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-800">
           <h2 className="text-lg font-semibold">{agent ? (lang === "en" ? "Edit Agent" : "编辑代理商") : (lang === "en" ? "Add Agent" : "添加代理商")}</h2>
           <button onClick={onClose} className="w-8 h-8 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center"><X className="w-5 h-5" /></button>

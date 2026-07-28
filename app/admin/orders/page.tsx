@@ -777,13 +777,13 @@ export default function OrdersPage() {
 
       {selectedOrder && (
         <div 
-          className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+          className="modal-overlay fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-4"
           onClick={() => setSelected(null)}
           onTouchMove={(e) => { if (e.target === e.currentTarget) e.preventDefault(); }}
           style={{ touchAction: "none" }}
         >
           <div 
-            className="card p-4 sm:p-6 w-full max-w-full sm:max-w-4xl max-h-[90dvh] rounded-t-2xl sm:rounded-2xl"
+            className="modal-card card p-4 sm:p-6 w-full max-w-full sm:max-w-4xl max-h-[90dvh] rounded-t-2xl sm:rounded-2xl"
             onClick={(e) => e.stopPropagation()}
             onTouchStart={(e) => { e.stopPropagation(); }}
             style={{ overflowY: "auto", touchAction: "auto", WebkitOverflowScrolling: "touch" }}
@@ -1311,8 +1311,8 @@ export default function OrdersPage() {
       )}
 
       {showShipModal && selectedOrder && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md">
+        <div className="modal-overlay fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="modal-card bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md">
             <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
               <h2 className="text-lg font-semibold flex items-center gap-2">
                 <><Edit2 className="w-5 h-5" />{lang === "en" ? "Edit Shipping Info" : lang === "zh-CN" ? "编辑发货信息" : "編輯發貨資訊"}</>
@@ -1427,7 +1427,7 @@ export default function OrdersPage() {
       {/* 图片预览模态框 */}
       {previewImage && (
         <div
-          className="fixed inset-0 z-[60] bg-black/80 flex items-center justify-center p-4"
+          className="modal-overlay fixed inset-0 z-[60] bg-black/80 flex items-center justify-center p-4"
           onClick={() => setPreviewImage(null)}
         >
           <img

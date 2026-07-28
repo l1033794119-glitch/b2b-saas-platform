@@ -472,13 +472,13 @@ export default function MyOrdersPage() {
       {/* Order Detail Modal */}
       {selected && (
         <div
-          className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+          className="modal-overlay fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-4"
           onClick={() => setSelected(null)}
           onTouchMove={(e) => { if (e.target === e.currentTarget) e.preventDefault(); }}
           style={{ touchAction: "none" }}
         >
           <div
-            className="card p-4 sm:p-6 w-full max-w-full sm:max-w-4xl max-h-[90dvh] rounded-t-2xl sm:rounded-2xl"
+            className="modal-card card p-4 sm:p-6 w-full max-w-full sm:max-w-4xl max-h-[90dvh] rounded-t-2xl sm:rounded-2xl"
             onClick={(e) => e.stopPropagation()}
             onTouchStart={(e) => { e.stopPropagation(); }}
             style={{ overflowY: "auto", touchAction: "auto", WebkitOverflowScrolling: "touch" }}
@@ -673,8 +673,8 @@ export default function MyOrdersPage() {
 
       {/* Cancel Order Modal */}
       {showCancelModal && selected && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-md mx-4 overflow-hidden">
+        <div className="modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="modal-card bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-md mx-4 overflow-hidden">
             <div className="flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-800">
               <h2 className="text-lg font-semibold text-rose-600">
                 {lang === "en" ? "Cancel Order" : lang === "zh-CN" ? "取消订单" : "取消訂單"}
