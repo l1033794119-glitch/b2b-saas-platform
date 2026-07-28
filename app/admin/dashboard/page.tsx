@@ -370,17 +370,17 @@ export default function DashboardPage() {
   return (
     <AdminLayout title={t("dashboard")} subtitle={lang === "en" ? "Overview of your operations" : lang === "zh-CN" ? "您的业务运营总览" : "您的營運概覽"}>
       {/* 顶部工具栏 */}
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-        <div className="flex flex-wrap items-center gap-2">
-          {/* 搜索框 */}
-          <div className="relative">
+      <div className="flex flex-col gap-2 sm:gap-3 mb-6">
+        {/* 第一行: 搜索框 + 刷新按钮 */}
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1 min-w-0">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               placeholder={lang === "en" ? "Search orders..." : lang === "zh-CN" ? "搜索订单/客户..." : "搜索訂單/客戶..."}
               value={searchKeyword}
               onChange={(e) => setSearchKeyword(e.target.value)}
-              className="input !pl-11 py-2 text-sm w-60"
+              className="input !pl-11 py-2 text-sm w-full"
             />
             {searchKeyword && (
               <button
@@ -391,16 +391,23 @@ export default function DashboardPage() {
               </button>
             )}
           </div>
+          <button onClick={fetchData} className="btn-ghost flex items-center gap-1.5 text-sm py-2 px-3 flex-shrink-0">
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+            <span className="hidden sm:inline">{lang === "zh-CN" ? "刷新" : "Refresh"}</span>
+          </button>
+        </div>
 
+        {/* 第二行: 筛选按钮 + 结果统计 */}
+        <div className="flex items-center gap-2 flex-wrap">
           {/* 日期筛选 */}
           <div className="relative">
             <button
               onClick={() => { setShowDateDropdown(!showDateDropdown); setShowStatusDropdown(false); }}
-              className={`btn-ghost flex items-center gap-2 text-sm py-2 ${dateFilter !== "all" ? "border-indigo-300 bg-indigo-50 dark:bg-indigo-950/30" : ""}`}
+              className={`btn-ghost flex items-center gap-1.5 text-sm py-1.5 px-2.5 ${dateFilter !== "all" ? "border-emerald-500/30 bg-emerald-500/10" : ""}`}
             >
-              <Calendar className="w-4 h-4" />
-              {getDateFilterLabel()}
-              <ChevronDown className="w-4 h-4" />
+              <Calendar className="w-3.5 h-3.5" />
+              <span className="max-w-[80px] sm:max-w-none truncate">{getDateFilterLabel()}</span>
+              <ChevronDown className="w-3.5 h-3.5" />
             </button>
             {showDateDropdown && (
               <div className="absolute top-full left-0 mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg z-10 min-w-[160px] py-1">
@@ -418,7 +425,7 @@ export default function DashboardPage() {
                     <button
                       key={option}
                       onClick={() => { setDateFilter(option as DateFilterType); setShowDateDropdown(false); }}
-                      className={`w-full text-left px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 ${dateFilter === option ? "text-indigo-600 dark:text-indigo-400 font-medium" : ""}`}
+                      className={`w-full text-left px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 ${dateFilter === option ? "text-emerald-500 font-medium" : ""}`}
                     >
                       {labels[option]}
                     </button>
@@ -432,11 +439,11 @@ export default function DashboardPage() {
           <div className="relative">
             <button
               onClick={() => { setShowStatusDropdown(!showStatusDropdown); setShowDateDropdown(false); }}
-              className={`btn-ghost flex items-center gap-2 text-sm py-2 ${statusFilter !== "all" ? "border-indigo-300 bg-indigo-50 dark:bg-indigo-950/30" : ""}`}
+              className={`btn-ghost flex items-center gap-1.5 text-sm py-1.5 px-2.5 ${statusFilter !== "all" ? "border-emerald-500/30 bg-emerald-500/10" : ""}`}
             >
-              <Filter className="w-4 h-4" />
-              {getStatusFilterLabel()}
-              <ChevronDown className="w-4 h-4" />
+              <Filter className="w-3.5 h-3.5" />
+              <span className="max-w-[80px] sm:max-w-none truncate">{getStatusFilterLabel()}</span>
+              <ChevronDown className="w-3.5 h-3.5" />
             </button>
             {showStatusDropdown && (
               <div className="absolute top-full left-0 mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg z-10 min-w-[160px] py-1">
@@ -453,7 +460,7 @@ export default function DashboardPage() {
                     <button
                       key={option}
                       onClick={() => { setStatusFilter(option); setShowStatusDropdown(false); }}
-                      className={`w-full text-left px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 ${statusFilter === option ? "text-indigo-600 dark:text-indigo-400 font-medium" : ""}`}
+                      className={`w-full text-left px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 ${statusFilter === option ? "text-emerald-500 font-medium" : ""}`}
                     >
                       {labels[option]}
                     </button>
@@ -463,52 +470,47 @@ export default function DashboardPage() {
             )}
           </div>
 
-          {/* 自定义日期选择 */}
-          {dateFilter === "custom" && (
-            <div className="flex items-center gap-2">
-              <input
-                type="date"
-                value={customDateRange.start}
-                onChange={(e) => setCustomDateRange({ ...customDateRange, start: e.target.value })}
-                className="input py-1.5 px-3 text-sm"
-              />
-              <span className="text-slate-400">-</span>
-              <input
-                type="date"
-                value={customDateRange.end}
-                onChange={(e) => setCustomDateRange({ ...customDateRange, end: e.target.value })}
-                className="input py-1.5 px-3 text-sm"
-              />
-            </div>
-          )}
-
           {/* 清除筛选 */}
           {hasActiveFilters && (
             <button
               onClick={clearFilters}
-              className="btn-ghost text-sm flex items-center gap-1 text-rose-500 hover:text-rose-700 py-2"
+              className="btn-ghost text-sm flex items-center gap-1 text-rose-500 hover:text-rose-700 py-1.5 px-2.5"
             >
-              <X className="w-4 h-4" />
+              <X className="w-3.5 h-3.5" />
               {lang === "en" ? "Clear" : lang === "zh-CN" ? "清除" : "清除"}
             </button>
           )}
-        </div>
 
-        <div className="flex items-center gap-2">
+          {/* 结果统计 */}
           {hasActiveFilters && (
-            <div className="text-xs text-slate-500">
-              {lang === "en" ? "Showing" : lang === "zh-CN" ? "显示" : "顯示"} {filteredOrders.length} {lang === "en" ? "of" : lang === "zh-CN" ? "/共" : "/共"} {orders.length} {lang === "en" ? "orders" : lang === "zh-CN" ? "笔订单" : "筆訂單"}
+            <div className="text-xs text-slate-500 ml-auto">
+              {filteredOrders.length}/{orders.length} {lang === "en" ? "orders" : lang === "zh-CN" ? "笔" : "筆"}
             </div>
           )}
-          <button onClick={fetchData} className="btn-ghost flex items-center gap-2 text-sm py-2">
-            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
-            {lang === "zh-CN" ? "刷新" : "Refresh"}
-          </button>
         </div>
+
+        {/* 自定义日期选择 */}
+        {dateFilter === "custom" && (
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              value={customDateRange.start}
+              onChange={(e) => setCustomDateRange({ ...customDateRange, start: e.target.value })}
+              className="input py-1.5 px-3 text-sm flex-1"
+            />
+            <span className="text-slate-400">—</span>
+            <input
+              type="date"
+              value={customDateRange.end}
+              onChange={(e) => setCustomDateRange({ ...customDateRange, end: e.target.value })}
+              className="input py-1.5 px-3 text-sm flex-1"
+            />
+          </div>
+        )}
       </div>
 
       {/* 统计卡片 */}
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4 mb-6">
         <StatCard label={t("orders_count") || (lang === "en" ? "Orders" : lang === "zh-CN" ? "订单数" : "訂單數")} value={formatNumber(totalOrdersCount)} icon={ShoppingCart} accent="indigo" />
         <StatCard label={lang === "en" ? "Revenue" : lang === "zh-CN" ? "营业收入" : "營業收入"} value={formatCurrency(totalRevenue, currency)} icon={DollarSign} accent="emerald" />
         <StatCard label={lang === "en" ? "Shipping Fees" : lang === "zh-CN" ? "运费收入" : "運費收入"} value={formatCurrency(totalShippingFees, currency)} icon={Truck} accent="amber" />
@@ -537,8 +539,8 @@ export default function DashboardPage() {
       {hasData && (
         <>
           {/* 图表区 */}
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
-            <div className="xl:col-span-2 card p-5">
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6 mb-6">
+            <div className="xl:col-span-2 card p-4 sm:p-5">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h2 className="text-base font-semibold">{t("sales_trend")}</h2>
@@ -551,10 +553,10 @@ export default function DashboardPage() {
                 <div className="h-72">
                   <ResponsiveContainer>
                     <LineChart data={salesTrend} margin={{ left: -10, right: 10 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                      <XAxis dataKey="date" fontSize={12} tickLine={false} axisLine={false} />
-                      <YAxis fontSize={12} tickLine={false} axisLine={false} />
-                      <Tooltip contentStyle={{ borderRadius: 8, fontSize: 12 }} formatter={(value: number) => formatCurrency(value, currency)} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                      <XAxis dataKey="date" fontSize={12} tickLine={false} axisLine={false} stroke="rgba(255,255,255,0.3)" />
+                      <YAxis fontSize={12} tickLine={false} axisLine={false} stroke="rgba(255,255,255,0.3)" />
+                      <Tooltip contentStyle={{ borderRadius: 8, fontSize: 12, background: "rgba(28,28,32,0.9)", border: "1px solid rgba(255,255,255,0.08)", color: "#f5f5f7" }} formatter={(value: number) => formatCurrency(value, currency)} />
                       <Line type="monotone" dataKey="revenue" stroke="#6366f1" strokeWidth={2.5} dot={{ r: 4, fill: "#6366f1" }} activeDot={{ r: 6 }} />
                       <Line type="monotone" dataKey="orders" stroke="#14b8a6" strokeWidth={2} dot={{ r: 3 }} />
                     </LineChart>
@@ -567,7 +569,7 @@ export default function DashboardPage() {
               )}
             </div>
 
-            <div className="card p-5">
+            <div className="card p-4 sm:p-5">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-base font-semibold">{t("monthly_revenue")}</h2>
                 <Activity className="w-4 h-4 text-slate-400" />
@@ -575,10 +577,10 @@ export default function DashboardPage() {
               <div className="h-72">
                 <ResponsiveContainer>
                   <BarChart data={monthlyRevenue} margin={{ left: -10, right: 10 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                    <XAxis dataKey="month" fontSize={12} tickLine={false} axisLine={false} />
-                    <YAxis fontSize={12} tickLine={false} axisLine={false} />
-                    <Tooltip contentStyle={{ borderRadius: 8, fontSize: 12 }} formatter={(value: number) => formatCurrency(value, currency)} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                    <XAxis dataKey="month" fontSize={12} tickLine={false} axisLine={false} stroke="rgba(255,255,255,0.3)" />
+                    <YAxis fontSize={12} tickLine={false} axisLine={false} stroke="rgba(255,255,255,0.3)" />
+                    <Tooltip contentStyle={{ borderRadius: 8, fontSize: 12, background: "rgba(28,28,32,0.9)", border: "1px solid rgba(255,255,255,0.08)", color: "#f5f5f7" }} formatter={(value: number) => formatCurrency(value, currency)} />
                     <Bar dataKey="revenue" fill="url(#g)" radius={[6, 6, 0, 0]} />
                     <defs>
                       <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
@@ -593,8 +595,8 @@ export default function DashboardPage() {
           </div>
 
           {/* 热销产品 & 低库存 */}
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
-            <div className="card p-5 xl:col-span-2">
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6 mb-6">
+            <div className="card p-4 sm:p-5 xl:col-span-2">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h2 className="text-base font-semibold">{t("top_products")}</h2>
@@ -602,28 +604,46 @@ export default function DashboardPage() {
                 </div>
               </div>
               {topProducts.length > 0 ? (
-                <div className="scrollable">
-                  <table className="data-table">
-                    <thead>
-                      <tr>
-                        <th>{lang === "en" ? "SKU" : lang === "zh-CN" ? "SKU" : "SKU"}</th>
-                        <th>{lang === "en" ? "Product" : lang === "zh-CN" ? "产品" : "產品"}</th>
-                        <th>{lang === "en" ? "Quantity Sold" : lang === "zh-CN" ? "已售数量" : "已售數量"}</th>
-                        <th>{lang === "en" ? "Revenue" : lang === "zh-CN" ? "销售额" : "銷售額"}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {topProducts.map((p, idx) => (
-                        <tr key={p.sku + idx}>
-                          <td className="font-mono text-xs text-slate-500">{p.sku || "—"}</td>
-                          <td className="font-medium">{p.name}</td>
-                          <td>{formatNumber(p.qty)}</td>
-                          <td className="font-semibold text-emerald-600">{formatCurrency(p.revenue, currency)}</td>
+                <>
+                  {/* 手机端: 卡片列表 */}
+                  <div className="sm:hidden space-y-3">
+                    {topProducts.map((p, idx) => (
+                      <div key={p.sku + idx} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm font-medium truncate">{p.name}</div>
+                          <div className="text-xs text-slate-500 font-mono">{p.sku || "—"}</div>
+                        </div>
+                        <div className="text-right ml-3 flex-shrink-0">
+                          <div className="text-sm font-semibold text-emerald-600">{formatCurrency(p.revenue, currency)}</div>
+                          <div className="text-xs text-slate-500">{formatNumber(p.qty)} {lang === "en" ? "sold" : lang === "zh-CN" ? "已售" : "已售"}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {/* 桌面端: 表格 */}
+                  <div className="hidden sm:block scrollable">
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th>{lang === "en" ? "SKU" : lang === "zh-CN" ? "SKU" : "SKU"}</th>
+                          <th>{lang === "en" ? "Product" : lang === "zh-CN" ? "产品" : "產品"}</th>
+                          <th>{lang === "en" ? "Quantity Sold" : lang === "zh-CN" ? "已售数量" : "已售數量"}</th>
+                          <th>{lang === "en" ? "Revenue" : lang === "zh-CN" ? "销售额" : "銷售額"}</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {topProducts.map((p, idx) => (
+                          <tr key={p.sku + idx}>
+                            <td className="font-mono text-xs text-slate-500">{p.sku || "—"}</td>
+                            <td className="font-medium">{p.name}</td>
+                            <td>{formatNumber(p.qty)}</td>
+                            <td className="font-semibold text-emerald-600">{formatCurrency(p.revenue, currency)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
               ) : (
                 <div className="text-center py-8 text-slate-400 text-sm">
                   {lang === "en" ? "No product sales data in selected period" : lang === "zh-CN" ? "所选时段暂无产品销售数据" : "所選時段暫無產品銷售數據"}
@@ -631,25 +651,25 @@ export default function DashboardPage() {
               )}
             </div>
 
-            <div className="card p-5">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-base font-semibold">{t("low_stock")} · {lowStock}</h2>
+            <div className="card p-4 sm:p-5">
+              <div className="flex items-center justify-between mb-3 sm:mb-4">
+                <h2 className="text-sm sm:text-base font-semibold">{t("low_stock")} · {lowStock}</h2>
                 <AlertTriangle className="w-4 h-4 text-amber-500" />
               </div>
-              <div className="space-y-3">
+              <div className="space-y-2 sm:space-y-3">
                 {products.filter((p) => (p.stock || 0) < 100).slice(0, 5).map((p) => {
                   const stock = p.stock || 0;
                   const pct = Math.max(5, Math.min(100, (stock / 100) * 100));
                   return (
-                    <div key={p.id} className="flex items-center justify-between gap-3">
+                    <div key={p.id} className="flex items-center justify-between gap-2 sm:gap-3">
                       <div className="min-w-0 flex-1">
-                        <div className="text-sm font-medium truncate">{p.name}</div>
-                        <div className="text-xs text-slate-500 font-mono">{p.sku}</div>
-                        <div className="mt-1.5 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                        <div className="text-xs sm:text-sm font-medium truncate">{p.name}</div>
+                        <div className="text-[10px] sm:text-xs text-slate-500 font-mono">{p.sku}</div>
+                        <div className="mt-1 h-1 sm:h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                           <div className="h-full bg-amber-500" style={{ width: `${pct}%` }} />
                         </div>
                       </div>
-                      <div className="text-sm font-semibold">{stock}</div>
+                      <div className="text-xs sm:text-sm font-semibold">{stock}</div>
                     </div>
                   );
                 })}
@@ -663,7 +683,7 @@ export default function DashboardPage() {
           </div>
 
           {/* 商品销售总数统计 */}
-          <div className="card p-5 mb-6">
+          <div className="card p-4 sm:p-5 mb-6">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="text-base font-semibold">
@@ -680,31 +700,31 @@ export default function DashboardPage() {
               {allProductSales.length > 0 && (
                 <div className="text-right">
                   <div className="text-xs text-slate-500">{lang === "en" ? "Total Items Sold" : lang === "zh-CN" ? "已售总件数" : "已售總件數"}</div>
-                  <div className="text-2xl font-bold text-indigo-600">
+                  <div className="text-xl sm:text-2xl font-bold text-emerald-500">
                     {formatNumber(allProductSales.reduce((s, p) => s + p.qty, 0))}
                   </div>
                 </div>
               )}
             </div>
             {allProductSales.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-4">
                 {allProductSales.map((p, idx) => (
-                  <div key={p.sku + idx} className="rounded-xl border border-slate-200 dark:border-slate-800 p-3 hover:shadow-md transition-shadow">
-                    <div className="relative w-full aspect-square bg-slate-100 dark:bg-slate-800 rounded-lg overflow-hidden mb-3">
+                  <div key={p.sku + idx} className="rounded-xl border border-slate-200 dark:border-slate-800 p-2 sm:p-3 hover:shadow-md transition-shadow">
+                    <div className="relative w-full aspect-square bg-slate-100 dark:bg-slate-800 rounded-lg overflow-hidden mb-2 sm:mb-3">
                       {p.image ? (
                         <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-3xl">📦</div>
+                        <div className="w-full h-full flex items-center justify-center text-2xl sm:text-3xl">📦</div>
                       )}
-                      <div className="absolute top-2 right-2 min-w-[32px] h-8 px-2 bg-indigo-600 text-white text-sm font-bold rounded-lg flex items-center justify-center shadow-md">
+                      <div className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 min-w-[24px] sm:min-w-[32px] h-6 sm:h-8 px-1.5 sm:px-2 bg-emerald-500 text-white text-xs sm:text-sm font-bold rounded-md sm:rounded-lg flex items-center justify-center shadow-md">
                         ×{p.qty}
                       </div>
                     </div>
-                    <div className="text-sm font-medium truncate">{p.name}</div>
-                    <div className="text-xs text-slate-500 font-mono truncate">{p.sku}</div>
-                    <div className="mt-2 flex items-center justify-between">
-                      <span className="text-xs text-slate-500">{lang === "en" ? "Qty" : lang === "zh-CN" ? "数量" : "數量"}</span>
-                      <span className="text-lg font-bold text-emerald-600">{formatNumber(p.qty)}</span>
+                    <div className="text-xs sm:text-sm font-medium truncate">{p.name}</div>
+                    <div className="text-[10px] sm:text-xs text-slate-500 font-mono truncate">{p.sku}</div>
+                    <div className="mt-1 sm:mt-2 flex items-center justify-between">
+                      <span className="text-[10px] sm:text-xs text-slate-500">{lang === "en" ? "Qty" : lang === "zh-CN" ? "数量" : "數量"}</span>
+                      <span className="text-sm sm:text-lg font-bold text-emerald-600">{formatNumber(p.qty)}</span>
                     </div>
                   </div>
                 ))}
@@ -717,40 +737,64 @@ export default function DashboardPage() {
           </div>
 
           {/* 最近订单 & 活跃代理商 */}
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
-            <div className="card p-5 xl:col-span-2">
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6 mb-6">
+            <div className="card p-4 sm:p-5 xl:col-span-2">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-base font-semibold">{lang === "en" ? "Recent orders" : lang === "zh-CN" ? "最近订单" : "最近訂單"}</h2>
               </div>
               {filteredOrders.length > 0 ? (
-                <div className="scrollable">
-                  <table className="data-table">
-                    <thead>
-                      <tr>
-                        <th>{t("order_no")}</th>
-                        <th>{t("customer_name")}</th>
-                        <th>{t("amount")}</th>
-                        <th>{lang === "en" ? "Shipping" : lang === "zh-CN" ? "运费" : "運費"}</th>
-                        <th>{t("status")}</th>
-                        <th>{lang === "en" ? "Date" : lang === "zh-CN" ? "日期" : "日期"}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredOrders.slice(0, 5).map((o: any) => (
-                        <tr key={o.id || o.orderNo}>
-                          <td className="font-mono text-xs">{o.orderNo}</td>
-                          <td className="font-medium">{o.company || o.contactName || o.agentId || "—"}</td>
-                          <td>{formatCurrency(o.total || 0, currency)}</td>
-                          <td className={o.shippingFee ? "text-orange-600 font-medium" : "text-slate-400"}>
-                            {o.shippingFee ? formatCurrency(o.shippingFee, currency) : "—"}
-                          </td>
-                          <td><StatusBadge status={o.status} /></td>
-                          <td className="text-slate-500 text-sm">{(o.date && o.date.split("T")[0]) || (o.createdAt && o.createdAt.split("T")[0]) || "—"}</td>
+                <>
+                  {/* 手机端: 卡片列表 */}
+                  <div className="sm:hidden space-y-3">
+                    {filteredOrders.slice(0, 5).map((o: any) => (
+                      <div key={o.id || o.orderNo} className="border-b border-white/5 last:border-0 pb-3 last:pb-0">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-mono text-xs text-slate-400">{o.orderNo}</span>
+                          <StatusBadge status={o.status} />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium truncate">{o.company || o.contactName || o.agentId || "—"}</span>
+                          <span className="text-sm font-semibold ml-2 flex-shrink-0">{formatCurrency(o.total || 0, currency)}</span>
+                        </div>
+                        <div className="flex items-center justify-between mt-1">
+                          <span className="text-xs text-slate-500">{(o.date && o.date.split("T")[0]) || (o.createdAt && o.createdAt.split("T")[0]) || "—"}</span>
+                          {o.shippingFee ? (
+                            <span className="text-xs text-orange-500">{lang === "en" ? "Shipping" : lang === "zh-CN" ? "运费" : "運費"} {formatCurrency(o.shippingFee, currency)}</span>
+                          ) : null}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {/* 桌面端: 表格 */}
+                  <div className="hidden sm:block scrollable">
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th>{t("order_no")}</th>
+                          <th>{t("customer_name")}</th>
+                          <th>{t("amount")}</th>
+                          <th>{lang === "en" ? "Shipping" : lang === "zh-CN" ? "运费" : "運費"}</th>
+                          <th>{t("status")}</th>
+                          <th>{lang === "en" ? "Date" : lang === "zh-CN" ? "日期" : "日期"}</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {filteredOrders.slice(0, 5).map((o: any) => (
+                          <tr key={o.id || o.orderNo}>
+                            <td className="font-mono text-xs">{o.orderNo}</td>
+                            <td className="font-medium">{o.company || o.contactName || o.agentId || "—"}</td>
+                            <td>{formatCurrency(o.total || 0, currency)}</td>
+                            <td className={o.shippingFee ? "text-orange-600 font-medium" : "text-slate-400"}>
+                              {o.shippingFee ? formatCurrency(o.shippingFee, currency) : "—"}
+                            </td>
+                            <td><StatusBadge status={o.status} /></td>
+                            <td className="text-slate-500 text-sm">{(o.date && o.date.split("T")[0]) || (o.createdAt && o.createdAt.split("T")[0]) || "—"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
               ) : (
                 <div className="text-center py-8 text-slate-400 text-sm">
                   {lang === "en" ? "No orders in selected period" : lang === "zh-CN" ? "所选时段暂无订单" : "所選時段暫無訂單"}
@@ -758,14 +802,14 @@ export default function DashboardPage() {
               )}
             </div>
 
-            <div className="card p-5">
+            <div className="card p-4 sm:p-5">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-base font-semibold">{lang === "en" ? "Top Agents" : lang === "zh-CN" ? "活跃代理商" : "活躍代理商"}</h2>
               </div>
               <div className="space-y-3">
                 {activeAgents.length > 0 ? activeAgents.map((a: any, i: number) => (
                   <div key={a.name + i} className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center text-xs font-semibold flex-shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 text-white flex items-center justify-center text-xs font-semibold flex-shrink-0">
                       {i + 1}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -785,13 +829,13 @@ export default function DashboardPage() {
           </div>
 
           {/* 仓库库存 & 通知 */}
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
-            <div className="card p-5 xl:col-span-2">
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6 mb-6">
+            <div className="card p-4 sm:p-5 xl:col-span-2">
               <h2 className="text-base font-semibold mb-4">
                 {lang === "en" ? "Warehouses & stock" : lang === "zh-CN" ? "仓库与库存" : "倉庫與庫存"}
               </h2>
               {warehouses.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
                   {warehouses.map((w) => (
                     <div key={w.id} className="rounded-xl border border-slate-200 dark:border-slate-800 p-4">
                       <div className="flex items-center justify-between mb-2">
@@ -813,14 +857,14 @@ export default function DashboardPage() {
                 </div>
               ) : (
                 <div className="text-center py-8 text-slate-400">
-                  <a href="/admin/warehouse" className="text-indigo-600 hover:underline">
+                  <a href="/admin/warehouse" className="text-emerald-500 hover:underline">
                     {lang === "zh-CN" ? "添加第一个仓库" : "Add your first warehouse"}
                   </a>
                 </div>
               )}
             </div>
 
-            <div className="card p-5">
+            <div className="card p-4 sm:p-5">
               <div className="flex items-center justify-between mb-2">
                 <h2 className="text-base font-semibold">{t("notifications")}</h2>
                 {unread > 0 && <Badge tone="yellow">{unread} {lang === "en" ? "new" : lang === "zh-CN" ? "新" : "新"}</Badge>}
@@ -828,7 +872,7 @@ export default function DashboardPage() {
               {notifications.length > 0 ? (
                 <div className="space-y-2 max-h-72 overflow-y-auto">
                   {notifications.slice(0, 5).map((n) => (
-                    <div key={n.id} className={`rounded-lg border border-slate-200 dark:border-slate-800 p-3 ${n.read ? "" : "bg-indigo-50/50 dark:bg-indigo-950/20 border-indigo-200/50 dark:border-indigo-900/40"}`}>
+                    <div key={n.id} className={`rounded-lg border border-slate-200 dark:border-slate-800 p-3 ${n.read ? "" : "bg-emerald-500/10 border-emerald-500/20"}`}>
                       <div className="text-sm font-medium">{n.title}</div>
                       <div className="text-xs text-slate-500">{n.message}</div>
                       <div className="text-[10px] text-slate-400 mt-1">{n.time}</div>

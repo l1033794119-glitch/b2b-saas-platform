@@ -220,6 +220,20 @@ export default function MyOrdersPage() {
     return () => clearInterval(interval);
   }, [user?.id]);
 
+  // 模态框打开时锁定背景滚动
+  useEffect(() => {
+    if (selected && typeof window !== "undefined") {
+      const origBody = document.body.style.overflow;
+      const origHtml = document.documentElement.style.overflow;
+      document.body.style.overflow = "hidden";
+      document.documentElement.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = origBody;
+        document.documentElement.style.overflow = origHtml;
+      };
+    }
+  }, [selected]);
+
   const canCancelOrder = (status: string) => {
     return ["pending_qrcode", "pending_delivery", "pending_tracking"].includes(status);
   };
@@ -395,11 +409,9 @@ export default function MyOrdersPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* Orders List */}
-        <div className={`${selected ? "xl:col-span-1" : "xl:col-span-3"}`}>
-          <div className="card p-0 overflow-hidden">
-            <div className="scrollable">
+      {/* Orders List */}
+      <div className="card p-0 overflow-hidden">
+        <div className="scrollable">
               {loading ? (
                 <div className="text-center py-12 text-slate-500">{lang === "en" ? "Loading..." : lang === "zh-CN" ? "加载中..." : "載入中..."}</div>
               ) : filteredOrders.length === 0 ? (
@@ -454,14 +466,23 @@ export default function MyOrdersPage() {
                   </tbody>
                 </table>
               )}
-            </div>
-          </div>
         </div>
+      </div>
 
-        {/* Order Detail */}
-        {selected && (
-          <div className="xl:col-span-2">
-            <div className="card p-6">
+      {/* Order Detail Modal */}
+      {selected && (
+        <div
+          className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+          onClick={() => setSelected(null)}
+          onTouchMove={(e) => { if (e.target === e.currentTarget) e.preventDefault(); }}
+          style={{ touchAction: "none" }}
+        >
+          <div
+            className="card p-4 sm:p-6 w-full max-w-full sm:max-w-4xl max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl"
+            onClick={(e) => e.stopPropagation()}
+            onTouchStart={(e) => { e.stopPropagation(); }}
+            style={{ touchAction: "auto", WebkitOverflowScrolling: "touch" }}
+          >
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <div className="text-xs text-slate-500 font-mono">{selected.orderNo}</div>
@@ -649,7 +670,6 @@ export default function MyOrdersPage() {
             </div>
           </div>
         )}
-      </div>
 
       {/* Cancel Order Modal */}
       {showCancelModal && selected && (

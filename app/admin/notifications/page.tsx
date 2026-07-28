@@ -42,7 +42,7 @@ export default function NotificationsPage() {
           { id: "low_stock", label: t("low_stock_alerts") },
           { id: "payment", label: t("payment_reminders") },
         ].map((o) => (
-          <button key={o.id} onClick={() => setFlt(o.id)} className={`px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-800 ${flt === o.id ? "bg-indigo-600 text-white border-indigo-600" : ""}`}>
+          <button key={o.id} onClick={() => setFlt(o.id)} className={`px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-800 ${flt === o.id ? "bg-emerald-500 text-white border-emerald-500" : ""}`}>
             {o.label}
           </button>
         ))}
@@ -56,7 +56,7 @@ export default function NotificationsPage() {
           {list.map((n) => {
             const Icon = icons[n.type] || Bell;
             return (
-              <div key={n.id} className={`flex gap-3 p-4 rounded-xl border ${n.read ? "border-slate-200 dark:border-slate-800" : "border-indigo-200 bg-indigo-50/50 dark:bg-indigo-950/20 dark:border-indigo-900/40"}`}>
+              <div key={n.id} className={`flex gap-3 p-4 rounded-xl border ${n.read ? "border-slate-200 dark:border-slate-800" : "border-emerald-500/20 bg-emerald-500/5"}`}>
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${n.type === "new_order" ? "bg-blue-100 dark:bg-blue-950/40 text-blue-600" : n.type === "shipment" ? "bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600" : n.type === "low_stock" ? "bg-amber-100 dark:bg-amber-950/40 text-amber-600" : n.type === "payment" ? "bg-rose-100 dark:bg-rose-950/40 text-rose-600" : "bg-slate-100 dark:bg-slate-900 text-slate-600"}`}>
                   <Icon className="w-5 h-5" />
                 </div>

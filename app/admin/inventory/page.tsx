@@ -157,8 +157,8 @@ export default function InventoryPage() {
     <AdminLayout title={t("inventory")} subtitle={lang === "en" ? "库存管理" : "庫存管理"}>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div className="card p-4 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center">
-            <Package className="w-6 h-6 text-indigo-600" />
+          <div className="w-12 h-12 rounded-xl bg-emerald-500/15 flex items-center justify-center">
+            <Package className="w-6 h-6 text-emerald-500" />
           </div>
           <div>
             <div className="text-2xl font-bold">{formatNumber(filteredProducts.length)}</div>
@@ -197,13 +197,13 @@ export default function InventoryPage() {
       <div className="flex gap-2 mb-5 flex-wrap">
         <button
           onClick={() => setTab("overview")}
-          className={`px-4 py-2 rounded-lg text-sm font-medium border border-slate-200 dark:border-slate-800 ${tab === "overview" ? "bg-indigo-600 text-white border-indigo-600" : ""}`}
+          className={`px-4 py-2 rounded-lg text-sm font-medium border border-slate-200 dark:border-slate-800 ${tab === "overview" ? "bg-emerald-500 text-white border-emerald-500" : ""}`}
         >
           {lang === "en" ? "Overview" : "总览"}
         </button>
         <button
           onClick={() => setTab("logs")}
-          className={`px-4 py-2 rounded-lg text-sm font-medium border border-slate-200 dark:border-slate-800 ${tab === "logs" ? "bg-indigo-600 text-white border-indigo-600" : ""}`}
+          className={`px-4 py-2 rounded-lg text-sm font-medium border border-slate-200 dark:border-slate-800 ${tab === "logs" ? "bg-emerald-500 text-white border-emerald-500" : ""}`}
         >
           {lang === "en" ? "Logs" : "操作记录"}
         </button>
@@ -215,7 +215,7 @@ export default function InventoryPage() {
       {tab === "overview" ? (
         <>
           {selectedProduct && (
-            <div className="card p-5 mb-6 border-2 border-indigo-200 dark:border-indigo-800">
+            <div className="card p-5 mb-6 border-2 border-emerald-500/20">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="font-semibold">{lang === "en" ? "Adjust Stock" : "调整库存"}</h3>
@@ -225,7 +225,7 @@ export default function InventoryPage() {
                   <div className="text-xs text-slate-500 mt-1 flex items-center gap-1.5">
                     <MapPin className="w-3.5 h-3.5" />
                     {lang === "en" ? "Warehouse:" : "仓库:"} <span className="font-medium">{selectedProduct.warehouse}</span>
-                    {" · "}{lang === "en" ? "Current:" : "当前:"} <span className="font-medium text-indigo-600">{formatNumber(selectedProduct.stock)}</span>
+                    {" · "}{lang === "en" ? "Current:" : "当前:"} <span className="font-medium text-emerald-500">{formatNumber(selectedProduct.stock)}</span>
                   </div>
                 </div>
                 <button onClick={() => setSelectedProduct(null)} className="text-slate-400 hover:text-slate-700">✕</button>

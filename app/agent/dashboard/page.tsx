@@ -222,7 +222,7 @@ export default function AgentDashboard() {
                     setShowDatePicker(false);
                   }}
                   className={`w-full text-left px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 first:rounded-t-xl last:rounded-b-xl ${
-                    dateFilter === option.value ? "text-indigo-600 dark:text-indigo-400 font-medium" : ""
+                    dateFilter === option.value ? "text-emerald-500 font-medium" : ""
                   }`}
                 >
                   {option.label}
@@ -254,7 +254,7 @@ export default function AgentDashboard() {
 
       {/* 统计卡片 */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <StatCard label={t("orders")} value={formatNumber(stats.totalOrders)} icon={Package} accent="indigo" />
+        <StatCard label={t("orders")} value={formatNumber(stats.totalOrders)} icon={Package} accent="emerald" />
         <StatCard label={lang === "en" ? "Total spent" : lang === "zh-CN" ? "累计消费" : "累計消費"} value={formatCurrency(stats.totalSpent, currency)} icon={CreditCard} accent="emerald" />
         <StatCard label={lang === "en" ? "Shipping fees" : lang === "zh-CN" ? "运费支出" : "運費支出"} value={formatCurrency(stats.totalShippingFees, currency)} icon={Truck} accent="amber" />
         <StatCard label={lang === "en" ? "Credit available" : lang === "zh-CN" ? "可用额度" : "可用額度"} value={formatCurrency(credit?.available ?? 0, currency)} icon={CreditCard} accent="amber" />
@@ -278,7 +278,7 @@ export default function AgentDashboard() {
           {purchasedProducts.length > 0 && (
             <div className="text-right">
               <div className="text-xs text-slate-500">{lang === "en" ? "Total Items" : lang === "zh-CN" ? "总件数" : "總件數"}</div>
-              <div className="text-2xl font-bold text-indigo-600">
+              <div className="text-2xl font-bold text-emerald-500">
                 {formatNumber(purchasedProducts.reduce((s, p) => s + p.qty, 0))}
               </div>
             </div>
@@ -294,7 +294,7 @@ export default function AgentDashboard() {
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-3xl">📦</div>
                   )}
-                  <div className="absolute top-2 right-2 min-w-[32px] h-8 px-2 bg-indigo-600 text-white text-sm font-bold rounded-lg flex items-center justify-center shadow-md">
+                  <div className="absolute top-2 right-2 min-w-[32px] h-8 px-2 bg-emerald-500 text-white text-sm font-bold rounded-lg flex items-center justify-center shadow-md">
                     ×{p.qty}
                   </div>
                 </div>
@@ -358,7 +358,7 @@ export default function AgentDashboard() {
         <div className="card p-5">
           <h2 className="text-base font-semibold mb-4">{t("account_info")}</h2>
           <div className="flex items-center gap-3 mb-5">
-            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center text-xl font-semibold">
+            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white flex items-center justify-center text-xl font-semibold">
               {(user?.name || "A").charAt(0)}
             </div>
             <div>
@@ -373,8 +373,8 @@ export default function AgentDashboard() {
           </div>
 
           {/* 信用账户面板 */}
-          <div className="mt-4 p-4 rounded-xl bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30 border border-indigo-100 dark:border-indigo-900">
-            <div className="text-xs text-indigo-600 dark:text-indigo-400 font-medium mb-3">{lang === "en" ? "Credit Account" : lang === "zh-CN" ? "信用账户" : "信用帳戶"}</div>
+          <div className="mt-4 p-4 rounded-xl bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border border-emerald-500/20">
+            <div className="text-xs text-emerald-500 font-medium mb-3">{lang === "en" ? "Credit Account" : lang === "zh-CN" ? "信用账户" : "信用帳戶"}</div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-xs text-slate-500">{lang === "en" ? "Credit limit" : lang === "zh-CN" ? "信用额度" : "信用額度"}</span>
@@ -384,15 +384,15 @@ export default function AgentDashboard() {
                 <span className="text-xs text-slate-500">{lang === "en" ? "Outstanding" : lang === "zh-CN" ? "已用额度" : "已用額度"}</span>
                 <span className="text-sm font-semibold text-amber-600">{formatCurrency(credit?.outstanding ?? 0, currency)}</span>
               </div>
-              <div className="h-1.5 bg-indigo-100 dark:bg-indigo-900 rounded-full overflow-hidden mt-2">
+              <div className="h-1.5 bg-emerald-500/15 rounded-full overflow-hidden mt-2">
                 <div
-                  className="h-full bg-indigo-500 rounded-full"
+                  className="h-full bg-emerald-500 rounded-full"
                   style={{ width: `${credit && credit.creditLimit > 0 ? Math.min(100, (credit.outstanding / credit.creditLimit) * 100) : 0}%` }}
                 />
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-slate-500">{lang === "en" ? "Available" : lang === "zh-CN" ? "可用额度" : "可用額度"}</span>
-                <span className="text-sm font-bold text-indigo-600">{formatCurrency(credit?.available ?? 0, currency)}</span>
+                <span className="text-sm font-bold text-emerald-500">{formatCurrency(credit?.available ?? 0, currency)}</span>
               </div>
             </div>
           </div>
@@ -451,7 +451,7 @@ export default function AgentDashboard() {
         ) : (
           <div className="space-y-2">
             {notifications.slice(0, 4).map((n) => (
-              <div key={n.id} className={`rounded-xl border p-3 ${n.read ? "border-slate-200 dark:border-slate-800" : "border-indigo-200 bg-indigo-50/50 dark:border-indigo-900/40 dark:bg-indigo-950/20"}`}>
+              <div key={n.id} className={`rounded-xl border p-3 ${n.read ? "border-slate-200 dark:border-slate-800" : "border-emerald-500/30 bg-emerald-500/5"}`}>
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <div className="text-sm font-semibold">{n.title}</div>

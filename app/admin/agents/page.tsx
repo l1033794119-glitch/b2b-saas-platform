@@ -176,7 +176,7 @@ export default function AgentsPage() {
           {filtered.map((a) => (
             <div key={a.id} className="card p-5">
               <div className="flex items-start justify-between mb-3">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center font-semibold">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white flex items-center justify-center font-semibold">
                   {a.company.charAt(0)}
                 </div>
                 <StatusBadge status={a.status} />

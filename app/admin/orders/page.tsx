@@ -249,6 +249,19 @@ export default function OrdersPage() {
     fetchProducts();
   }, []);
 
+  useEffect(() => {
+    if (selected && typeof window !== "undefined") {
+      const originalBodyOverflow = document.body.style.overflow;
+      const originalHtmlOverflow = document.documentElement.style.overflow;
+      document.body.style.overflow = "hidden";
+      document.documentElement.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = originalBodyOverflow;
+        document.documentElement.style.overflow = originalHtmlOverflow;
+      };
+    }
+  }, [selected]);
+
   const [updatingOrderIds, setUpdatingOrderIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -726,7 +739,7 @@ export default function OrdersPage() {
             <button
               key={s.id}
               onClick={() => setFlt(s.id)}
-              className={`px-3 py-1.5 text-xs sm:text-sm rounded-lg border border-slate-200 dark:border-slate-800 ${flt === s.id ? "bg-indigo-600 text-white border-indigo-600" : ""}`}
+              className={`px-3 py-1.5 text-xs sm:text-sm rounded-lg border border-slate-200 dark:border-slate-800 ${flt === s.id ? "bg-emerald-500 text-white border-emerald-500" : ""}`}
             >
               {lang === "en" ? s.labelEn : lang === "zh-CN" ? s.labelZhCN : s.labelZhTW}
             </button>
@@ -762,7 +775,18 @@ export default function OrdersPage() {
       </div>
 
       {selectedOrder && (
-        <div className="card p-4 sm:p-6 mb-4 sm:mb-6">
+        <div 
+          className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+          onClick={() => setSelected(null)}
+          onTouchMove={(e) => { if (e.target === e.currentTarget) e.preventDefault(); }}
+          style={{ touchAction: "none" }}
+        >
+          <div 
+            className="card p-4 sm:p-6 w-full max-w-full sm:max-w-4xl max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl"
+            onClick={(e) => e.stopPropagation()}
+            onTouchStart={(e) => { e.stopPropagation(); }}
+            style={{ touchAction: "auto", WebkitOverflowScrolling: "touch" }}
+          >
           <div className="flex items-start justify-between mb-4 gap-3">
             <div className="min-w-0 flex-1">
               <div className="text-xs text-slate-500 font-mono truncate">{selectedOrder.orderNo}</div>
@@ -806,7 +830,7 @@ export default function OrdersPage() {
                   <MapPin className="w-4 h-4 text-slate-400" />
                   <span className="text-xs text-slate-500">{t("shipping_address")}</span>
                 </div>
-                <button onClick={openAddressEdit} className="text-xs text-indigo-600 hover:text-indigo-700 flex items-center gap-1">
+                <button onClick={openAddressEdit} className="text-xs text-emerald-500 hover:text-emerald-500 flex items-center gap-1">
                   <Edit2 className="w-3 h-3" />
                   {lang === "en" ? "Edit" : lang === "zh-CN" ? "编辑" : "編輯"}
                 </button>
@@ -1212,7 +1236,7 @@ export default function OrdersPage() {
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-xl">📦</div>
                         )}
-                        <div className="absolute -top-2 -right-2 w-7 h-7 bg-indigo-600 text-white text-sm font-bold rounded-full flex items-center justify-center shadow-md border-2 border-white dark:border-slate-900">
+                        <div className="absolute -top-2 -right-2 w-7 h-7 bg-emerald-500 text-white text-sm font-bold rounded-full flex items-center justify-center shadow-md border-2 border-white dark:border-slate-900">
                           {item.quantity}
                         </div>
                       </div>
@@ -1221,19 +1245,19 @@ export default function OrdersPage() {
                         <div className="text-xs text-slate-500 font-mono">SKU: {item.sku}</div>
                       </div>
                       <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                        <div className="text-lg font-bold text-indigo-600">×{item.quantity}</div>
+                        <div className="text-lg font-bold text-emerald-500">×{item.quantity}</div>
                         <div className="text-xs text-slate-400">{lang === "en" ? "pieces" : lang === "zh-CN" ? "件" : "件"}</div>
                         <div className="text-sm font-medium text-slate-700 dark:text-slate-300">{formatCurrency(item.price * item.quantity, currency)}</div>
                       </div>
                     </div>
                   );
                 })}
-                <div className="mt-3 p-3 bg-indigo-50 dark:bg-indigo-950/30 rounded-xl">
+                <div className="mt-3 p-3 bg-emerald-500/10 rounded-xl">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-indigo-700 dark:text-indigo-400">
+                    <span className="text-sm font-medium text-emerald-500">
                       {lang === "en" ? "Total Items" : lang === "zh-CN" ? "商品总数" : "商品總數"}
                     </span>
-                    <span className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
+                    <span className="text-2xl font-bold text-emerald-500">
                       {selectedOrder.items.reduce((sum: number, it: any) => sum + it.quantity, 0)}
                     </span>
                   </div>
@@ -1281,6 +1305,7 @@ export default function OrdersPage() {
 
             <button className="btn-ghost flex items-center gap-2"><FileText className="w-4 h-4" /> {t("download_invoice")}</button>
           </div>
+          </div>
         </div>
       )}
 
@@ -1313,7 +1338,7 @@ export default function OrdersPage() {
                 <label className="block text-sm font-medium mb-1.5">
                   {lang === "en" ? "Tracking Image" : lang === "zh-CN" ? "运单图片" : "運單圖片"}
                 </label>
-                <div className="border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl p-4 text-center hover:border-indigo-500 transition-colors">
+                <div className="border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl p-4 text-center hover:border-emerald-500 transition-colors">
                   {shipInfo.trackingImage ? (
                     <div className="relative">
                       <img src={shipInfo.trackingImage} alt="Tracking" className="max-h-40 mx-auto rounded-lg" />
@@ -1405,49 +1430,108 @@ export default function OrdersPage() {
           ) : filtered.length === 0 ? (
             <div className="text-center py-8 text-slate-500">{lang === "en" ? "No orders found" : lang === "zh-CN" ? "暂无订单" : "暫無訂單"}</div>
           ) : (
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>{t("order_no")}</th>
-                  <th className="hidden sm:table-cell">{lang === "en" ? "Agent" : lang === "zh-CN" ? "代理商" : "代理商"}</th>
-                  <th>{lang === "en" ? "Contact" : lang === "zh-CN" ? "联系人" : "聯絡人"}</th>
-                  <th className="hidden md:table-cell">{lang === "en" ? "Postal Code" : lang === "zh-CN" ? "邮编" : "郵遞區號"}</th>
-                  <th className="hidden sm:table-cell">{t("order_date")}</th>
-                  <th>{t("amount")}</th>
-                  <th>{t("status")}</th>
-                  <th className="hidden lg:table-cell">{t("tracking_number")}</th>
-                  <th>{t("actions")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((o) => {
-                  const agent = agents.find((a) => a.id === o.agentId);
-                  return (
-                    <tr key={o.id}>
-                      <td className="font-mono text-xs">{o.orderNo}</td>
-                      <td className="hidden sm:table-cell font-medium">
-                        <div>{agent?.company || o.agentId}</div>
-                        {agent?.email && <div className="text-xs text-slate-400">{agent.email}</div>}
-                      </td>
-                      <td className="font-medium">
-                        <div className="truncate max-w-[120px] sm:max-w-none">{o.contactName || o.company || "N/A"}</div>
-                        {o.phone && <div className="text-xs text-slate-400 truncate max-w-[120px] sm:max-w-none">{o.phone}</div>}
-                      </td>
-                      <td className="hidden md:table-cell text-sm text-slate-500 font-mono">{o.postalCode || "—"}</td>
-                      <td className="hidden sm:table-cell text-slate-500 text-sm whitespace-nowrap">{new Date(o.date).toLocaleDateString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit", timeZone: "Asia/Shanghai" })}</td>
-                      <td className="font-medium whitespace-nowrap">{formatCurrency(o.total, currency)}</td>
-                      <td><StatusBadge status={o.status} /></td>
-                      <td className="hidden lg:table-cell text-sm text-slate-500 font-mono">{o.trackingNumber || "—"}</td>
-                      <td>
-                        <button onClick={() => setSelected(o.id)} className="text-indigo-600 hover:underline text-sm flex items-center gap-1">
-                          <Eye className="w-3.5 h-3.5" /> <span className="hidden sm:inline">{t("view")}</span>
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <>
+            <div className="hidden sm:block">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>{t("order_no")}</th>
+                    <th className="hidden md:table-cell">{lang === "en" ? "Agent" : lang === "zh-CN" ? "代理商" : "代理商"}</th>
+                    <th>{lang === "en" ? "Contact" : lang === "zh-CN" ? "联系人" : "聯絡人"}</th>
+                    <th className="hidden lg:table-cell">{lang === "en" ? "Postal Code" : lang === "zh-CN" ? "邮编" : "郵遞區號"}</th>
+                    <th className="hidden md:table-cell">{t("order_date")}</th>
+                    <th>{t("amount")}</th>
+                    <th>{t("status")}</th>
+                    <th className="hidden xl:table-cell">{t("tracking_number")}</th>
+                    <th>{t("actions")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((o) => {
+                    const agent = agents.find((a) => a.id === o.agentId);
+                    return (
+                      <tr key={o.id}>
+                        <td className="font-mono text-xs">{o.orderNo}</td>
+                        <td className="hidden md:table-cell font-medium">
+                          <div>{agent?.company || o.agentId}</div>
+                          {agent?.email && <div className="text-xs text-slate-400">{agent.email}</div>}
+                        </td>
+                        <td className="font-medium">
+                          <div className="truncate max-w-[140px]">{o.contactName || o.company || "N/A"}</div>
+                          {o.phone && <div className="text-xs text-slate-400 truncate max-w-[140px]">{o.phone}</div>}
+                        </td>
+                        <td className="hidden xl:table-cell text-sm text-slate-500 font-mono">{o.postalCode || "—"}</td>
+                        <td className="hidden md:table-cell text-slate-500 text-sm whitespace-nowrap">{new Date(o.date).toLocaleDateString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit", timeZone: "Asia/Shanghai" })}</td>
+                        <td className="font-medium whitespace-nowrap">{formatCurrency(o.total, currency)}</td>
+                        <td><StatusBadge status={o.status} /></td>
+                        <td className="hidden xl:table-cell text-sm text-slate-500 font-mono truncate max-w-[140px]">{o.trackingNumber || "—"}</td>
+                        <td>
+                          <button onClick={() => setSelected(o.id)} className="text-emerald-500 hover:underline text-sm flex items-center gap-1">
+                            <Eye className="w-3.5 h-3.5" /> <span>{t("view")}</span>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="sm:hidden space-y-3">
+              {filtered.map((o) => {
+                const agent = agents.find((a) => a.id === o.agentId);
+                return (
+                  <div
+                    key={o.id}
+                    onClick={() => setSelected(o.id)}
+                    className="card p-4 cursor-pointer active:scale-[0.98] transition-transform"
+                  >
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-mono text-xs text-slate-500 mb-1">{o.orderNo}</div>
+                        <div className="font-semibold text-sm truncate">{o.contactName || o.company || "N/A"}</div>
+                        {o.phone && <div className="text-xs text-slate-400 truncate">{o.phone}</div>}
+                      </div>
+                      <StatusBadge status={o.status} />
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-3 text-xs mb-3">
+                      <div>
+                        <div className="text-slate-500 mb-0.5">{lang === "en" ? "Agent" : lang === "zh-CN" ? "代理商" : "代理商"}</div>
+                        <div className="font-medium truncate">{agent?.company || o.agentId}</div>
+                      </div>
+                      <div>
+                        <div className="text-slate-500 mb-0.5">{t("order_date")}</div>
+                        <div className="font-medium whitespace-nowrap">{new Date(o.date).toLocaleDateString("zh-CN", { month: "2-digit", day: "2-digit", timeZone: "Asia/Shanghai" })}</div>
+                      </div>
+                      {o.postalCode && (
+                        <div>
+                          <div className="text-slate-500 mb-0.5">{lang === "en" ? "Postal Code" : lang === "zh-CN" ? "邮编" : "郵遞區號"}</div>
+                          <div className="font-mono font-medium">{o.postalCode}</div>
+                        </div>
+                      )}
+                      {o.trackingNumber && (
+                        <div>
+                          <div className="text-slate-500 mb-0.5">{t("tracking_number")}</div>
+                          <div className="font-mono font-medium truncate">{o.trackingNumber}</div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="flex items-center justify-between pt-3 border-t border-white/5">
+                      <div>
+                        <div className="text-xs text-slate-500 mb-0.5">{t("amount")}</div>
+                        <div className="font-bold text-emerald-500">{formatCurrency(o.total, currency)}</div>
+                      </div>
+                      <button onClick={(e) => { e.stopPropagation(); setSelected(o.id); }} className="btn-primary px-4 py-2 text-sm">
+                        {t("view")}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            </>
           )}
         </div>
       </PageCard>

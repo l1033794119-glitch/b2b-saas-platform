@@ -87,6 +87,19 @@ export default function ShippingPage() {
     fetchOrders();
   }, []);
 
+  useEffect(() => {
+    if (selectedOrder && typeof window !== "undefined") {
+      const originalBodyOverflow = document.body.style.overflow;
+      const originalHtmlOverflow = document.documentElement.style.overflow;
+      document.body.style.overflow = "hidden";
+      document.documentElement.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = originalBodyOverflow;
+        document.documentElement.style.overflow = originalHtmlOverflow;
+      };
+    }
+  }, [selectedOrder]);
+
   const filtered = data.filter((o) => {
     if (!["pending_delivery", "pending_tracking", "shipped", "completed"].includes(o.status)) {
       return false;
@@ -214,7 +227,7 @@ export default function ShippingPage() {
               <button
                 key={s.id}
                 onClick={() => setFlt(s.id)}
-                className={`px-3 py-1.5 text-xs sm:text-sm rounded-lg border border-slate-200 dark:border-slate-800 ${flt === s.id ? "bg-indigo-600 text-white border-indigo-600" : ""}`}
+                className={`px-3 py-1.5 text-xs sm:text-sm rounded-lg border border-slate-200 dark:border-slate-800 ${flt === s.id ? "bg-emerald-500 text-white border-emerald-500" : ""}`}
               >
                 {lang === "en" ? s.labelEn : lang === "zh-CN" ? s.labelZhCN : s.labelZhTW}
               </button>
@@ -224,7 +237,18 @@ export default function ShippingPage() {
       </div>
 
       {selectedOrder && (
-        <div className="card p-4 sm:p-6 mb-4 sm:mb-6">
+        <div 
+          className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+          onClick={() => setSelectedOrder(null)}
+          onTouchMove={(e) => { if (e.target === e.currentTarget) e.preventDefault(); }}
+          style={{ touchAction: "none" }}
+        >
+          <div 
+            className="card p-4 sm:p-6 w-full max-w-full sm:max-w-4xl max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl"
+            onClick={(e) => e.stopPropagation()}
+            onTouchStart={(e) => { e.stopPropagation(); }}
+            style={{ touchAction: "auto", WebkitOverflowScrolling: "touch" }}
+          >
           <div className="flex items-start justify-between mb-4 gap-3">
             <div className="min-w-0 flex-1">
               <div className="text-xs text-slate-500 font-mono truncate">{selectedOrder.orderNo}</div>
@@ -401,7 +425,7 @@ export default function ShippingPage() {
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-xl">📦</div>
                       )}
-                      <div className="absolute -top-2 -right-2 w-7 h-7 bg-indigo-600 text-white text-sm font-bold rounded-full flex items-center justify-center shadow-md border-2 border-white dark:border-slate-900">
+                      <div className="absolute -top-2 -right-2 w-7 h-7 bg-emerald-500 text-white text-sm font-bold rounded-full flex items-center justify-center shadow-md border-2 border-white dark:border-slate-900">
                         {item.quantity}
                       </div>
                     </div>
@@ -410,17 +434,17 @@ export default function ShippingPage() {
                       <div className="text-xs text-slate-500 font-mono">SKU: {item.sku}</div>
                     </div>
                     <div className="flex flex-col items-end flex-shrink-0">
-                      <div className="text-lg font-bold text-indigo-600">×{item.quantity}</div>
+                      <div className="text-lg font-bold text-emerald-500">×{item.quantity}</div>
                       <div className="text-xs text-slate-400">{lang === "en" ? "pieces" : lang === "zh-CN" ? "件" : "件"}</div>
                     </div>
                   </div>
                 ))}
-                <div className="mt-3 p-3 bg-indigo-50 dark:bg-indigo-950/30 rounded-xl">
+                <div className="mt-3 p-3 bg-emerald-500/10 rounded-xl">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-indigo-700 dark:text-indigo-400">
+                    <span className="text-sm font-medium text-emerald-500">
                       {lang === "en" ? "Total Items" : lang === "zh-CN" ? "商品总数" : "商品總數"}
                     </span>
-                    <span className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
+                    <span className="text-2xl font-bold text-emerald-500">
                       {selectedOrder.items.reduce((sum, it) => sum + it.quantity, 0)}
                     </span>
                   </div>
@@ -452,6 +476,7 @@ export default function ShippingPage() {
           <div className="flex flex-wrap gap-2">
             <button className="btn-ghost flex items-center gap-2"><FileText className="w-4 h-4" /> {t("download_invoice")}</button>
           </div>
+          </div>
         </div>
       )}
 
@@ -462,37 +487,81 @@ export default function ShippingPage() {
           ) : filtered.length === 0 ? (
             <div className="text-center py-8 text-slate-500">{lang === "en" ? "No shipments found" : lang === "zh-CN" ? "暂无物流订单" : "暫無物流訂單"}</div>
           ) : (
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>{t("order_no")}</th>
-                  <th>{lang === "en" ? "Customer" : lang === "zh-CN" ? "收件人" : "收件人"}</th>
-                  <th>{t("shipping_address")}</th>
-                  <th>{lang === "en" ? "Postal Code" : lang === "zh-CN" ? "邮编" : "郵遞區號"}</th>
-                  <th>{lang === "en" ? "Status" : lang === "zh-CN" ? "状态" : "狀態"}</th>
-                  <th>{t("actions")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((o) => (
-                  <tr key={o.id} onClick={() => selected(o.id)} className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                    <td className="font-mono text-xs">{o.orderNo}</td>
-                    <td className="font-medium">
-                      <div className="truncate max-w-[120px]">{o.contactName || o.company || "N/A"}</div>
-                      {o.phone && <div className="text-xs text-slate-400 truncate max-w-[120px]">{o.phone}</div>}
-                    </td>
-                    <td className="text-sm text-slate-500 max-w-[200px] truncate">{o.shippingAddress}</td>
-                    <td className="text-sm text-slate-500 font-mono">{o.postalCode || "—"}</td>
-                    <td><Badge tone={getStatusInfo(o.status).tone as any}>{getStatusInfo(o.status).label}</Badge></td>
-                    <td>
-                      <button onClick={(e) => { e.stopPropagation(); selected(o.id); }} className="text-indigo-600 hover:underline text-sm flex items-center gap-1">
-                        <Eye className="w-3.5 h-3.5" /> <span className="hidden sm:inline">{t("view")}</span>
-                      </button>
-                    </td>
+            <>
+            <div className="hidden sm:block">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>{t("order_no")}</th>
+                    <th>{lang === "en" ? "Customer" : lang === "zh-CN" ? "收件人" : "收件人"}</th>
+                    <th className="hidden md:table-cell">{t("shipping_address")}</th>
+                    <th className="hidden lg:table-cell">{lang === "en" ? "Postal Code" : lang === "zh-CN" ? "邮编" : "郵遞區號"}</th>
+                    <th>{lang === "en" ? "Status" : lang === "zh-CN" ? "状态" : "狀態"}</th>
+                    <th>{t("actions")}</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {filtered.map((o) => (
+                    <tr key={o.id} onClick={() => selected(o.id)} className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                      <td className="font-mono text-xs">{o.orderNo}</td>
+                      <td className="font-medium">
+                        <div className="truncate max-w-[140px]">{o.contactName || o.company || "N/A"}</div>
+                        {o.phone && <div className="text-xs text-slate-400 truncate max-w-[140px]">{o.phone}</div>}
+                      </td>
+                      <td className="hidden md:table-cell text-sm text-slate-500 max-w-[200px] truncate">{o.shippingAddress}</td>
+                      <td className="hidden lg:table-cell text-sm text-slate-500 font-mono">{o.postalCode || "—"}</td>
+                      <td><Badge tone={getStatusInfo(o.status).tone as any}>{getStatusInfo(o.status).label}</Badge></td>
+                      <td>
+                        <button onClick={(e) => { e.stopPropagation(); selected(o.id); }} className="text-emerald-500 hover:underline text-sm flex items-center gap-1">
+                          <Eye className="w-3.5 h-3.5" /> <span>{t("view")}</span>
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="sm:hidden space-y-3">
+              {filtered.map((o) => (
+                <div
+                  key={o.id}
+                  onClick={() => selected(o.id)}
+                  className="card p-4 cursor-pointer active:scale-[0.98] transition-transform"
+                >
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-mono text-xs text-slate-500 mb-1">{o.orderNo}</div>
+                      <div className="font-semibold text-sm truncate">{o.contactName || o.company || "N/A"}</div>
+                      {o.phone && <div className="text-xs text-slate-400 truncate">{o.phone}</div>}
+                    </div>
+                    <Badge tone={getStatusInfo(o.status).tone as any}>{getStatusInfo(o.status).label}</Badge>
+                  </div>
+                  
+                  {o.shippingAddress && (
+                    <div className="mb-3">
+                      <div className="text-xs text-slate-500 mb-1 flex items-center gap-1">
+                        <MapPin className="w-3 h-3" /> {t("shipping_address")}
+                      </div>
+                      <div className="text-sm text-slate-300">{o.shippingAddress}</div>
+                      {o.postalCode && (
+                        <div className="text-xs text-slate-500 mt-1 font-mono">{lang === "en" ? "Postal Code" : lang === "zh-CN" ? "邮编" : "郵遞區號"}: {o.postalCode}</div>
+                      )}
+                    </div>
+                  )}
+                  
+                  <div className="flex items-center justify-between pt-3 border-t border-white/5">
+                    <div className="text-xs text-slate-500">
+                      {new Date(o.date).toLocaleDateString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Shanghai" })}
+                    </div>
+                    <button onClick={(e) => { e.stopPropagation(); selected(o.id); }} className="btn-primary px-4 py-2 text-sm">
+                      {t("view")}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            </>
           )}
         </div>
       </PageCard>

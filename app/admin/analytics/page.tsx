@@ -88,7 +88,7 @@ export default function AnalyticsPage() {
                     <div className="text-sm font-semibold">{formatCurrency(value, currency)}</div>
                   </div>
                   <div className="h-2 bg-slate-100 dark:bg-slate-900 rounded-full overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-600" style={{ width: `${(value / max) * 100}%` }} />
+                    <div className="h-full bg-gradient-to-r from-emerald-500 to-emerald-600" style={{ width: `${(value / max) * 100}%` }} />
                   </div>
                 </div>
               );
@@ -100,7 +100,7 @@ export default function AnalyticsPage() {
           <div className="space-y-3">
             {topAgents.map((a, i) => (
               <div key={a.id} className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center text-sm font-semibold">{i + 1}</div>
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 text-white flex items-center justify-center text-sm font-semibold">{i + 1}</div>
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium truncate">{a.company}</div>
                   <div className="text-xs text-slate-500">{a.country}</div>

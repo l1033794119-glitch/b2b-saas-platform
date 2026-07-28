@@ -2,11 +2,11 @@
 
 import { AgentLayout } from "@/components/Layout";
 import { useApp } from "@/components/AppProvider";
-import { Globe, Moon, Sun, DollarSign } from "lucide-react";
+import { Globe, DollarSign } from "lucide-react";
 import { useState } from "react";
 
 export default function AgentSettingsPage() {
-  const { t, user, theme, toggleTheme, lang, setLang, currency, setCurrency } = useApp();
+  const { t, user, lang, setLang, currency, setCurrency } = useApp();
   const langs: Array<"en" | "zh-CN" | "zh-TW"> = ["en", "zh-CN", "zh-TW"];
   const currencies = ["GBP", "USD", "EUR", "AUD", "CAD"];
   const labels: Record<string, string> = { en: "English", "zh-CN": "简体中文", "zh-TW": "繁體中文" };
@@ -18,7 +18,7 @@ export default function AgentSettingsPage() {
           <h2 className="text-base font-semibold mb-4 flex items-center gap-2"><Globe className="w-4 h-4" /> {t("language")}</h2>
           <div className="grid grid-cols-3 gap-2">
             {langs.map((l) => (
-              <button key={l} onClick={() => setLang(l)} className={`p-4 rounded-xl border text-sm ${lang === l ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 font-semibold" : "border-slate-200 dark:border-slate-800"}`}>
+              <button key={l} onClick={() => setLang(l)} className={`p-4 rounded-xl border text-sm ${lang === l ? "border-emerald-500 bg-emerald-500/10 text-emerald-500 font-semibold" : "border-slate-200 dark:border-slate-800"}`}>
                 {labels[l]}
               </button>
             ))}
@@ -29,16 +29,11 @@ export default function AgentSettingsPage() {
           <h2 className="text-base font-semibold mb-4 flex items-center gap-2"><DollarSign className="w-4 h-4" /> {t("currency")}</h2>
           <div className="grid grid-cols-5 gap-2">
             {currencies.map((c) => (
-              <button key={c} onClick={() => setCurrency(c)} className={`p-3 rounded-xl border text-sm ${currency === c ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 font-semibold" : "border-slate-200 dark:border-slate-800"}`}>
+              <button key={c} onClick={() => setCurrency(c)} className={`p-3 rounded-xl border text-sm ${currency === c ? "border-emerald-500 bg-emerald-500/10 text-emerald-500 font-semibold" : "border-slate-200 dark:border-slate-800"}`}>
                 {c}
               </button>
             ))}
           </div>
-        </div>
-
-        <div className="card p-6">
-          <h2 className="text-base font-semibold mb-4 flex items-center gap-2">{theme === "dark" ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />} {t("toggle_theme")}</h2>
-          <button onClick={toggleTheme} className="btn-primary">{theme === "dark" ? t("light_mode") : t("dark_mode")}</button>
         </div>
 
         <div className="card p-6">

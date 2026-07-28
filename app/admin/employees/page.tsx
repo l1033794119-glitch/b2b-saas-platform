@@ -184,7 +184,7 @@ export default function EmployeesPage() {
             <div key={e.id} className="card p-5">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center font-semibold text-sm">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 text-white flex items-center justify-center font-semibold text-sm">
                     {e.name.charAt(0).toUpperCase()}
                   </div>
                   <div>
@@ -204,7 +204,7 @@ export default function EmployeesPage() {
                   .map(([k]) => {
                     const perm = MENU_PERMISSIONS.find((m) => m.key === k);
                     return (
-                      <span key={k} className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900">
+                      <span key={k} className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
                         {perm ? (lang === "zh-CN" ? perm.label : perm.labelEn) : k}
                       </span>
                     );
@@ -304,8 +304,8 @@ function EmployeeModal({
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
-              <User className="w-5 h-5 text-indigo-600" />
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/15 flex items-center justify-center">
+              <User className="w-5 h-5 text-emerald-500" />
             </div>
             <div>
               <h3 className="font-semibold">
@@ -391,7 +391,7 @@ function EmployeeModal({
           {/* 菜单权限 */}
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <Shield className="w-4 h-4 text-indigo-600" />
+              <Shield className="w-4 h-4 text-emerald-500" />
               <label className="label mb-0">
                 {lang === "zh-CN" ? "菜单权限（可见的导航按钮）" : "Menu Permissions (Visible Nav Items)"}
               </label>
@@ -408,12 +408,12 @@ function EmployeeModal({
                     onClick={() => togglePerm(p.key)}
                     className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-sm text-left transition-all ${
                       checked
-                        ? "bg-indigo-50 dark:bg-indigo-950/40 border-indigo-300 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300"
+                        ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-500"
                         : "bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400"
                     }`}
                   >
                     <div className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 ${
-                      checked ? "bg-indigo-500 text-white" : "bg-slate-200 dark:bg-slate-700"
+                      checked ? "bg-emerald-500 text-white" : "bg-slate-200 dark:bg-slate-700"
                     }`}>
                       {checked ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
                     </div>

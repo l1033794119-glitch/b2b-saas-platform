@@ -273,7 +273,7 @@ function CartInner({ t, currency, lang, agentId }: { t: any; currency: string; l
             <div className="space-y-2 text-sm mb-4">
               <div className="flex justify-between"><span className="text-slate-500">{t("subtotal")}</span><span className="font-medium">{formatCurrency(subtotal, currency)}</span></div>
               {discount > 0 && <div className="flex justify-between text-emerald-600"><span>{t("discount")}</span><span className="font-medium">-{formatCurrency(discount, currency)}</span></div>}
-              <div className="flex justify-between pt-3 border-t border-slate-200 dark:border-slate-800"><span className="font-semibold">{t("grand_total")}</span><span className="text-lg font-bold text-indigo-600">{formatCurrency(grandTotal, currency)}</span></div>
+              <div className="flex justify-between pt-3 border-t border-slate-200 dark:border-slate-800"><span className="font-semibold">{t("grand_total")}</span><span className="text-lg font-bold text-emerald-500">{formatCurrency(grandTotal, currency)}</span></div>
             </div>
 
             {/* Credit Warning */}
@@ -286,8 +286,8 @@ function CartInner({ t, currency, lang, agentId }: { t: any; currency: string; l
               </div>
             )}
 
-            <div className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30 rounded-xl p-3 mb-4">
-              <div className="flex items-center gap-2 text-xs text-indigo-600 dark:text-indigo-400 font-medium mb-2">
+            <div className="bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 rounded-xl p-3 mb-4 border border-emerald-500/20">
+              <div className="flex items-center gap-2 text-xs text-emerald-500 font-medium mb-2">
                 <CreditCard className="w-3.5 h-3.5" />
                 {lang === "en" ? "Credit payment" : lang === "zh-CN" ? "信用支付" : "信用支付"}
               </div>
@@ -336,7 +336,7 @@ function CartInner({ t, currency, lang, agentId }: { t: any; currency: string; l
                   {discount > 0 && <div className="flex justify-between text-emerald-600"><span>{t("discount")}</span><span>-{formatCurrency(discount, currency)}</span></div>}
                   <div className="flex justify-between font-semibold pt-2 border-t border-slate-200 dark:border-slate-700">
                     <span>{t("grand_total")}</span>
-                    <span className="text-indigo-600">{formatCurrency(grandTotal, currency)}</span>
+                    <span className="text-emerald-500">{formatCurrency(grandTotal, currency)}</span>
                   </div>
                 </div>
               </div>

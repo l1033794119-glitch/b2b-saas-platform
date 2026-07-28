@@ -32,7 +32,7 @@ export default function AdminSettingsPage() {
               <div className="text-sm font-semibold mb-3 flex items-center gap-2"><Globe className="w-4 h-4" /> {t("language")}</div>
               <div className="grid grid-cols-3 gap-2">
                 {langs.map((l) => (
-                  <button key={l} onClick={() => setLang(l)} className={`p-3 rounded-xl border text-sm ${lang === l ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 font-semibold" : "border-slate-200 dark:border-slate-800"}`}>
+                  <button key={l} onClick={() => setLang(l)} className={`p-3 rounded-xl border text-sm ${lang === l ? "border-emerald-500 bg-emerald-500/10 text-emerald-500 font-semibold" : "border-slate-200 dark:border-slate-800"}`}>
                     {labels[l]}
                   </button>
                 ))}
@@ -42,7 +42,7 @@ export default function AdminSettingsPage() {
               <div className="text-sm font-semibold mb-3 flex items-center gap-2"><DollarSign className="w-4 h-4" /> {t("currency")}</div>
               <div className="grid grid-cols-5 gap-2">
                 {currencies.map((c) => (
-                  <button key={c} onClick={() => setCurrency(c)} className={`p-3 rounded-xl border text-sm ${currency === c ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 font-semibold" : "border-slate-200 dark:border-slate-800"}`}>
+                  <button key={c} onClick={() => setCurrency(c)} className={`p-3 rounded-xl border text-sm ${currency === c ? "border-emerald-500 bg-emerald-500/10 text-emerald-500 font-semibold" : "border-slate-200 dark:border-slate-800"}`}>
                     {c}
                   </button>
                 ))}
@@ -54,7 +54,7 @@ export default function AdminSettingsPage() {
 
       <PageCard title={t("logo")}>
         <div className="flex items-center gap-4">
-          <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-2xl font-bold flex items-center justify-center">AC</div>
+          <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white text-2xl font-bold flex items-center justify-center">AC</div>
           <div>
             <button className="btn-primary">{lang === "en" ? "Upload logo" : lang === "zh-CN" ? "上传 logo" : "上載 logo"}</button>
             <div className="text-xs text-slate-500 mt-2">PNG, SVG · 512×512 max</div>

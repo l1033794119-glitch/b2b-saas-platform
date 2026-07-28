@@ -119,10 +119,10 @@ export default function CatalogPage() {
           <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
           {lang === "en" ? "Refresh" : lang === "zh-CN" ? "刷新" : "刷新"}
         </button>
-        <div className="flex items-center gap-2 bg-indigo-50 dark:bg-indigo-950/40 px-3 py-2 rounded-lg border border-indigo-200 dark:border-indigo-900">
-          <ShoppingCart className="w-4 h-4 text-indigo-600" />
-          <span className="text-sm font-semibold text-indigo-700">{count}</span>
-          <span className="text-sm text-indigo-600">{lang === "en" ? "items" : lang === "zh-CN" ? "件" : "件"}</span>
+        <div className="flex items-center gap-2 bg-emerald-500/10 px-3 py-2 rounded-lg border border-emerald-500/20">
+          <ShoppingCart className="w-4 h-4 text-emerald-500" />
+          <span className="text-sm font-semibold text-emerald-500">{count}</span>
+          <span className="text-sm text-emerald-500">{lang === "en" ? "items" : lang === "zh-CN" ? "件" : "件"}</span>
         </div>
       </div>
 
@@ -187,7 +187,7 @@ function CatalogGrid({ items, priceKey, currency, t, lang, lastAdded }: {
               <div className="text-sm text-slate-500 mb-3">{p.nameZh}</div>
               <div className="flex items-center justify-between mb-2">
                 <div className="text-xs text-slate-500">{t("agent_price")}</div>
-                <div className="text-lg font-bold text-indigo-600">{formatCurrency(price, currency)}</div>
+                <div className="text-lg font-bold text-emerald-500">{formatCurrency(price, currency)}</div>
               </div>
               <div className="flex items-center justify-between mb-4">
                 <div className="text-xs text-slate-500">{t("available_stock")}</div>

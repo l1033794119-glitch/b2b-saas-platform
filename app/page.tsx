@@ -40,7 +40,7 @@ export default function LandingPage() {
       <nav className="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/80 dark:bg-slate-950/80 backdrop-blur z-20">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2 font-bold text-lg">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center text-sm">B</div>
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 text-white flex items-center justify-center text-sm">B</div>
             <span>{lang === "en" ? "B2B Platform" : lang === "zh-CN" ? "B2B平台" : "B2B平台"}</span>
           </div>
           <div className="flex items-center gap-2">
@@ -51,11 +51,11 @@ export default function LandingPage() {
       </nav>
 
       <section className="max-w-6xl mx-auto px-6 py-20 text-center">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-900 mb-6">
-          <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" /> {texts.badge}
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 mb-6">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> {texts.badge}
         </div>
         <h1 className="text-5xl md:text-6xl font-bold leading-tight mb-5">
-          {texts.heroTitle1} <span className="bg-gradient-to-r from-indigo-500 to-purple-600 bg-clip-text text-transparent">{texts.heroTitle2}</span>
+          {texts.heroTitle1} <span className="bg-gradient-to-r from-emerald-500 to-emerald-600 bg-clip-text text-transparent">{texts.heroTitle2}</span>
         </h1>
         <p className="text-lg text-slate-500 dark:text-slate-400 max-w-2xl mx-auto mb-8">
           {texts.heroDesc}
@@ -72,7 +72,7 @@ export default function LandingPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {texts.features.map((f) => (
             <div key={f.title} className="rounded-2xl border border-slate-200 dark:border-slate-800 p-6 bg-white dark:bg-slate-900/40">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center mb-4">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white flex items-center justify-center mb-4">
                 <f.icon className="w-5 h-5" />
               </div>
               <div className="font-semibold text-lg mb-1">{f.title}</div>

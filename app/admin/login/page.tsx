@@ -42,18 +42,30 @@ export default function AdminLogin() {
   const langs: Lang[] = ["en", "zh-CN", "zh-TW"];
 
   return (
-    <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2">
-      <div className="hidden lg:flex flex-col justify-between bg-slate-950 text-white p-12 relative overflow-hidden">
-        <div className="absolute -top-32 -left-32 w-[500px] h-[500px] bg-indigo-600/20 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-purple-600/20 rounded-full blur-3xl" />
-        <div className="relative flex items-center gap-3 text-xl font-semibold">
-          <div className="w-10 h-10 bg-white/10 backdrop-blur rounded-lg flex items-center justify-center">
+    <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2 relative overflow-hidden">
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-green-500/10 rounded-full blur-[100px]" />
+        <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-cyan-500/10 rounded-full blur-[100px]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-emerald-500/5 rounded-full blur-[80px]" />
+      </div>
+      
+      <div className="hidden lg:flex flex-col justify-between p-12 relative overflow-hidden z-10 bg-black">
+        <div className="absolute -top-32 -left-32 w-[500px] h-[500px] bg-green-500/15 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-cyan-500/15 rounded-full blur-3xl" />
+        <div className="relative flex items-center gap-3 text-xl font-semibold text-white">
+          <div 
+            className="w-11 h-11 rounded-xl flex items-center justify-center"
+            style={{
+              background: "linear-gradient(135deg, #34c759 0%, #30d158 100%)",
+              boxShadow: "0 4px 16px rgba(52, 199, 89, 0.4)",
+            }}
+          >
             <Shield className="w-5 h-5" />
           </div>
           <span>{t("administrator_portal")}</span>
         </div>
-        <div className="relative">
-          <h1 className="text-4xl font-bold leading-tight mb-4">
+        <div className="relative text-white">
+          <h1 className="text-4xl font-bold leading-tight mb-4 tracking-tight">
             {lang === "en" ? "Admin console for operations, finance and warehouse teams" : lang === "zh-CN" ? "运营、财务与仓库团队的管理控制台" : "營運、財務與倉庫團隊的管理控制台"}
           </h1>
           <p className="text-lg text-white/70 max-w-lg">
@@ -69,9 +81,14 @@ export default function AdminLogin() {
               "Role-based access control",
               "Full audit trail",
               "Multi-language & multi-currency",
-            ].map((f) => (
+            ].map((f, i) => (
               <div key={f} className="flex items-center gap-3 text-sm text-white/80">
-                <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full" />
+                <div 
+                  className="w-5 h-5 rounded-full flex items-center justify-center"
+                  style={{ background: "rgba(255,255,255,0.15)" }}
+                >
+                  <span className="text-[10px] font-bold">{i + 1}</span>
+                </div>
                 {f}
               </div>
             ))}
@@ -80,15 +97,15 @@ export default function AdminLogin() {
         <div className="relative text-sm text-white/50">© 2025 B2B Platform. All rights reserved.</div>
       </div>
 
-      <div className="flex flex-col bg-white dark:bg-[#0b0f19]">
-        <div className="flex items-center justify-between px-6 sm:px-10 py-5 border-b border-slate-200 dark:border-slate-800">
-          <Link href="/login" className="text-sm font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400">
+      <div className="flex flex-col relative z-10">
+        <div className="flex items-center justify-between px-6 sm:px-10 py-5 border-b border-white/5">
+          <Link href="/login" className="text-sm font-medium hover:opacity-80 transition-opacity" style={{ color: "#34c759" }}>
             ← {t("back_to_login")}
           </Link>
           <div className="relative flex items-center gap-2">
-            <Globe className="w-4 h-4 text-slate-500" />
+            <Globe className="w-4 h-4 text-slate-400" />
             <select
-              className="bg-transparent text-sm border border-slate-200 dark:border-slate-700 rounded-md px-2 py-1 outline-none"
+              className="bg-transparent text-sm rounded-xl px-2.5 py-1.5 outline-none cursor-pointer input-glass"
               value={lang}
               onChange={(e) => setLang(e.target.value as Lang)}
             >
@@ -101,15 +118,21 @@ export default function AdminLogin() {
 
         <div className="flex-1 flex items-center justify-center px-6 py-12">
           <div className="w-full max-w-md">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 rounded-lg flex items-center justify-center">
+            <div className="flex items-center gap-3 mb-6">
+              <div 
+                className="w-12 h-12 rounded-2xl text-white flex items-center justify-center"
+                style={{
+                  background: "linear-gradient(135deg, #34c759 0%, #30d158 100%)",
+                  boxShadow: "0 4px 16px rgba(52, 199, 89, 0.3)",
+                }}
+              >
                 <Lock className="w-5 h-5" />
               </div>
             </div>
-            <h1 className="text-3xl font-bold mb-2">{t("welcome_back_admin")}</h1>
+            <h1 className="text-3xl font-bold mb-2 tracking-tight">{t("welcome_back_admin")}</h1>
             <p className="text-slate-500 mb-8">{t("sign_in_to_admin")}</p>
 
-            <form onSubmit={onSubmit} className="space-y-4">
+            <form onSubmit={onSubmit} className="space-y-5">
               <div>
                 <label className="label">{t("email")}</label>
                 <input type="email" className="input" value={email} onChange={(e) => setEmail(e.target.value)} required />
@@ -120,10 +143,23 @@ export default function AdminLogin() {
               </div>
 
               {error && (
-                <div className="text-sm text-red-600 bg-red-50 dark:bg-red-950/40 rounded-lg px-3 py-2 border border-red-200 dark:border-red-900">{error}</div>
+                <div 
+                  className="text-sm rounded-xl px-4 py-3"
+                  style={{ 
+                    background: "rgba(255, 59, 48, 0.1)", 
+                    color: "#ff3b30",
+                    border: "1px solid rgba(255, 59, 48, 0.2)",
+                  }}
+                >
+                  {error}
+                </div>
               )}
 
-              <button type="submit" disabled={loading} className="btn-primary w-full justify-center flex items-center py-2.5 text-base">
+              <button 
+                type="submit" 
+                disabled={loading} 
+                className="btn-primary w-full justify-center flex items-center py-3 text-base font-medium"
+              >
                 {loading ? "..." : t("sign_in")}
               </button>
             </form>

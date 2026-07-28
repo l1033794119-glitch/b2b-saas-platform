@@ -26,8 +26,6 @@ interface AppContextValue {
   lang: Lang;
   setLang: (l: Lang) => void;
   t: (key: string) => string;
-  theme: "light" | "dark";
-  toggleTheme: () => void;
   user: User | null;
   login: (email: string, password: string, admin?: boolean) => Promise<boolean>;
   logout: () => void;
@@ -74,14 +72,6 @@ function getLangFromStorage(): Lang {
   return "en";
 }
 
-function getThemeFromStorage(): "light" | "dark" {
-  try {
-    const savedTheme = getCookie("app.theme") || localStorage.getItem("app.theme");
-    if (savedTheme === "dark") return "dark";
-  } catch {}
-  return "light";
-}
-
 function getCurrencyFromStorage(): string {
   try {
     const savedCurrency = getCookie("app.currency") || localStorage.getItem("app.currency");
@@ -92,7 +82,6 @@ function getCurrencyFromStorage(): string {
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [lang, setLangState] = useState<Lang>(getLangFromStorage);
-  const [theme, setTheme] = useState<"light" | "dark">(getThemeFromStorage);
   const [user, setUser] = useState<User | null>(null);
   const [currency, setCurrencyState] = useState<string>(getCurrencyFromStorage);
   const [isSessionChecked, setIsSessionChecked] = useState(false);
@@ -120,9 +109,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (theme === "dark") {
-      document.documentElement.classList.add("dark");
-    }
+    document.documentElement.classList.add("dark");
   }, []);
 
   const setLang = (l: Lang) => {
@@ -130,16 +117,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     try {
       setCookie("app.lang", l, 365);
       localStorage.setItem("app.lang", l);
-    } catch {}
-  };
-
-  const toggleTheme = () => {
-    const next = theme === "light" ? "dark" : "light";
-    setTheme(next);
-    try {
-      setCookie("app.theme", next, 365);
-      localStorage.setItem("app.theme", next);
-      document.documentElement.classList.toggle("dark", next === "dark");
     } catch {}
   };
 
@@ -188,8 +165,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     lang,
     setLang,
     t: (k) => translate(lang, k),
-    theme,
-    toggleTheme,
     user,
     login,
     logout,
@@ -200,8 +175,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   return (
     <AppContext.Provider value={value}>
       {isSessionChecked ? children : (
-        <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-[#0a0e17]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600" />
+        <div className="flex min-h-screen items-center justify-center bg-[#0a0e17]">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500" />
         </div>
       )}
     </AppContext.Provider>

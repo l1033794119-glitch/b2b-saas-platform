@@ -23,7 +23,7 @@ export default function CustomerServicePage() {
               { id: "t-1197", from: "David Chen", subject: "Login problem", status: "completed", time: "Yesterday" },
             ].map((t) => (
               <div key={t.id} className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center text-sm font-semibold">{t.from.charAt(0)}</div>
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 text-white flex items-center justify-center text-sm font-semibold">{t.from.charAt(0)}</div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-3">
                     <div className="font-semibold truncate">{t.subject}</div>
@@ -41,7 +41,7 @@ export default function CustomerServicePage() {
           <div className="space-y-2">
             {agents.slice(0, 5).map((a) => (
               <div key={a.id} className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
-                <MessageCircle className="w-4 h-4 text-indigo-500" />
+                <MessageCircle className="w-4 h-4 text-emerald-500" />
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-semibold truncate">{a.company}</div>
                   <div className="text-xs text-slate-500 truncate">{a.email}</div>

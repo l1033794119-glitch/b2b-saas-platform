@@ -205,7 +205,7 @@ export default function WarehousePage() {
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
-                    <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-950/40 text-indigo-600 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/15 text-emerald-500 flex items-center justify-center">
                       <Box className="w-5 h-5" />
                     </div>
                   </div>
