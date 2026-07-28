@@ -33,14 +33,16 @@ export function AdminSidebar({ open, onClose }: { open: boolean; onClose: () => 
     <>
       {open && (
         <div 
-          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-30 lg:hidden animate-fadeIn" 
-          onClick={onClose} 
+          className="fixed inset-0 bg-black/60 z-30 lg:hidden animate-fadeIn" 
+          onClick={onClose}
+          style={{ touchAction: "none" }}
         />
       )}
       <aside
-        className={`fixed lg:sticky top-0 left-0 h-[100dvh] lg:h-screen w-[280px] z-40 flex flex-col transition-all duration-300 ease-out sidebar-glass ${
+        className={`fixed lg:sticky top-0 left-0 h-[100dvh] lg:h-screen w-[280px] z-40 flex flex-col transition-transform duration-300 ease-out sidebar-glass ${
           open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
+        style={{ willChange: "transform" }}
       >
         <div className="px-5 py-4 flex items-center justify-between border-b border-black/5">
           <Link href={defaultHref} className="flex items-center gap-2.5 font-semibold">
@@ -57,7 +59,8 @@ export function AdminSidebar({ open, onClose }: { open: boolean; onClose: () => 
           </Link>
           <button 
             onClick={onClose} 
-            className="lg:hidden text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors p-1 -mr-1"
+            className="lg:hidden text-white/80 hover:text-white transition-colors p-2 -mr-2 rounded-xl hover:bg-white/10 active:bg-white/20"
+            aria-label="Close menu"
           >
             <X className="w-5 h-5" />
           </button>
@@ -124,14 +127,16 @@ export function AgentSidebar({ open, onClose }: { open: boolean; onClose: () => 
     <>
       {open && (
         <div 
-          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-30 lg:hidden animate-fadeIn" 
-          onClick={onClose} 
+          className="fixed inset-0 bg-black/60 z-30 lg:hidden animate-fadeIn" 
+          onClick={onClose}
+          style={{ touchAction: "none" }}
         />
       )}
       <aside
-        className={`fixed lg:sticky top-0 left-0 h-[100dvh] lg:h-screen w-[280px] z-40 flex flex-col transition-all duration-300 ease-out sidebar-glass ${
+        className={`fixed lg:sticky top-0 left-0 h-[100dvh] lg:h-screen w-[280px] z-40 flex flex-col transition-transform duration-300 ease-out sidebar-glass ${
           open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
+        style={{ willChange: "transform" }}
       >
         <div className="px-5 py-4 flex items-center justify-between border-b border-black/5">
           <Link href="/agent/dashboard" className="flex items-center gap-2.5 font-semibold">
@@ -148,7 +153,8 @@ export function AgentSidebar({ open, onClose }: { open: boolean; onClose: () => 
           </Link>
           <button 
             onClick={onClose} 
-            className="lg:hidden text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors p-1 -mr-1"
+            className="lg:hidden text-white/80 hover:text-white transition-colors p-2 -mr-2 rounded-xl hover:bg-white/10 active:bg-white/20"
+            aria-label="Close menu"
           >
             <X className="w-5 h-5" />
           </button>
@@ -287,7 +293,7 @@ export function Topbar({ title, onMenu, subtitle }: { title: string; onMenu: () 
           </button>
           {menuOpen && (
             <>
-              <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
+              <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setMenuOpen(false)} />
               <div className="dropdown z-50 mt-1 right-0 w-56">
                 <div className="px-4 py-3 border-b border-black/5">
                   <div className="text-[14px] font-medium">{user?.name}</div>

@@ -68,7 +68,7 @@ body {
 }
 
 .glass {
-  background: var(--surface);
+  background: rgba(28, 28, 32, 0.8);
   backdrop-filter: saturate(180%) blur(12px);
   -webkit-backdrop-filter: saturate(180%) blur(12px);
   border: 1px solid var(--border);
@@ -120,7 +120,7 @@ body {
 }
 
 .sidebar-glass {
-  background: rgba(22, 22, 26, 0.7);
+  background: rgba(22, 22, 26, 0.92);
   backdrop-filter: saturate(180%) blur(28px);
   -webkit-backdrop-filter: saturate(180%) blur(28px);
   border-right: 1px solid var(--border);
@@ -154,7 +154,7 @@ body {
 }
 
 .topbar-glass {
-  background: rgba(15, 15, 18, 0.72);
+  background: rgba(15, 15, 18, 0.9);
   backdrop-filter: saturate(180%) blur(24px);
   -webkit-backdrop-filter: saturate(180%) blur(24px);
   border-bottom: 1px solid var(--border);
@@ -223,7 +223,7 @@ body {
 }
 
 .card {
-  background: var(--surface);
+  background: rgba(28, 28, 32, 0.85);
   backdrop-filter: saturate(180%) blur(24px);
   -webkit-backdrop-filter: saturate(180%) blur(24px);
   border: 1px solid var(--border);
@@ -253,7 +253,7 @@ body {
 }
 
 .stat-card {
-  background: linear-gradient(135deg, rgba(35, 35, 42, 0.8) 0%, rgba(25, 25, 30, 0.6) 100%);
+  background: linear-gradient(135deg, rgba(35, 35, 42, 0.9) 0%, rgba(25, 25, 30, 0.8) 100%);
   backdrop-filter: saturate(180%) blur(28px);
   -webkit-backdrop-filter: saturate(180%) blur(28px);
   border: 1px solid var(--border);
@@ -594,20 +594,39 @@ table.data-table tr:last-child td {
 
 /* iOS Safari: 降低所有 backdrop-filter 模糊强度，防止 GPU 内存溢出导致崩溃黑屏 */
 @supports (-webkit-touch-callout: none) {
-  /* 覆盖所有使用 backdrop-filter 的元素，统一降低至安全值 */
+  /* iOS 上提高背景不透明度，弥补低模糊度的视觉效果 */
   .glass,
   .glass-strong,
   .sidebar-glass,
   .topbar-glass,
-  .input-glass,
   .card,
   .stat-card,
-  .btn-secondary,
   .dropdown,
   .modal-glass,
   [class*="backdrop-blur"] {
     backdrop-filter: saturate(120%) blur(6px) !important;
     -webkit-backdrop-filter: saturate(120%) blur(6px) !important;
+  }
+
+  /* 侧边栏和顶部栏在 iOS 上使用更高不透明度，确保不透明 */
+  .sidebar-glass {
+    background: rgba(22, 22, 26, 0.96) !important;
+  }
+
+  .topbar-glass {
+    background: rgba(15, 15, 18, 0.94) !important;
+  }
+
+  .card {
+    background: rgba(28, 28, 32, 0.92) !important;
+  }
+
+  .stat-card {
+    background: linear-gradient(135deg, rgba(35, 35, 42, 0.94) 0%, rgba(25, 25, 30, 0.88) 100%) !important;
+  }
+
+  .glass {
+    background: rgba(28, 28, 32, 0.9) !important;
   }
 
   /* 输入框和次要按钮在 iOS 上完全移除 backdrop-filter，避免渲染压力 */
@@ -618,6 +637,10 @@ table.data-table tr:last-child td {
   .btn-secondary {
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
+  }
+
+  .input-glass {
+    background: rgba(30, 30, 35, 0.9) !important;
   }
 
   /* iOS Safari: 使用 -webkit-fill-available 修复 100vh 包含地址栏导致的布局重叠 */
@@ -665,6 +688,13 @@ table.data-table tr:last-child td {
   .scrollbar-thin,
   nav {
     -webkit-overflow-scrolling: touch;
+  }
+
+  /* iOS Safari: 侧边栏遮罩层确保不透明且可点击 */
+  .fixed.inset-0.bg-black\\/60 {
+    background: rgba(0, 0, 0, 0.6) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
   }
 }
 
