@@ -35,14 +35,14 @@ export function AdminLayout({ children, title, subtitle }:
 
   if (!user || !isAdmin) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-[100dvh] items-center justify-center">
         <div className="animate-spin rounded-full h-10 w-10 border-2 border-slate-200 dark:border-slate-700 border-t-[#34c759]" />
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-[100dvh]">
       <AdminSidebar open={open} onClose={() => setOpen(false)} />
       <div className="flex-1 min-w-0 flex flex-col">
         <Topbar title={title} subtitle={subtitle} onMenu={() => setOpen(true)} />
@@ -77,14 +77,14 @@ export function AgentLayout({ children, title, subtitle }:
 
   if (!user || !isAgent) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-[100dvh] items-center justify-center">
         <div className="animate-spin rounded-full h-10 w-10 border-2 border-slate-200 dark:border-slate-700 border-t-[#34c759]" />
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-[100dvh]">
       <AgentSidebar open={open} onClose={() => setOpen(false)} />
       <div className="flex-1 min-w-0 flex flex-col">
         <Topbar title={title} subtitle={subtitle} onMenu={() => setOpen(true)} />

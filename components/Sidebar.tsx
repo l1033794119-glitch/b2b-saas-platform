@@ -38,7 +38,7 @@ export function AdminSidebar({ open, onClose }: { open: boolean; onClose: () => 
         />
       )}
       <aside
-        className={`fixed lg:sticky top-0 left-0 h-screen w-[280px] z-40 flex flex-col transition-all duration-300 ease-out sidebar-glass ${
+        className={`fixed lg:sticky top-0 left-0 h-[100dvh] lg:h-screen w-[280px] z-40 flex flex-col transition-all duration-300 ease-out sidebar-glass ${
           open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
       >
@@ -129,7 +129,7 @@ export function AgentSidebar({ open, onClose }: { open: boolean; onClose: () => 
         />
       )}
       <aside
-        className={`fixed lg:sticky top-0 left-0 h-screen w-[280px] z-40 flex flex-col transition-all duration-300 ease-out sidebar-glass ${
+        className={`fixed lg:sticky top-0 left-0 h-[100dvh] lg:h-screen w-[280px] z-40 flex flex-col transition-all duration-300 ease-out sidebar-glass ${
           open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
       >
@@ -211,7 +211,7 @@ export function Topbar({ title, onMenu, subtitle }: { title: string; onMenu: () 
 
   return (
     <header 
-      className="sticky top-0 z-20 topbar-glass relative"
+      className="sticky top-0 z-20 topbar-glass"
     >
       <div className="flex items-center gap-2 sm:gap-4 px-4 sm:px-6 py-3">
         <button 

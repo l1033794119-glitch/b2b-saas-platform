@@ -175,7 +175,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   return (
     <AppContext.Provider value={value}>
       {isSessionChecked ? children : (
-        <div className="flex min-h-screen items-center justify-center bg-[#0a0e17]">
+        <div className="flex min-h-[100dvh] items-center justify-center bg-[#0a0e17]">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500" />
         </div>
       )}

@@ -56,17 +56,32 @@ body {
     radial-gradient(ellipse 80% 50% at 20% -10%, rgba(52, 199, 89, 0.12), transparent),
     radial-gradient(ellipse 60% 40% at 100% 20%, rgba(100, 210, 255, 0.08), transparent),
     radial-gradient(ellipse 70% 50% at 50% 120%, rgba(191, 90, 242, 0.06), transparent);
-  background-attachment: fixed;
+  background-attachment: scroll;
   min-height: 100vh;
+}
+
+/* iOS Safari 安全区域适配 */
+@supports (-webkit-touch-callout: none) {
+  html, body {
+    min-height: -webkit-fill-available;
+  }
 }
 
 .glass {
   background: var(--surface);
-  backdrop-filter: saturate(180%) blur(24px);
-  -webkit-backdrop-filter: saturate(180%) blur(24px);
+  backdrop-filter: saturate(180%) blur(12px);
+  -webkit-backdrop-filter: saturate(180%) blur(12px);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-md);
   position: relative;
+}
+
+/* iOS Safari 性能优化：降低模糊强度 */
+@supports (-webkit-touch-callout: none) {
+  .glass {
+    backdrop-filter: saturate(140%) blur(8px);
+    -webkit-backdrop-filter: saturate(140%) blur(8px);
+  }
 }
 
 .glass::before {
@@ -573,6 +588,84 @@ table.data-table tr:last-child td {
 
 ::-webkit-scrollbar-thumb:hover { 
   background: rgba(142, 142, 147, 0.5); 
+}
+
+/* ===== iOS Safari 兼容性修复 ===== */
+
+/* iOS Safari: 降低所有 backdrop-filter 模糊强度，防止 GPU 内存溢出导致崩溃黑屏 */
+@supports (-webkit-touch-callout: none) {
+  /* 覆盖所有使用 backdrop-filter 的元素，统一降低至安全值 */
+  .glass,
+  .glass-strong,
+  .sidebar-glass,
+  .topbar-glass,
+  .input-glass,
+  .card,
+  .stat-card,
+  .btn-secondary,
+  .dropdown,
+  .modal-glass,
+  [class*="backdrop-blur"] {
+    backdrop-filter: saturate(120%) blur(6px) !important;
+    -webkit-backdrop-filter: saturate(120%) blur(6px) !important;
+  }
+
+  /* 输入框和次要按钮在 iOS 上完全移除 backdrop-filter，避免渲染压力 */
+  .input,
+  .select,
+  .textarea,
+  .input-glass,
+  .btn-secondary {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  /* iOS Safari: 使用 -webkit-fill-available 修复 100vh 包含地址栏导致的布局重叠 */
+  .h-screen {
+    height: -webkit-fill-available !important;
+  }
+
+  .min-h-screen {
+    min-height: -webkit-fill-available !important;
+  }
+
+  /* iOS Safari: 修复 fixed/sticky 定位元素在缩放和滚动时偏移 */
+  .fixed,
+  .sticky {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+  }
+
+  /* iOS Safari: 禁用默认的点击高亮，避免交互闪烁 */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* iOS Safari: 防止橡皮筋滚动导致布局错位 */
+  body {
+    overscroll-behavior: none;
+  }
+
+  /* iOS Safari: 提升合成层，改善渲染性能 */
+  .sidebar-glass,
+  .topbar-glass,
+  .card,
+  .stat-card {
+    will-change: transform;
+  }
+
+  /* iOS Safari: 修复 position: sticky 在滚动时失效 */
+  .topbar-glass {
+    position: sticky;
+    -webkit-position: sticky;
+  }
+
+  /* iOS Safari: 启用原生惯性滚动 */
+  .scrollable,
+  .scrollbar-thin,
+  nav {
+    -webkit-overflow-scrolling: touch;
+  }
 }
 
 ::selection {

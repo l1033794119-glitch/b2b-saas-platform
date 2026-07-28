@@ -478,7 +478,7 @@ export default function MyOrdersPage() {
           style={{ touchAction: "none" }}
         >
           <div
-            className="card p-4 sm:p-6 w-full max-w-full sm:max-w-4xl max-h-[90vh] rounded-t-2xl sm:rounded-2xl"
+            className="card p-4 sm:p-6 w-full max-w-full sm:max-w-4xl max-h-[90dvh] rounded-t-2xl sm:rounded-2xl"
             onClick={(e) => e.stopPropagation()}
             onTouchStart={(e) => { e.stopPropagation(); }}
             style={{ overflowY: "auto", touchAction: "auto", WebkitOverflowScrolling: "touch" }}

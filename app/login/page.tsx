@@ -31,7 +31,7 @@ export default function AgentLogin() {
   const langs: Lang[] = ["en", "zh-CN", "zh-TW"];
 
   return (
-    <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2 relative overflow-hidden">
+    <div className="min-h-[100dvh] grid grid-cols-1 lg:grid-cols-2 relative overflow-hidden">
       {/* 背景光晕 */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-green-500/10 rounded-full blur-[100px]" />
