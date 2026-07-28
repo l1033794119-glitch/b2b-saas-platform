@@ -57,6 +57,7 @@ export default function ShippingPage() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [updating, setUpdating] = useState(false);
   const [editingWaybill, setEditingWaybill] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [tempWaybillImage, setTempWaybillImage] = useState("");
   const [uploadingWaybillImage, setUploadingWaybillImage] = useState(false);
 
@@ -317,7 +318,7 @@ export default function ShippingPage() {
                         {lang === "en" ? "Payment QR Code" : lang === "zh-CN" ? "支付二维码" : "支付二維碼"}
                       </span>
                     </div>
-                    <img src={selectedOrder.qrCode} alt="QR Code" className="max-w-full rounded-lg border border-amber-200 dark:border-amber-800" />
+                    <img src={selectedOrder.qrCode} alt="QR Code" onClick={() => setPreviewImage(selectedOrder.qrCode!)} className="max-w-full rounded-lg border border-amber-200 dark:border-amber-800 cursor-pointer hover:opacity-80 transition-opacity" />
                   </div>
                 )}
 
@@ -405,7 +406,7 @@ export default function ShippingPage() {
                         {lang === "en" ? "Waybill Image" : lang === "zh-CN" ? "快递面单" : "快遞面單"}
                       </span>
                     </div>
-                    <img src={selectedOrder.waybillImage} alt="Waybill" className="max-w-full rounded-lg border border-amber-200 dark:border-amber-800" />
+                    <img src={selectedOrder.waybillImage} alt="Waybill" onClick={() => setPreviewImage(selectedOrder.waybillImage!)} className="max-w-full rounded-lg border border-amber-200 dark:border-amber-800 cursor-pointer hover:opacity-80 transition-opacity" />
                   </div>
                 )}
               </div>
@@ -467,7 +468,7 @@ export default function ShippingPage() {
               </div>
               {selectedOrder.trackingImage && (
                 <div className="mt-3">
-                  <img src={selectedOrder.trackingImage} alt="Tracking" className="max-w-full rounded-lg border border-emerald-200 dark:border-emerald-800" />
+                  <img src={selectedOrder.trackingImage} alt="Tracking" onClick={() => setPreviewImage(selectedOrder.trackingImage!)} className="max-w-full rounded-lg border border-emerald-200 dark:border-emerald-800 cursor-pointer hover:opacity-80 transition-opacity" />
                 </div>
               )}
             </div>
@@ -502,7 +503,7 @@ export default function ShippingPage() {
                 </thead>
                 <tbody>
                   {filtered.map((o) => (
-                    <tr key={o.id} onClick={() => selected(o.id)} className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                    <tr key={o.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                       <td className="font-mono text-xs">{o.orderNo}</td>
                       <td className="font-medium">
                         <div className="truncate max-w-[140px]">{o.contactName || o.company || "N/A"}</div>
@@ -512,7 +513,7 @@ export default function ShippingPage() {
                       <td className="hidden lg:table-cell text-sm text-slate-500 font-mono">{o.postalCode || "—"}</td>
                       <td><Badge tone={getStatusInfo(o.status).tone as any}>{getStatusInfo(o.status).label}</Badge></td>
                       <td>
-                        <button onClick={(e) => { e.stopPropagation(); selected(o.id); }} className="text-emerald-500 hover:underline text-sm flex items-center gap-1">
+                        <button onClick={() => selected(o.id)} className="text-emerald-500 hover:underline text-sm flex items-center gap-1">
                           <Eye className="w-3.5 h-3.5" /> <span>{t("view")}</span>
                         </button>
                       </td>
@@ -526,8 +527,7 @@ export default function ShippingPage() {
               {filtered.map((o) => (
                 <div
                   key={o.id}
-                  onClick={() => selected(o.id)}
-                  className="card p-4 cursor-pointer active:scale-[0.98] transition-transform"
+                  className="card p-4"
                 >
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <div className="flex-1 min-w-0">
@@ -554,7 +554,7 @@ export default function ShippingPage() {
                     <div className="text-xs text-slate-500">
                       {new Date(o.date).toLocaleDateString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Shanghai" })}
                     </div>
-                    <button onClick={(e) => { e.stopPropagation(); selected(o.id); }} className="btn-primary px-4 py-2 text-sm">
+                    <button onClick={() => selected(o.id)} className="btn-primary px-4 py-2 text-sm">
                       {t("view")}
                     </button>
                   </div>
@@ -565,6 +565,26 @@ export default function ShippingPage() {
           )}
         </div>
       </PageCard>
+
+      {/* 图片预览模态框 */}
+      {previewImage && (
+        <div
+          className="fixed inset-0 z-[60] bg-black/80 flex items-center justify-center p-4"
+          onClick={() => setPreviewImage(null)}
+        >
+          <img
+            src={previewImage}
+            alt="Preview"
+            className="max-w-full max-h-full rounded-lg object-contain"
+          />
+          <button
+            onClick={() => setPreviewImage(null)}
+            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+      )}
     </AdminLayout>
   );
 }

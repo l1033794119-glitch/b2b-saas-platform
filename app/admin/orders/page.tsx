@@ -86,6 +86,7 @@ export default function OrdersPage() {
   const [dateTo, setDateTo] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
   const [showShipModal, setShowShipModal] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [shipInfo, setShipInfo] = useState({ trackingNumber: "", trackingImage: "" });
   const [updating, setUpdating] = useState(false);
   const [uploadingQrImage, setUploadingQrImage] = useState(false);
@@ -994,7 +995,7 @@ export default function OrdersPage() {
                   ) : (
                     <div>
                       {selectedOrder.qrCode ? (
-                        <img src={selectedOrder.qrCode} alt="QR Code" className="max-w-xs rounded-lg border border-amber-200 dark:border-amber-800" />
+                        <img src={selectedOrder.qrCode} alt="QR Code" onClick={() => setPreviewImage(selectedOrder.qrCode!)} className="max-w-xs rounded-lg border border-amber-200 dark:border-amber-800 cursor-pointer hover:opacity-80 transition-opacity" />
                       ) : (
                         <div className="text-sm text-amber-500 italic">
                           {lang === "en" ? "Not uploaded yet" : lang === "zh-CN" ? "尚未上传" : "尚未上傳"}
@@ -1077,7 +1078,7 @@ export default function OrdersPage() {
                   ) : (
                     <div>
                       {selectedOrder.waybillImage ? (
-                        <img src={selectedOrder.waybillImage} alt="Waybill" className="max-w-xs rounded-lg border border-blue-200 dark:border-blue-800" />
+                        <img src={selectedOrder.waybillImage} alt="Waybill" onClick={() => setPreviewImage(selectedOrder.waybillImage!)} className="max-w-xs rounded-lg border border-blue-200 dark:border-blue-800 cursor-pointer hover:opacity-80 transition-opacity" />
                       ) : (
                         <div className="text-sm text-blue-500 italic">
                           {lang === "en" ? "Not uploaded yet" : lang === "zh-CN" ? "尚未上传" : "尚未上傳"}
@@ -1423,6 +1424,26 @@ export default function OrdersPage() {
         </div>
       )}
 
+      {/* 图片预览模态框 */}
+      {previewImage && (
+        <div
+          className="fixed inset-0 z-[60] bg-black/80 flex items-center justify-center p-4"
+          onClick={() => setPreviewImage(null)}
+        >
+          <img
+            src={previewImage}
+            alt="Preview"
+            className="max-w-full max-h-full rounded-lg object-contain"
+          />
+          <button
+            onClick={() => setPreviewImage(null)}
+            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+      )}
+
       <PageCard>
         <div className="scrollable">
           {loading ? (
@@ -1483,8 +1504,7 @@ export default function OrdersPage() {
                 return (
                   <div
                     key={o.id}
-                    onClick={() => setSelected(o.id)}
-                    className="card p-4 cursor-pointer active:scale-[0.98] transition-transform"
+                    className="card p-4"
                   >
                     <div className="flex items-start justify-between gap-3 mb-3">
                       <div className="flex-1 min-w-0">
@@ -1523,7 +1543,7 @@ export default function OrdersPage() {
                         <div className="text-xs text-slate-500 mb-0.5">{t("amount")}</div>
                         <div className="font-bold text-emerald-500">{formatCurrency(o.total, currency)}</div>
                       </div>
-                      <button onClick={(e) => { e.stopPropagation(); setSelected(o.id); }} className="btn-primary px-4 py-2 text-sm">
+                      <button onClick={() => setSelected(o.id)} className="btn-primary px-4 py-2 text-sm">
                         {t("view")}
                       </button>
                     </div>
