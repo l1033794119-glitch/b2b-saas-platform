@@ -244,10 +244,10 @@ export default function ShippingPage() {
           style={{ touchAction: "none" }}
         >
           <div 
-            className="card p-4 sm:p-6 w-full max-w-full sm:max-w-4xl max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl"
+            className="card p-4 sm:p-6 w-full max-w-full sm:max-w-4xl max-h-[90vh] rounded-t-2xl sm:rounded-2xl"
             onClick={(e) => e.stopPropagation()}
             onTouchStart={(e) => { e.stopPropagation(); }}
-            style={{ touchAction: "auto", WebkitOverflowScrolling: "touch" }}
+            style={{ overflowY: "auto", touchAction: "auto", WebkitOverflowScrolling: "touch" }}
           >
           <div className="flex items-start justify-between mb-4 gap-3">
             <div className="min-w-0 flex-1">
