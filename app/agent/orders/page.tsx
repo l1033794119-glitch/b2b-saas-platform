@@ -325,7 +325,7 @@ export default function MyOrdersPage() {
       </div>
 
       {/* 筛选器 */}
-      <div className="card p-4 mb-6">
+      <div className="card p-4 mb-6" style={{ overflow: "visible" }}>
         <div className="flex flex-wrap items-center gap-3">
           {/* 搜索框 */}
           <div className="relative flex-1 min-w-[200px]">
@@ -358,7 +358,7 @@ export default function MyOrdersPage() {
               <ChevronDown className="w-4 h-4" />
             </button>
             {showStatusDropdown && (
-              <div className="absolute top-full left-0 mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg z-10 min-w-[160px]">
+              <div className="absolute top-full left-0 mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg z-50 min-w-[160px]" style={{ zIndex: 50 }}>
                 {statusOptions.map((option) => (
                   <button
                     key={option.value}
@@ -385,7 +385,7 @@ export default function MyOrdersPage() {
               <ChevronDown className="w-4 h-4" />
             </button>
             {showDateDropdown && (
-              <div className="absolute top-full left-0 mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg z-10 min-w-[160px]">
+              <div className="absolute top-full left-0 mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg z-50 min-w-[160px]" style={{ zIndex: 50 }}>
                 {dateOptions.map((option) => (
                   <button
                     key={option.value}
