@@ -592,23 +592,47 @@ table.data-table tr:last-child td {
 
 /* ===== iOS Safari 兼容性修复 ===== */
 
-/* iOS Safari: 降低所有 backdrop-filter 模糊强度，防止 GPU 内存溢出导致崩溃黑屏 */
 @supports (-webkit-touch-callout: none) {
-  /* iOS 上提高背景不透明度，弥补低模糊度的视觉效果 */
-  .glass,
-  .glass-strong,
-  .sidebar-glass,
-  .topbar-glass,
+  /* iOS 上完全移除所有大量重复元素的 backdrop-filter，防止 GPU 内存溢出导致崩溃 */
   .card,
   .stat-card,
+  .glass,
+  .glass-strong,
   .dropdown,
   .modal-glass,
-  [class*="backdrop-blur"] {
+  .input-glass,
+  .btn-secondary,
+  .input,
+  .select,
+  .textarea,
+  [class*="backdrop-blur"],
+  .modal-card,
+  .modal-overlay {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  /* 只保留侧边栏和顶部栏的低强度模糊（每个页面只有1个，GPU 内存占用可控） */
+  .sidebar-glass,
+  .topbar-glass {
     backdrop-filter: saturate(120%) blur(6px) !important;
     -webkit-backdrop-filter: saturate(120%) blur(6px) !important;
   }
 
-  /* 侧边栏和顶部栏在 iOS 上使用更高不透明度，确保不透明 */
+  /* 所有元素使用高不透明度纯色背景，替代毛玻璃效果 */
+  .card {
+    background: rgba(28, 28, 32, 0.98) !important;
+  }
+
+  .stat-card {
+    background: linear-gradient(135deg, rgba(35, 35, 42, 0.98) 0%, rgba(25, 25, 30, 0.96) 100%) !important;
+  }
+
+  .glass,
+  .glass-strong {
+    background: rgba(28, 28, 32, 0.96) !important;
+  }
+
   .sidebar-glass {
     background: rgba(22, 22, 26, 0.96) !important;
   }
@@ -617,30 +641,32 @@ table.data-table tr:last-child td {
     background: rgba(15, 15, 18, 0.94) !important;
   }
 
-  .card {
-    background: rgba(28, 28, 32, 0.92) !important;
-  }
-
-  .stat-card {
-    background: linear-gradient(135deg, rgba(35, 35, 42, 0.94) 0%, rgba(25, 25, 30, 0.88) 100%) !important;
-  }
-
-  .glass {
-    background: rgba(28, 28, 32, 0.9) !important;
-  }
-
-  /* 输入框和次要按钮在 iOS 上完全移除 backdrop-filter，避免渲染压力 */
+  .input-glass,
   .input,
   .select,
-  .textarea,
-  .input-glass,
-  .btn-secondary {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
+  .textarea {
+    background: rgba(30, 30, 35, 0.95) !important;
   }
 
-  .input-glass {
-    background: rgba(30, 30, 35, 0.9) !important;
+  .btn-secondary {
+    background: rgba(40, 40, 45, 0.9) !important;
+  }
+
+  .modal-card {
+    background: rgba(20, 20, 24, 0.98) !important;
+  }
+
+  /* 移除 ::before 伪元素的 mask 边框效果，减少渲染开销 */
+  .card::before,
+  .stat-card::before,
+  .glass::before,
+  .glass-strong::before {
+    display: none !important;
+  }
+
+  /* 移除 ::after 伪元素的光晕效果 */
+  .stat-card::after {
+    display: none !important;
   }
 
   /* iOS Safari: 使用 -webkit-fill-available 修复 100vh 包含地址栏导致的布局重叠 */
@@ -652,14 +678,6 @@ table.data-table tr:last-child td {
     min-height: -webkit-fill-available !important;
   }
 
-  /* iOS Safari: 修复 fixed/sticky 定位元素在缩放和滚动时偏移 */
-  /* 注意：不能直接设置 transform，否则会覆盖 Tailwind 的 translate-x 类导致侧边栏无法隐藏 */
-  .topbar-glass,
-  .dropdown {
-    -webkit-transform: translateZ(0);
-    transform: translateZ(0);
-  }
-
   /* iOS Safari: 禁用默认的点击高亮，避免交互闪烁 */
   * {
     -webkit-tap-highlight-color: transparent;
@@ -668,14 +686,6 @@ table.data-table tr:last-child td {
   /* iOS Safari: 防止橡皮筋滚动导致布局错位 */
   body {
     overscroll-behavior: none;
-  }
-
-  /* iOS Safari: 提升合成层，改善渲染性能 */
-  .sidebar-glass,
-  .topbar-glass,
-  .card,
-  .stat-card {
-    will-change: transform;
   }
 
   /* iOS Safari: 修复 position: sticky 在滚动时失效 */
@@ -691,17 +701,19 @@ table.data-table tr:last-child td {
     -webkit-overflow-scrolling: touch;
   }
 
-  /* iOS Safari: 模态框完全移除 backdrop-filter，使用纯色背景防止 GPU 内存溢出崩溃 */
-  .modal-card {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    background: rgba(20, 20, 24, 0.98) !important;
+  /* iOS Safari: 移除 will-change，避免创建过多合成层增加内存 */
+  .sidebar-glass,
+  .topbar-glass,
+  .card,
+  .stat-card {
+    will-change: auto !important;
   }
 
-  /* iOS Safari: 模态框遮罩层移除 backdrop-filter */
-  .modal-overlay {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
+  /* iOS Safari: 移除 transform: translateZ(0)，避免覆盖 Tailwind 的 translate 类 */
+  .topbar-glass,
+  .dropdown {
+    -webkit-transform: none;
+    transform: none;
   }
 }
 
