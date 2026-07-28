@@ -126,6 +126,21 @@ export default function ShippingPage() {
     return true;
   });
 
+  // 统计待投递状态下的重复收件人姓名
+  const showDupBadge = flt === "pending_delivery";
+  const nameCountMap: Record<string, number> = {};
+  if (showDupBadge) {
+    filtered.forEach(o => {
+      if (o.contactName) {
+        nameCountMap[o.contactName] = (nameCountMap[o.contactName] || 0) + 1;
+      }
+    });
+  }
+  const isDuplicateName = (name: string | null | undefined) => {
+    if (!name || !showDupBadge) return false;
+    return (nameCountMap[name] || 0) > 1;
+  };
+
   const updateOrder = async (id: string, updates: Partial<Order>) => {
     setUpdating(true);
     try {
@@ -536,14 +551,6 @@ export default function ShippingPage() {
               const startIdx = (currentPage - 1) * PAGE_SIZE;
               const endIdx = startIdx + PAGE_SIZE;
               const pageItems = filtered.slice(startIdx, endIdx);
-              const showDupBadge = flt === "pending_delivery";
-              const nameCount: Record<string, number> = {};
-              if (showDupBadge) {
-                filtered.forEach(o => {
-                  if (o.contactName) nameCount[o.contactName] = (nameCount[o.contactName] || 0) + 1;
-                });
-              }
-              const hasDup = (name: string | null | undefined) => showDupBadge && !!name && (nameCount[name] || 0) > 1;
               const dupLabel = lang === "en" ? "Multiple Orders" : lang === "zh-CN" ? "多订单" : "多訂單";
               const dupLabelFull = lang === "en" ? "Multiple Orders for this customer" : lang === "zh-CN" ? "该客户有多个订单" : "該客戶有多個訂單";
               return (
@@ -567,7 +574,7 @@ export default function ShippingPage() {
                       <td className="font-medium">
                         <div className="flex items-center gap-2">
                           <span className="truncate max-w-[140px]">{o.contactName || o.company || "N/A"}</span>
-                          {hasDup(o.contactName) && (
+                          {isDuplicateName(o.contactName) && (
                             <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '4px', background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.3)', whiteSpace: 'nowrap' }}>
                               {dupLabel}
                             </span>
@@ -595,7 +602,7 @@ export default function ShippingPage() {
                   key={o.id}
                   className="card p-4 relative"
                 >
-                  {hasDup(o.contactName) && (
+                  {isDuplicateName(o.contactName) && (
                     <span style={{ position: 'absolute', top: '8px', right: '8px', fontSize: '10px', padding: '2px 8px', borderRadius: '4px', background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.3)', whiteSpace: 'nowrap', zIndex: 1 }}>
                       {dupLabelFull}
                     </span>

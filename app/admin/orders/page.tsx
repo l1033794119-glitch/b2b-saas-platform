@@ -343,6 +343,21 @@ export default function OrdersPage() {
     return mq && mf && mage && mdate && mwarehouse;
   });
 
+  // 统计待投递状态下的重复收件人姓名
+  const showDupBadge = flt === "pending_delivery";
+  const nameCountMap: Record<string, number> = {};
+  if (showDupBadge) {
+    filtered.forEach(o => {
+      if (o.contactName) {
+        nameCountMap[o.contactName] = (nameCountMap[o.contactName] || 0) + 1;
+      }
+    });
+  }
+  const isDuplicateName = (name: string | null | undefined) => {
+    if (!name || !showDupBadge) return false;
+    return (nameCountMap[name] || 0) > 1;
+  };
+
   const selectedOrder = data.find((o) => o.id === selected);
 
   const handleCopy = (text: string) => {
@@ -1499,10 +1514,8 @@ export default function OrdersPage() {
               const startIdx = (currentPage - 1) * PAGE_SIZE;
               const endIdx = startIdx + PAGE_SIZE;
               const pageItems = filtered.slice(startIdx, endIdx);
-              // 待投递状态下统计重复收件人
-              const dupNames = flt === "pending_delivery"
-                ? new Set(filtered.filter(o => o.contactName).map(o => o.contactName!).filter((name, i, arr) => arr.indexOf(name) !== i))
-                : new Set<string>();
+              const dupLabel = lang === "en" ? "Multiple Orders" : lang === "zh-CN" ? "多订单" : "多訂單";
+              const dupLabelFull = lang === "en" ? "Multiple Orders for this customer" : lang === "zh-CN" ? "该客户有多个订单" : "該客戶有多個訂單";
               return (
                 <>
             <div className="hidden sm:block">
@@ -1523,7 +1536,7 @@ export default function OrdersPage() {
                 <tbody>
                   {pageItems.map((o) => {
                     const agent = agents.find((a) => a.id === o.agentId);
-                    const isDup = o.contactName && dupNames.has(o.contactName);
+                    const isDup = isDuplicateName(o.contactName);
                     return (
                       <tr key={o.id}>
                         <td className="font-mono text-xs">{o.orderNo}</td>
@@ -1562,7 +1575,7 @@ export default function OrdersPage() {
             <div className="sm:hidden space-y-3">
               {pageItems.map((o) => {
                 const agent = agents.find((a) => a.id === o.agentId);
-                const isDup = o.contactName && dupNames.has(o.contactName);
+                const isDup = isDuplicateName(o.contactName);
                 return (
                   <div
                     key={o.id}
