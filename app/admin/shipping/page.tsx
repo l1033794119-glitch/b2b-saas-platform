@@ -219,17 +219,16 @@ export default function ShippingPage() {
 
   const handleCopy = (text: string) => {
     if (!text) return;
-    navigator.clipboard.writeText(text).then(() => {
-      alert(lang === "en" ? "Copied to clipboard" : lang === "zh-CN" ? "已复制到剪贴板" : "已複製到剪貼簿");
-    }).catch(() => {
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text);
+    } else {
       const textarea = document.createElement("textarea");
       textarea.value = text;
       document.body.appendChild(textarea);
       textarea.select();
       document.execCommand("copy");
       document.body.removeChild(textarea);
-      alert(lang === "en" ? "Copied to clipboard" : lang === "zh-CN" ? "已复制到剪贴板" : "已複製到剪貼簿");
-    });
+    }
   };
 
   return (
@@ -533,14 +532,20 @@ export default function ShippingPage() {
             <>
             {(() => {
               const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
-              const currentPage = Math.min(page, totalPages);
+              const currentPage = Math.min(page, totalPages) || 1;
               const startIdx = (currentPage - 1) * PAGE_SIZE;
               const endIdx = startIdx + PAGE_SIZE;
               const pageItems = filtered.slice(startIdx, endIdx);
-              // 待投递状态下统计重复收件人
-              const dupNames = flt === "pending_delivery"
-                ? new Set(filtered.filter(o => o.contactName).map(o => o.contactName!).filter((name, i, arr) => arr.indexOf(name) !== i))
-                : new Set<string>();
+              const showDupBadge = flt === "pending_delivery";
+              const nameCount: Record<string, number> = {};
+              if (showDupBadge) {
+                filtered.forEach(o => {
+                  if (o.contactName) nameCount[o.contactName] = (nameCount[o.contactName] || 0) + 1;
+                });
+              }
+              const hasDup = (name: string | null | undefined) => showDupBadge && !!name && (nameCount[name] || 0) > 1;
+              const dupLabel = lang === "en" ? "Multiple Orders" : lang === "zh-CN" ? "多订单" : "多訂單";
+              const dupLabelFull = lang === "en" ? "Multiple Orders for this customer" : lang === "zh-CN" ? "该客户有多个订单" : "該客戶有多個訂單";
               return (
                 <>
             <div className="hidden sm:block">
@@ -556,17 +561,15 @@ export default function ShippingPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {pageItems.map((o) => {
-                    const isDup = o.contactName && dupNames.has(o.contactName);
-                    return (
+                  {pageItems.map((o) => (
                     <tr key={o.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                       <td className="font-mono text-xs">{o.orderNo}</td>
                       <td className="font-medium">
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-2">
                           <span className="truncate max-w-[140px]">{o.contactName || o.company || "N/A"}</span>
-                          {isDup && (
+                          {hasDup(o.contactName) && (
                             <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '4px', background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.3)', whiteSpace: 'nowrap' }}>
-                              {lang === "en" ? "Multiple Orders" : lang === "zh-CN" ? "多订单" : "多訂單"}
+                              {dupLabel}
                             </span>
                           )}
                         </div>
@@ -581,23 +584,20 @@ export default function ShippingPage() {
                         </button>
                       </td>
                     </tr>
-                    );
-                  })}
+                  ))}
                 </tbody>
               </table>
             </div>
 
             <div className="sm:hidden space-y-3">
-              {pageItems.map((o) => {
-                const isDup = o.contactName && dupNames.has(o.contactName);
-                return (
+              {pageItems.map((o) => (
                 <div
                   key={o.id}
                   className="card p-4 relative"
                 >
-                  {isDup && (
-                    <span style={{ position: 'absolute', top: '8px', right: '8px', fontSize: '10px', padding: '2px 8px', borderRadius: '4px', background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.3)', whiteSpace: 'nowrap' }}>
-                      {lang === "en" ? "Multiple Orders" : lang === "zh-CN" ? "该客户有多个订单" : "該客戶有多個訂單"}
+                  {hasDup(o.contactName) && (
+                    <span style={{ position: 'absolute', top: '8px', right: '8px', fontSize: '10px', padding: '2px 8px', borderRadius: '4px', background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.3)', whiteSpace: 'nowrap', zIndex: 1 }}>
+                      {dupLabelFull}
                     </span>
                   )}
                   <div className="flex items-start justify-between gap-3 mb-3">
@@ -630,8 +630,7 @@ export default function ShippingPage() {
                     </button>
                   </div>
                 </div>
-                );
-              })}
+              ))}
             </div>
 
             <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/5">
