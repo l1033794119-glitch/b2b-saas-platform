@@ -75,6 +75,8 @@ export default function MyOrdersPage() {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 10;
 
   // 获取状态筛选选项
   const getStatusFilterOptions = (): FilterOption[] => {
@@ -190,6 +192,7 @@ export default function MyOrdersPage() {
     setDateFilter("all");
     setCustomDateRange({ start: "", end: "" });
     setSearchKeyword("");
+    setPage(1);
   };
 
   // 计算运费总计
@@ -271,6 +274,10 @@ export default function MyOrdersPage() {
     const config = statusConfig[status] || { labelEn: status, labelZhCN: status, labelZhTW: status, color: "bg-slate-100 text-slate-700" };
     return lang === "en" ? config.labelEn : lang === "zh-CN" ? config.labelZhCN : config.labelZhTW;
   };
+
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter, dateFilter, customDateRange.start, customDateRange.end, searchKeyword]);
 
   const filteredOrders = getFilteredOrders();
   const totalShippingFees = getTotalShippingFees();
@@ -425,6 +432,15 @@ export default function MyOrdersPage() {
                   )}
                 </div>
               ) : (
+                <>
+                  {(() => {
+                    const totalPages = Math.ceil(filteredOrders.length / PAGE_SIZE);
+                    const currentPage = Math.min(page, totalPages);
+                    const startIdx = (currentPage - 1) * PAGE_SIZE;
+                    const endIdx = startIdx + PAGE_SIZE;
+                    const pageItems = filteredOrders.slice(startIdx, endIdx);
+                    return (
+                      <>
                 <table className="data-table">
                   <thead>
                     <tr>
@@ -437,7 +453,7 @@ export default function MyOrdersPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredOrders.map((o) => (
+                    {pageItems.map((o) => (
                       <tr
                         key={o.id}
                         onClick={() => setSelected(o)}
@@ -465,6 +481,40 @@ export default function MyOrdersPage() {
                     ))}
                   </tbody>
                 </table>
+
+                <div className="flex items-center justify-between px-4 py-3 border-t border-white/5">
+                  <div className="text-xs text-slate-500">
+                    {lang === "en" 
+                      ? `${startIdx + 1}-${Math.min(endIdx, filteredOrders.length)} of ${filteredOrders.length}`
+                      : lang === "zh-CN" 
+                        ? `${startIdx + 1}-${Math.min(endIdx, filteredOrders.length)} 条 / 共 ${filteredOrders.length} 条`
+                        : `${startIdx + 1}-${Math.min(endIdx, filteredOrders.length)} 條 / 共 ${filteredOrders.length} 條`
+                    }
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      disabled={currentPage <= 1}
+                      className="w-8 h-8 rounded-lg flex items-center justify-center text-sm disabled:opacity-30 hover:bg-white/5 transition-colors"
+                    >
+                      ‹
+                    </button>
+                    <div className="text-sm font-medium min-w-[80px] text-center">
+                      {currentPage} / {totalPages}
+                    </div>
+                    <button
+                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={currentPage >= totalPages}
+                      className="w-8 h-8 rounded-lg flex items-center justify-center text-sm disabled:opacity-30 hover:bg-white/5 transition-colors"
+                    >
+                      ›
+                    </button>
+                  </div>
+                </div>
+                      </>
+                    );
+                  })()}
+                </>
               )}
         </div>
       </div>

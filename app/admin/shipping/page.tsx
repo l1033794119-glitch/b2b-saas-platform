@@ -60,6 +60,8 @@ export default function ShippingPage() {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [tempWaybillImage, setTempWaybillImage] = useState("");
   const [uploadingWaybillImage, setUploadingWaybillImage] = useState(false);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 10;
 
   const statuses = [
     { id: "all", labelEn: "All", labelZhCN: "全部", labelZhTW: "全部" },
@@ -100,6 +102,10 @@ export default function ShippingPage() {
       };
     }
   }, [selectedOrder]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [q, flt]);
 
   const filtered = data.filter((o) => {
     if (!["pending_delivery", "pending_tracking", "shipped", "completed"].includes(o.status)) {
@@ -489,6 +495,14 @@ export default function ShippingPage() {
             <div className="text-center py-8 text-slate-500">{lang === "en" ? "No shipments found" : lang === "zh-CN" ? "暂无物流订单" : "暫無物流訂單"}</div>
           ) : (
             <>
+            {(() => {
+              const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+              const currentPage = Math.min(page, totalPages);
+              const startIdx = (currentPage - 1) * PAGE_SIZE;
+              const endIdx = startIdx + PAGE_SIZE;
+              const pageItems = filtered.slice(startIdx, endIdx);
+              return (
+                <>
             <div className="hidden sm:block">
               <table className="data-table">
                 <thead>
@@ -502,7 +516,7 @@ export default function ShippingPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((o) => (
+                  {pageItems.map((o) => (
                     <tr key={o.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                       <td className="font-mono text-xs">{o.orderNo}</td>
                       <td className="font-medium">
@@ -524,7 +538,7 @@ export default function ShippingPage() {
             </div>
 
             <div className="sm:hidden space-y-3">
-              {filtered.map((o) => (
+              {pageItems.map((o) => (
                 <div
                   key={o.id}
                   className="card p-4"
@@ -561,6 +575,39 @@ export default function ShippingPage() {
                 </div>
               ))}
             </div>
+
+            <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/5">
+              <div className="text-xs text-slate-500">
+                {lang === "en" 
+                  ? `${startIdx + 1}-${Math.min(endIdx, filtered.length)} of ${filtered.length}`
+                  : lang === "zh-CN" 
+                    ? `${startIdx + 1}-${Math.min(endIdx, filtered.length)} 条 / 共 ${filtered.length} 条`
+                    : `${startIdx + 1}-${Math.min(endIdx, filtered.length)} 條 / 共 ${filtered.length} 條`
+                }
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage <= 1}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-sm disabled:opacity-30 hover:bg-white/5 transition-colors"
+                >
+                  ‹
+                </button>
+                <div className="text-sm font-medium min-w-[80px] text-center">
+                  {currentPage} / {totalPages}
+                </div>
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage >= totalPages}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-sm disabled:opacity-30 hover:bg-white/5 transition-colors"
+                >
+                  ›
+                </button>
+              </div>
+            </div>
+                </>
+              );
+            })()}
             </>
           )}
         </div>
