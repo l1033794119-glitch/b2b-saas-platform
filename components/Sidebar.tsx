@@ -39,7 +39,7 @@ export function AdminSidebar({ open, onClose }: { open: boolean; onClose: () => 
         />
       )}
       <aside
-        className={`fixed lg:sticky top-0 left-0 h-[100dvh] lg:h-screen w-[280px] z-40 flex flex-col transition-transform duration-300 ease-out sidebar-glass ${
+        className={`fixed lg:fixed top-0 left-0 h-[100dvh] lg:h-screen w-[280px] z-40 flex flex-col transition-transform duration-300 ease-out sidebar-glass ${
           open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
         style={{ willChange: "transform" }}
@@ -133,7 +133,7 @@ export function AgentSidebar({ open, onClose }: { open: boolean; onClose: () => 
         />
       )}
       <aside
-        className={`fixed lg:sticky top-0 left-0 h-[100dvh] lg:h-screen w-[280px] z-40 flex flex-col transition-transform duration-300 ease-out sidebar-glass ${
+        className={`fixed lg:fixed top-0 left-0 h-[100dvh] lg:h-screen w-[280px] z-40 flex flex-col transition-transform duration-300 ease-out sidebar-glass ${
           open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
         style={{ willChange: "transform" }}

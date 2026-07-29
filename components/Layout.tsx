@@ -42,9 +42,9 @@ export function AdminLayout({ children, title, subtitle }:
   }
 
   return (
-    <div className="flex min-h-[100dvh]">
+    <div className="min-h-[100dvh]">
       <AdminSidebar open={open} onClose={() => setOpen(false)} />
-      <div className="flex-1 min-w-0 flex flex-col">
+      <div className="flex lg:ml-[280px] flex-col">
         <Topbar title={title} subtitle={subtitle} onMenu={() => setOpen(true)} />
         <main className="flex-1 px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
           <div className="max-w-[1600px] mx-auto">
@@ -84,9 +84,9 @@ export function AgentLayout({ children, title, subtitle }:
   }
 
   return (
-    <div className="flex min-h-[100dvh]">
+    <div className="min-h-[100dvh]">
       <AgentSidebar open={open} onClose={() => setOpen(false)} />
-      <div className="flex-1 min-w-0 flex flex-col">
+      <div className="flex lg:ml-[280px] flex-col">
         <Topbar title={title} subtitle={subtitle} onMenu={() => setOpen(true)} />
         <main className="flex-1 px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
           <div className="max-w-[1600px] mx-auto">
