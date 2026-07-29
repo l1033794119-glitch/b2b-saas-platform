@@ -348,7 +348,7 @@ export default function MyOrdersPage() {
           </div>
 
           {/* 状态筛选 */}
-          <div className="relative">
+          <div className="relative" style={{ zIndex: 40 }}>
             <button
               onClick={() => { setShowStatusDropdown(!showStatusDropdown); setShowDateDropdown(false); }}
               className={`btn-ghost flex items-center gap-2 ${statusFilter !== "all" ? "border-indigo-300 bg-indigo-50 dark:bg-indigo-950/30" : ""}`}
@@ -358,7 +358,7 @@ export default function MyOrdersPage() {
               <ChevronDown className="w-4 h-4" />
             </button>
             {showStatusDropdown && (
-              <div className="absolute top-full left-0 mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg z-50 min-w-[160px]" style={{ zIndex: 50 }}>
+              <div className="absolute top-full left-0 mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg min-w-[160px]" style={{ zIndex: 100 }}>
                 {statusOptions.map((option) => (
                   <button
                     key={option.value}
@@ -375,7 +375,7 @@ export default function MyOrdersPage() {
           </div>
 
           {/* 日期筛选 */}
-          <div className="relative">
+          <div className="relative" style={{ zIndex: 40 }}>
             <button
               onClick={() => { setShowDateDropdown(!showDateDropdown); setShowStatusDropdown(false); }}
               className={`btn-ghost flex items-center gap-2 ${dateFilter !== "all" ? "border-indigo-300 bg-indigo-50 dark:bg-indigo-950/30" : ""}`}
@@ -385,7 +385,7 @@ export default function MyOrdersPage() {
               <ChevronDown className="w-4 h-4" />
             </button>
             {showDateDropdown && (
-              <div className="absolute top-full left-0 mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg z-50 min-w-[160px]" style={{ zIndex: 50 }}>
+              <div className="absolute top-full left-0 mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg min-w-[160px]" style={{ zIndex: 100 }}>
                 {dateOptions.map((option) => (
                   <button
                     key={option.value}
