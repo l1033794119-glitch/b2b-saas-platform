@@ -294,7 +294,6 @@ export default function OrdersPage() {
         const currentOrder = data.find((o) => o.id === id);
         const updatedOrder = { ...currentOrder, ...updated };
         setData(data.map((o) => o.id === id ? updatedOrder : o));
-        if (selected === id) setSelected(updatedOrder);
         return true;
       } else {
         const err = await res.json();
