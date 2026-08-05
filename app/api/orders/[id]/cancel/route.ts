@@ -122,12 +122,13 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       const updated = await updateOrder(params.id, updates);
 
       try {
-        const refundAmount = order.total || 0;
+        // 退款金额 = 商品总价 + 运费（运费在保存二维码时已扣减到信用额度）
+        const refundAmount = (Number(order.total) || 0) + (Number(order.shippingFee) || 0);
         if (refundAmount > 0) {
           await repayCredit(
             order.agentId,
             refundAmount,
-            `取消订单退款 ${order.orderNo}`
+            `取消订单退款 ${order.orderNo}（含运费 ${Number(order.shippingFee) || 0}）`
           );
         }
       } catch (creditError) {
