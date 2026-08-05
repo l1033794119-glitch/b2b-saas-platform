@@ -325,7 +325,7 @@ export default function MyOrdersPage() {
       </div>
 
       {/* 筛选器 */}
-      <div className="card p-4 mb-6" style={{ overflow: "visible" }}>
+      <div className="card p-4 mb-6" style={{ overflow: "visible", position: "relative", zIndex: 20 }}>
         <div className="flex flex-wrap items-center gap-3">
           {/* 搜索框 */}
           <div className="relative flex-1 min-w-[200px]">
