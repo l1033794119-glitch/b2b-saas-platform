@@ -1339,7 +1339,7 @@ export default function OrdersPage() {
             </div>
           </div>
 
-          {selectedOrder.notes && (
+          {selectedOrder.notes && selectedOrder.notes.trim() && (
             <div className="mb-5 p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg">
               <div className="text-xs text-amber-600 mb-1">{lang === "en" ? "Notes" : lang === "zh-CN" ? "备注" : "備註"}</div>
               <div className="text-sm">{selectedOrder.notes}</div>
