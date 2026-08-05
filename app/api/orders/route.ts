@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAllOrders, getOrdersByAgentId, createOrder, getProductById, updateProductStock } from "@/lib/repository";
+import { getAllOrders, getOrdersByAgentId, createOrder, getProductById, updateProductStock, getAgentById } from "@/lib/repository";
 
 function formatMySQLDate(date: Date = new Date()): string {
   const d = new Date(date);
@@ -35,7 +35,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid order data" }, { status: 400 });
     }
 
-    // 检查库存是否足够
+    // 检查库存是否足够，同时获取代理商等级
+    const agent = await getAgentById(agentId);
+    const agentLevel = agent?.level || "B";
+    const priceKey = agentLevel === "A" ? "levelAPrice" : agentLevel === "C" ? "levelCPrice" : "levelBPrice";
+
     const stockErrors: string[] = [];
     for (const item of items) {
       const product = await getProductById(item.productId);
@@ -50,23 +54,29 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: stockErrors.join("; ") }, { status: 400 });
     }
 
-    // 扣减库存并获取仓库信息
+    // 扣减库存并获取仓库信息，同时使用数据库最新价格覆盖前端传来的价格
     const warehouseIds = new Set<string>();
     const warehouseNames = new Set<string>();
     const orderItemsWithWarehouse = [];
+    let serverTotal = 0;
 
     for (const item of items) {
       const product = await getProductById(item.productId);
       if (product) {
         const newStock = (product.stock || 0) - (item.quantity || 0);
         await updateProductStock(item.productId, newStock);
-        
+
         if (product.warehouseId) warehouseIds.add(product.warehouseId);
         if (product.warehouse) warehouseNames.add(product.warehouse);
-        
+
         const productImages = typeof product.images === 'string' ? JSON.parse(product.images) : (product.images || []);
+        // 使用数据库中的最新价格，而非前端传来的价格
+        const serverPrice = (product as any)[priceKey] || 0;
+        serverTotal += serverPrice * (item.quantity || 0);
+
         orderItemsWithWarehouse.push({
           ...item,
+          price: serverPrice,
           warehouseId: product.warehouseId || null,
           warehouse: product.warehouse || null,
           image: item.image || (productImages.length > 0 ? productImages[0] : "") || "",
@@ -84,7 +94,7 @@ export async function POST(req: NextRequest) {
         body: JSON.stringify({
           agentId,
           action: "deduct",
-          amount: total,
+          amount: serverTotal || total,
           note: `Order ${body.orderNo || `ORD-${Date.now()}`}`,
         }),
       });
@@ -109,7 +119,7 @@ export async function POST(req: NextRequest) {
       orderNo: body.orderNo || `ORD-${Date.now()}`,
       agentId,
       items: orderItemsWithWarehouse || [],
-      total: total || 0,
+      total: serverTotal || total || 0,
       status: "pending_qrcode",
       date: formatMySQLDate(),
       shippingAddress: shippingAddress || "",

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 
 export interface CartItem {
   productId: string;
@@ -17,6 +17,7 @@ interface CartContextValue {
   remove: (productId: string) => void;
   update: (productId: string, qty: number) => void;
   clear: () => void;
+  syncPrices: (priceMap: Record<string, number>) => number;
   total: number;
   count: number;
   lastAdded: string;
@@ -27,6 +28,9 @@ const CartContext = createContext<CartContextValue | null>(null);
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [lastAdded, setLastAdded] = useState<string>("");
+  const itemsRef = useRef<CartItem[]>([]);
+
+  useEffect(() => { itemsRef.current = items; }, [items]);
 
   useEffect(() => {
     try {
@@ -68,11 +72,28 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setItems([]);
   }, []);
 
+  // 同步最新价格，返回发生变化的商品数量
+  const syncPrices = useCallback((priceMap: Record<string, number>) => {
+    let changed = 0;
+    const next = itemsRef.current.map((i) => {
+      const newPrice = priceMap[i.productId];
+      if (newPrice !== undefined && newPrice !== i.price) {
+        changed++;
+        return { ...i, price: newPrice };
+      }
+      return i;
+    });
+    if (changed > 0) {
+      setItems(next);
+    }
+    return changed;
+  }, []);
+
   const total = items.reduce((s, i) => s + i.price * i.qty, 0);
   const count = items.reduce((s, i) => s + i.qty, 0);
 
   return (
-    <CartContext.Provider value={{ items, add, remove, update, clear, total, count, lastAdded }}>
+    <CartContext.Provider value={{ items, add, remove, update, clear, syncPrices, total, count, lastAdded }}>
       {children}
     </CartContext.Provider>
   );

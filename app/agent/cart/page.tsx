@@ -20,25 +20,29 @@ interface ShippingInfo {
 interface ProductStock {
   id: string;
   stock: number;
+  levelAPrice?: number;
+  levelBPrice?: number;
+  levelCPrice?: number;
 }
 
 export default function CartPage() {
   const { t, currency, lang, user } = useApp();
   return (
     <AgentLayout title={t("shopping_cart")}>
-      <CartInner t={t} currency={currency} lang={lang} agentId={user?.id} />
+      <CartInner t={t} currency={currency} lang={lang} agentId={user?.id} level={user?.level} />
     </AgentLayout>
   );
 }
 
-function CartInner({ t, currency, lang, agentId }: { t: any; currency: string; lang: string; agentId?: string }) {
-  const { items, update, remove, total, count, clear } = useCart();
+function CartInner({ t, currency, lang, agentId, level }: { t: any; currency: string; lang: string; agentId?: string; level?: string }) {
+  const { items, update, remove, total, count, clear, syncPrices } = useCart();
   const [creditData, setCreditData] = useState<{ limit: number; used: number; available: number } | null>(null);
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [status, setStatus] = useState<"idle" | "checking" | "submitting" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
   const [productStocks, setProductStocks] = useState<Map<string, number>>(new Map());
   const [stockWarning, setStockWarning] = useState<string>("");
+  const [priceUpdateCount, setPriceUpdateCount] = useState<number>(0);
 
   const [shippingInfo, setShippingInfo] = useState<ShippingInfo>({
     address: "",
@@ -78,17 +82,28 @@ function CartInner({ t, currency, lang, agentId }: { t: any; currency: string; l
   const creditUsedPercent = creditData ? (creditData.used / creditData.limit) * 100 : 0;
   const creditAvailablePercent = creditData ? (creditData.available / creditData.limit) * 100 : 100;
 
-  // Fetch product stocks
+  // Fetch product stocks and sync latest prices
   const fetchProductStocks = async () => {
     try {
       const res = await fetch("/api/products");
       if (res.ok) {
         const products = await res.json();
         const stockMap = new Map<string, number>();
+        const priceMap: Record<string, number> = {};
+        const priceKey = level === "A" ? "levelAPrice" : level === "C" ? "levelCPrice" : "levelBPrice";
         products.forEach((p: ProductStock) => {
           stockMap.set(p.id, p.stock);
+          const price = (p as any)[priceKey];
+          if (typeof price === "number") {
+            priceMap[p.id] = price;
+          }
         });
         setProductStocks(stockMap);
+        // 同步购物车中的价格为数据库最新价格
+        const changed = syncPrices(priceMap);
+        if (changed > 0) {
+          setPriceUpdateCount(changed);
+        }
       }
     } catch {}
   };
@@ -201,6 +216,16 @@ function CartInner({ t, currency, lang, agentId }: { t: any; currency: string; l
                   <div className="flex items-center gap-2 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 text-amber-600 text-sm">
                     <AlertCircle className="w-4 h-4 flex-shrink-0" />
                     {stockWarning}
+                  </div>
+                )}
+                {priceUpdateCount > 0 && (
+                  <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/40 text-emerald-600 text-sm">
+                    <CheckCircle className="w-4 h-4 flex-shrink-0" />
+                    {lang === "en"
+                      ? `${priceUpdateCount} item(s) price updated to latest`
+                      : lang === "zh-CN"
+                      ? `${priceUpdateCount} 件商品价格已更新为最新`
+                      : `${priceUpdateCount} 件商品價格已更新為最新`}
                   </div>
                 )}
                 {items.map((i) => (
