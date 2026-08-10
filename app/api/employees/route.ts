@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAllEmployees, getEmployeeById, getEmployeeByEmail, createEmployee, updateEmployee, deleteEmployee } from "@/lib/repository";
 import { requireAdmin } from "@/lib/auth";
+import { hashPassword } from "@/lib/security";
 
 const MENU_PERMISSIONS = [
   { key: "dashboard", label: "仪表盘", labelEn: "Dashboard" },
@@ -62,11 +63,13 @@ export async function POST(req: NextRequest) {
     }
 
     const id = body.id || `emp_${Date.now()}`;
+    const plainPassword = body.password || "admin123";
+    const hashedPassword = await hashPassword(plainPassword);
     const employee = {
       id,
       name: body.name || "",
       email: body.email || "",
-      password: body.password || "admin123",
+      password: hashedPassword,
       permissions: body.permissions || Object.fromEntries(MENU_PERMISSIONS.map((m) => [m.key, true])),
       active: body.active !== false,
       createdAt: new Date().toISOString(),
@@ -97,7 +100,12 @@ export async function PUT(req: NextRequest) {
     const updates: any = {};
     if (body.name !== undefined) updates.name = body.name;
     if (body.email !== undefined) updates.email = body.email;
-    if (body.password !== undefined) updates.password = body.password;
+    if (body.password !== undefined) {
+      // 长度 < 50 判定为明文（哈希以 $scrypt$ 开头且 > 100 字符）
+      updates.password = body.password.length < 50
+        ? await hashPassword(body.password)
+        : body.password;
+    }
     if (body.permissions !== undefined) updates.permissions = body.permissions;
     if (body.active !== undefined) updates.active = body.active;
 

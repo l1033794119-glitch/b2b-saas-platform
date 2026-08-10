@@ -31,6 +31,8 @@ interface AppContextValue {
   logout: () => void;
   currency: string;
   setCurrency: (c: string) => void;
+  csrfToken: string | null;
+  setCsrfToken: (token: string | null) => void;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -85,6 +87,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [currency, setCurrencyState] = useState<string>(getCurrencyFromStorage);
   const [isSessionChecked, setIsSessionChecked] = useState(false);
+  const [csrfToken, setCsrfToken] = useState<string | null>(null);
 
   useEffect(() => {
     const checkSession = async () => {
@@ -97,6 +100,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (data.authenticated && data.user) {
           setUser(data.user);
           localStorage.setItem("app.user", JSON.stringify(data.user));
+          if (data.csrfToken) {
+            setCsrfToken(data.csrfToken);
+          }
         }
       } catch (error) {
         console.error("Session check failed:", error);
@@ -141,10 +147,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (data.success && data.user) {
         setUser(data.user);
         localStorage.setItem("app.user", JSON.stringify(data.user));
+        if (data.csrfToken) {
+          setCsrfToken(data.csrfToken);
+        }
         return true;
       }
-    } catch (error) {
+      throw new Error(data.error || "Login failed");
+    } catch (error: any) {
       console.error("Login failed:", error);
+      throw error;
     }
     return false;
   };
@@ -158,6 +169,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch {}
     
     setUser(null);
+    setCsrfToken(null);
     localStorage.removeItem("app.user");
   };
 
@@ -170,6 +182,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     logout,
     currency,
     setCurrency,
+    csrfToken,
+    setCsrfToken,
   };
   
   return (

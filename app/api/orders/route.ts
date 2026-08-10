@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAllOrders, getOrdersByAgentId, createOrder, getProductById, updateProductStock, getAgentById, deductCredit } from "@/lib/repository";
 import { requireAuth, requireAdmin, checkOwnership, SessionUser } from "@/lib/auth";
+import { verifyCsrfToken, issueCsrfToken, checkRateLimit } from "@/lib/rate-limit";
 
 function formatMySQLDate(date: Date = new Date()): string {
   const d = new Date(date);
@@ -38,14 +39,41 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST - 创建订单（包含库存扣减）
+// POST - 创建订单（包含库存扣减 + CSRF 校验 + 速率限制）
 export async function POST(req: NextRequest) {
   try {
     const authResult = await requireAuth(req);
     if (authResult instanceof NextResponse) return authResult;
     const user = authResult as SessionUser;
 
+    // ===== 速率限制：同一代理商 60 秒内最多 3 个订单 =====
+    // 目的：防止外部平台（SHOPYY/Shoplazza）的脚本批量同步订单
+    const rateKey = `order_create:${user.role === "agent" ? user.id : "admin"}`;
+    const rate = await checkRateLimit(rateKey, 60 * 1000, 3);
+    if (!rate.allowed) {
+      return NextResponse.json(
+        {
+          error: `Too many orders. Please wait ${rate.resetInSec} seconds before placing another order`,
+        },
+        { status: 429 }
+      );
+    }
+
+    // ===== CSRF Token 校验：必须携带登录时颁发的 token =====
+    // 目的：防止外部脚本直接调用 API 下单，必须先通过浏览器登录获取 token
+    const sessionId = req.cookies.get("session_id")?.value || "";
     const body = await req.json();
+    const submittedCsrf = body._csrf || body.csrfToken || null;
+    const csrfOk = await verifyCsrfToken(sessionId, submittedCsrf);
+    if (!csrfOk) {
+      return NextResponse.json(
+        {
+          error: "Invalid or expired CSRF token. Please refresh the page and try again",
+        },
+        { status: 403 }
+      );
+    }
+
     const { agentId: bodyAgentId, items, total, shippingAddress, postalCode, country, contactName, phone, email, note } = body;
 
     // 代理商只能为自己创建订单；管理员可指定任意 agentId
@@ -145,7 +173,14 @@ export async function POST(req: NextRequest) {
     };
 
     const result = await createOrder(order);
-    return NextResponse.json(result, { status: 201 });
+
+    // 下单成功后重新颁发 CSRF token（一次性 token 已被消耗）
+    const newCsrfToken = await issueCsrfToken(sessionId);
+
+    return NextResponse.json(
+      { ...result, csrfToken: newCsrfToken },
+      { status: 201 }
+    );
   } catch (error: any) {
     console.error("Orders POST error:", error);
     return NextResponse.json({ error: error.message || "Invalid request" }, { status: 400 });

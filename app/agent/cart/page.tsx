@@ -26,15 +26,39 @@ interface ProductStock {
 }
 
 export default function CartPage() {
-  const { t, currency, lang, user } = useApp();
+  const { t, currency, lang, user, csrfToken, setCsrfToken } = useApp();
   return (
     <AgentLayout title={t("shopping_cart")}>
-      <CartInner t={t} currency={currency} lang={lang} agentId={user?.id} level={user?.level} />
+      <CartInner
+        t={t}
+        currency={currency}
+        lang={lang}
+        agentId={user?.id}
+        level={user?.level}
+        csrfToken={csrfToken}
+        setCsrfToken={setCsrfToken}
+      />
     </AgentLayout>
   );
 }
 
-function CartInner({ t, currency, lang, agentId, level }: { t: any; currency: string; lang: string; agentId?: string; level?: string }) {
+function CartInner({
+  t,
+  currency,
+  lang,
+  agentId,
+  level,
+  csrfToken,
+  setCsrfToken,
+}: {
+  t: any;
+  currency: string;
+  lang: string;
+  agentId?: string;
+  level?: string;
+  csrfToken: string | null;
+  setCsrfToken: (t: string | null) => void;
+}) {
   const { items, update, remove, total, count, clear, syncPrices } = useCart();
   const [creditData, setCreditData] = useState<{ limit: number; used: number; available: number } | null>(null);
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
@@ -167,6 +191,7 @@ function CartInner({ t, currency, lang, agentId, level }: { t: any; currency: st
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        _csrf: csrfToken,
         agentId,
         items: orderItems,
         total: grandTotal,
@@ -181,6 +206,11 @@ function CartInner({ t, currency, lang, agentId, level }: { t: any; currency: st
     });
 
     if (orderRes.ok) {
+      const respData = await orderRes.json();
+      // 下单成功后更新 CSRF token（一次性 token 被消耗了）
+      if (respData.csrfToken) {
+        setCsrfToken(respData.csrfToken);
+      }
       clear();
       setShowCheckoutModal(false);
       setStatus("success");
@@ -189,7 +219,15 @@ function CartInner({ t, currency, lang, agentId, level }: { t: any; currency: st
       setTimeout(() => { setStatus("idle"); setMessage(""); }, 3000);
     } else {
       const err = await orderRes.json();
-      setMessage(err.error || (lang === "en" ? "Failed to submit order" : lang === "zh-CN" ? "订单提交失败" : "訂單提交失敗"));
+      // 403：CSRF token 失效，刷新页面重新获取
+      if (orderRes.status === 403) {
+        setMessage((lang === "en" ? "Session expired, refreshing page..." : lang === "zh-CN" ? "会话过期，正在刷新页面..." : "會話過期，正在刷新頁面..."));
+        setTimeout(() => window.location.reload(), 1500);
+      } else if (orderRes.status === 429) {
+        setMessage(err.error || (lang === "en" ? "Too many orders, please wait a moment" : lang === "zh-CN" ? "下单过于频繁，请稍候再试" : "下單過於頻繁，請稍候再試"));
+      } else {
+        setMessage(err.error || (lang === "en" ? "Failed to submit order" : lang === "zh-CN" ? "订单提交失败" : "訂單提交失敗"));
+      }
       setStatus("error");
     }
   };

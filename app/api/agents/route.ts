@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAllAgents, getAgentById, createAgent, updateAgent, deleteAgent, getAgentByEmail } from "@/lib/repository";
 import { requireAuth, requireAdmin, SessionUser } from "@/lib/auth";
+import { hashPassword } from "@/lib/security";
 
 // GET - 获取代理商信息
 // 代理商只能查看自己的信息；管理员可查看全部
@@ -55,12 +56,14 @@ export async function POST(req: NextRequest) {
     }
 
     const id = body.id || `a${Date.now()}`;
+    const plainPassword = body.password || "agent123";
+    const hashedPassword = await hashPassword(plainPassword);
     const newAgent = {
       id,
       company: body.company || "",
       contact: body.contact || body.company || "",
       email: body.email || "",
-      password: body.password || "agent123",
+      password: hashedPassword,
       phone: body.phone || "",
       country: body.country || "",
       level: body.level || "B",
@@ -103,7 +106,7 @@ export async function PUT(req: NextRequest) {
     }
 
     // 代理商不能修改敏感字段（creditLimit、outstanding、level、status）
-    let allowedUpdates = updates;
+    let allowedUpdates: any = { ...updates };
     if (user.role === "agent") {
       allowedUpdates = {};
       // 仅允许修改联系信息和密码
@@ -111,6 +114,12 @@ export async function PUT(req: NextRequest) {
       if (updates.phone !== undefined) allowedUpdates.phone = updates.phone;
       if (updates.country !== undefined) allowedUpdates.country = updates.country;
       if (updates.password !== undefined) allowedUpdates.password = updates.password;
+    }
+
+    // 如果修改了密码，哈希后再存储
+    if (allowedUpdates.password && allowedUpdates.password.length < 50) {
+      // 长度 < 50 判定为明文（哈希以 $scrypt$ 开头且 > 100 字符）
+      allowedUpdates.password = await hashPassword(allowedUpdates.password);
     }
 
     const result = await updateAgent(targetAgentId, allowedUpdates);
