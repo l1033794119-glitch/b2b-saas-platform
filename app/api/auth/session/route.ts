@@ -287,12 +287,26 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   try {
     const sessionId = req.cookies.get("b2b_sid")?.value;
+
+    // 调试：返回 cookie 读取结果（方便排查）
     if (!sessionId) {
-      return NextResponse.json({ authenticated: false });
+      // 列出所有 cookie 名（从请求头解析，不暴露敏感值）
+      const cookieHeader = req.headers.get("cookie") || "";
+      const cookieNames = cookieHeader.split(";").map(c => c.trim().split("=")[0]).filter(Boolean);
+      return NextResponse.json({
+        authenticated: false,
+        debug: {
+          reason: "NO_COOKIE",
+          cookieNamesReceived: cookieNames,
+          cookieHeaderPresent: !!cookieHeader,
+          cookieHeader: cookieHeader.substring(0, 200),
+        }
+      });
     }
 
     let sessionUser = null;
     let sessionType = null;
+    let dbErrorMsg = null;
 
     try {
       const sessions: any[] = await query(
@@ -304,12 +318,20 @@ export async function GET(req: NextRequest) {
         sessionUser = sessions[0].user_id;
         sessionType = sessions[0].user_type;
       }
-    } catch (dbError) {
-      console.log("Session table query failed");
+    } catch (dbError: any) {
+      dbErrorMsg = dbError?.message || String(dbError);
+      console.log("Session table query failed:", dbErrorMsg);
     }
 
     if (!sessionUser) {
-      return NextResponse.json({ authenticated: false });
+      return NextResponse.json({
+        authenticated: false,
+        debug: {
+          reason: "SESSION_NOT_FOUND",
+          sessionIdValue: sessionId,
+          dbError: dbErrorMsg,
+        }
+      });
     }
 
     // 如果有 CSRF token，也返回给前端（页面刷新时用）
