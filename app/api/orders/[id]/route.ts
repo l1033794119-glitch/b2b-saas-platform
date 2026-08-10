@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getOrderById, updateOrder, deleteOrder, deductCredit, addInventoryLog, getProductById } from "@/lib/repository";
-import { requireAuth, checkOwnership, SessionUser } from "@/lib/auth";
+import { requireAuth, checkOwnership, isAdminRole, SessionUser } from "@/lib/auth";
 
 function formatMySQLDate(date: Date = new Date()): string {
   const d = new Date(date);
@@ -56,7 +56,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     // 只允许管理员修改；代理商只能修改自己的 contactName、phone、email、shippingAddress 等收货信息
     const updates: any = {};
 
-    if (user.role === "admin") {
+    if (isAdminRole(user.role as string)) {
       // 管理员可修改所有字段
       if (body.status !== undefined) updates.status = body.status;
       if (body.trackingNumber !== undefined) updates.trackingNumber = body.trackingNumber;
@@ -108,7 +108,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     if (authResult instanceof NextResponse) return authResult;
     const user = authResult as SessionUser;
 
-    if (user.role !== "admin") {
+    if (!isAdminRole(user.role as string)) {
       return NextResponse.json({ error: "Forbidden - Admin only" }, { status: 403 });
     }
 

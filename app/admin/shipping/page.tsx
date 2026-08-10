@@ -450,7 +450,9 @@ export default function ShippingPage() {
                       </div>
                     ) : (
                       <div className="text-sm text-amber-600 dark:text-amber-400 italic">
-                        {selectedOrder.waybillImage || lang === "en" ? "Not uploaded yet" : lang === "zh-CN" ? "尚未上传" : "尚未上傳"}
+                        {selectedOrder.waybillImage
+                          ? lang === "en" ? "Uploaded" : lang === "zh-CN" ? "已上传" : "已上傳"
+                          : lang === "en" ? "Not uploaded yet" : lang === "zh-CN" ? "尚未上传" : "尚未上傳"}
                       </div>
                     )}
                   </div>

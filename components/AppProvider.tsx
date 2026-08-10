@@ -102,9 +102,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const redirectingRef = useRef(false);
 
   const apiFetch = useCallback(async (url: string, options?: RequestInit): Promise<Response> => {
+    // 关键修复：当 body 是 FormData 时，绝对不能手动设置 Content-Type，
+    // 必须让浏览器自动生成带 boundary 的 multipart/form-data；
+    // 否则后端 req.formData() 无法解析，导致上传失败。
+    const isFormData =
+      typeof FormData !== "undefined" && options?.body instanceof FormData;
+
+    const mergedHeaders = isFormData
+      ? { ...(options?.headers || {}) } // FormData: 不注入任何 Content-Type
+      : {
+          "Content-Type": "application/json",
+          ...(options?.headers || {}),
+        };
+
     const defaultOptions: RequestInit = {
       credentials: "include",
-      headers: { "Content-Type": "application/json", ...(options?.headers || {}) },
+      headers: mergedHeaders,
     };
 
     let res: Response;

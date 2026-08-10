@@ -93,13 +93,20 @@ export async function requireAgent(req: NextRequest): Promise<SessionUser | Next
   return user;
 }
 
+// 所有管理员角色列表（admin 是历史遗留角色名，super_admin 等是新角色）
+const ADMIN_ROLES = ["admin", "super_admin", "warehouse_manager", "finance_manager", "operations_manager", "customer_service"];
+
+// 判断是否为管理员角色（含所有管理员子角色）
+export function isAdminRole(role: string): boolean {
+  return ADMIN_ROLES.includes(role);
+}
+
 // 校验代理商只能访问自己的资源；管理员可访问任意
 export function checkOwnership(
   user: SessionUser,
   resourceAgentId: string | undefined | null
 ): boolean {
-  const adminRoles = ["admin", "super_admin", "warehouse_manager", "finance_manager", "operations_manager", "customer_service"];
-  if (adminRoles.includes(user.role as string)) return true;
+  if (isAdminRole(user.role as string)) return true;
   if (!resourceAgentId) return false;
   return user.id === resourceAgentId;
 }
