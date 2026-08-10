@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
       filtered = filtered.filter((p: any) => p.warehouseId === warehouseId);
     }
 
-    // 代理商看不到成本价、其他等级价、库存等敏感信息
+    // 代理商看不到成本价和其他等级价格，但需要看到库存和当前等级价格
     if (user.role === "agent") {
       const level = user.level || "B";
       const priceKey = level === "A" ? "levelAPrice" : level === "C" ? "levelCPrice" : "levelBPrice";
@@ -33,10 +33,12 @@ export async function GET(req: NextRequest) {
         description: p.description,
         descriptionZh: p.descriptionZh,
         price: p[priceKey], // 当前等级的价格
+        [priceKey]: p[priceKey], // 同时返回等级价格字段供前端使用
+        stock: p.stock, // 代理商需要看到库存以便下单
         warehouse: p.warehouse,
         warehouseId: p.warehouseId,
         status: p.status,
-        // 不返回 costPrice、wholesalePrice、retailPrice、levelAPrice、levelBPrice、levelCPrice、stock
+        // 不返回 costPrice、wholesalePrice、retailPrice 及其他等级价格
       })) as any;
     }
 
