@@ -13,7 +13,7 @@ export interface SessionUser {
 // 从请求中解析当前会话用户
 export async function getSessionUser(req: NextRequest): Promise<SessionUser | null> {
   try {
-    const sessionId = req.cookies.get("session_id")?.value;
+    const sessionId = req.cookies.get("sid")?.value;
     if (!sessionId) return null;
 
     const sessions: any[] = await query(

@@ -175,7 +175,7 @@ export async function POST(req: NextRequest) {
           sessionMaxAgeSec: maxAgeSec,
         },
         {
-          name: "session_id",
+          name: "sid",
           value: sessionId,
           maxAgeSec,
           path: "/",
@@ -282,7 +282,7 @@ export async function POST(req: NextRequest) {
           sessionMaxAgeSec: maxAgeSec,
         },
         {
-          name: "session_id",
+          name: "sid",
           value: sessionId,
           maxAgeSec,
           path: "/",
@@ -303,7 +303,7 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    const sessionId = req.cookies.get("session_id")?.value;
+    const sessionId = req.cookies.get("sid")?.value;
     if (!sessionId) {
       return NextResponse.json({ authenticated: false });
     }
@@ -399,7 +399,7 @@ export async function GET(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const sessionId = req.cookies.get("session_id")?.value;
+    const sessionId = req.cookies.get("sid")?.value;
 
     const forwardedProto = req.headers.get("x-forwarded-proto");
     const isHttps = forwardedProto === "https" || req.nextUrl.protocol === "https:";

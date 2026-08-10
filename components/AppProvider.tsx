@@ -212,7 +212,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           const maxAge = data.sessionMaxAgeSec || 28800;
           const isHttps = window.location.protocol === "https:";
           const secureFlag = isHttps ? "; Secure" : "";
-          document.cookie = `session_id=${data.sessionId}; path=/; max-age=${maxAge}; SameSite=Lax${secureFlag}`;
+          document.cookie = `sid=${data.sessionId}; path=/; max-age=${maxAge}; SameSite=Lax${secureFlag}`;
         }
 
         // 等待 cookie 写入完成
@@ -270,8 +270,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       });
     } catch {}
 
-    // 手动清除 session_id cookie（与 login 中的设置对应）
-    document.cookie = "session_id=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax";
+    // 手动清除 sid cookie（与 login 中的设置对应）
+    document.cookie = "sid=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax";
 
     setUser(null);
     setCsrfToken(null);
