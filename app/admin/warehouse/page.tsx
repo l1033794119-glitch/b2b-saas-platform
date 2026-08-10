@@ -30,7 +30,7 @@ interface Product {
 }
 
 export default function WarehousePage() {
-  const { t, currency, lang } = useApp();
+  const { t, currency, lang, apiFetch } = useApp();
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,11 +50,17 @@ export default function WarehousePage() {
     setLoading(true);
     try {
       const [wRes, pRes] = await Promise.all([
-        fetch("/api/warehouses"),
-        fetch("/api/products"),
+        apiFetch("/api/warehouses"),
+        apiFetch("/api/products"),
       ]);
-      if (wRes.ok) setWarehouses(await wRes.json());
-      if (pRes.ok) setProducts(await pRes.json());
+      if (wRes.ok) {
+        const w = await wRes.json().catch(() => []);
+        setWarehouses(Array.isArray(w) ? w : []);
+      }
+      if (pRes.ok) {
+        const p = await pRes.json().catch(() => []);
+        setProducts(Array.isArray(p) ? p : []);
+      }
     } finally {
       setLoading(false);
     }
@@ -72,7 +78,7 @@ export default function WarehousePage() {
     }
     setSubmitting(true);
     try {
-      const res = await fetch("/api/warehouses", {
+      const res = await apiFetch("/api/warehouses", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: newName.trim(), location: newLocation.trim(), manager: newManager.trim() }),
@@ -84,7 +90,7 @@ export default function WarehousePage() {
         setNewManager("");
         fetchData();
       } else {
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
         setError(data.error || (lang === "en" ? "Failed to create warehouse" : "创建仓库失败"));
       }
     } finally {
@@ -98,13 +104,13 @@ export default function WarehousePage() {
     setDeleting(true);
     try {
       const url = `/api/warehouses?id=${encodeURIComponent(deleteTarget.id)}${deleteOrphans ? "&cleanupOrphans=1" : ""}`;
-      const res = await fetch(url, { method: "DELETE" });
+      const res = await apiFetch(url, { method: "DELETE" });
       if (res.ok) {
         setDeleteTarget(null);
         setDeleteOrphans(true);
         fetchData();
       } else {
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
         setDeleteError(data.error || (lang === "en" ? "Failed to delete" : "删除失败"));
       }
     } finally {
@@ -112,11 +118,10 @@ export default function WarehousePage() {
     }
   };
 
-  // 一键清理所有孤儿产品（不删除任何仓库）
   const handleCleanupOrphans = async () => {
     setCleanupLoading(true);
     try {
-      const res = await fetch("/api/warehouses/cleanup-orphans", { method: "PUT" });
+      const res = await apiFetch("/api/warehouses/cleanup-orphans", { method: "PUT" });
       if (res.ok) {
         fetchData();
       }
@@ -146,9 +151,11 @@ export default function WarehousePage() {
         <>
           {/* 孤儿产品检测 - 显示不归属任何仓库的产品 */}
           {(() => {
-            const warehouseIds = new Set(warehouses.map(w => w.id));
-            const warehouseNames = new Set(warehouses.map(w => w.name));
-            const orphans = products.filter((p) => {
+            const safeWarehouses = Array.isArray(warehouses) ? warehouses : [];
+            const safeProducts = Array.isArray(products) ? products : [];
+            const warehouseIds = new Set(safeWarehouses.map(w => w.id));
+            const warehouseNames = new Set(safeWarehouses.map(w => w.name));
+            const orphans = safeProducts.filter((p) => {
               const pid = p.warehouseId || "";
               const pname = p.warehouse || "";
               if (pid && warehouseIds.has(pid)) return false;
@@ -183,13 +190,13 @@ export default function WarehousePage() {
           })()}
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-            {warehouses.map((w) => {
-              // 优先按 warehouseId 匹配；兼容旧数据按名称匹配
-              const productsHere = products.filter((p) =>
+            {(Array.isArray(warehouses) ? warehouses : []).map((w) => {
+              const safeProducts = Array.isArray(products) ? products : [];
+              const productsHere = safeProducts.filter((p) =>
                 (p.warehouseId && p.warehouseId === w.id) || (!p.warehouseId && p.warehouse === w.name)
               );
-              const stockHere = productsHere.reduce((s, p) => s + p.stock, 0);
-              const valueHere = productsHere.reduce((s, p) => s + p.stock * p.costPrice, 0);
+              const stockHere = productsHere.reduce((s, p) => s + (p.stock || 0), 0);
+              const valueHere = productsHere.reduce((s, p) => s + (p.stock || 0) * (p.costPrice || 0), 0);
               return (
                 <div key={w.id} className="card p-5">
                   <div className="flex items-start justify-between mb-3">
@@ -241,14 +248,14 @@ export default function WarehousePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {products.map((p) => (
+                  {(Array.isArray(products) ? products : []).map((p) => (
                     <tr key={p.id}>
                       <td className="font-mono text-xs">{p.sku}</td>
                       <td className="font-medium">{p.name}</td>
                       <td>{p.warehouse}</td>
-                      <td className={p.stock < 50 ? "text-amber-600 font-medium" : ""}>{formatNumber(p.stock)}</td>
-                      <td>{formatCurrency(p.costPrice, currency)}</td>
-                      <td className="font-medium">{formatCurrency(p.stock * p.costPrice, currency)}</td>
+                      <td className={(p.stock || 0) < 50 ? "text-amber-600 font-medium" : ""}>{formatNumber(p.stock || 0)}</td>
+                      <td>{formatCurrency(p.costPrice || 0, currency)}</td>
+                      <td className="font-medium">{formatCurrency((p.stock || 0) * (p.costPrice || 0), currency)}</td>
                     </tr>
                   ))}
                 </tbody>

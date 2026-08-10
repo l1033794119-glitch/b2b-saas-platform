@@ -72,7 +72,7 @@ const statuses = [
 ];
 
 export default function OrdersPage() {
-  const { t, currency, lang } = useApp();
+  const { t, currency, lang, apiFetch } = useApp();
   const [data, setData] = useState<Order[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -115,16 +115,17 @@ export default function OrdersPage() {
     try {
       const formData = new FormData();
       formData.append("file", file);
-      const res = await fetch("/api/upload", {
+      const res = await apiFetch("/api/upload", {
         method: "POST",
+        headers: {},
         body: formData,
       });
       if (res.ok) {
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
         if (forEdit) {
-          setTempQrCode(data.url);
+          setTempQrCode(data.url || "");
         } else {
-          setTempQrCode(data.url);
+          setTempQrCode(data.url || "");
         }
       } else {
         alert(lang === "en" ? "Upload failed" : lang === "zh-CN" ? "上传失败" : "上傳失敗");
@@ -145,13 +146,14 @@ export default function OrdersPage() {
     try {
       const formData = new FormData();
       formData.append("file", file);
-      const res = await fetch("/api/upload", {
+      const res = await apiFetch("/api/upload", {
         method: "POST",
+        headers: {},
         body: formData,
       });
       if (res.ok) {
-        const data = await res.json();
-        setTempWaybillImage(data.url);
+        const data = await res.json().catch(() => ({}));
+        setTempWaybillImage(data.url || "");
       } else {
         alert(lang === "en" ? "Upload failed" : lang === "zh-CN" ? "上传失败" : "上傳失敗");
       }
@@ -170,13 +172,14 @@ export default function OrdersPage() {
     try {
       const formData = new FormData();
       formData.append("file", file);
-      const res = await fetch("/api/upload", {
+      const res = await apiFetch("/api/upload", {
         method: "POST",
+        headers: {},
         body: formData,
       });
       if (res.ok) {
-        const data = await res.json();
-        setShipInfo({ ...shipInfo, trackingImage: data.url });
+        const data = await res.json().catch(() => ({}));
+        setShipInfo({ ...shipInfo, trackingImage: data.url || "" });
       } else {
         alert(lang === "en" ? "Upload failed" : lang === "zh-CN" ? "上传失败" : "上傳失敗");
       }
@@ -188,10 +191,10 @@ export default function OrdersPage() {
 
   const fetchOrders = async () => {
     try {
-      const res = await fetch("/api/orders");
+      const res = await apiFetch("/api/orders");
       if (res.ok) {
-        const orders = await res.json();
-        setData(orders);
+        const orders = await res.json().catch(() => []);
+        setData(Array.isArray(orders) ? orders : []);
       }
     } catch (error) {
       console.error("Failed to fetch orders:", error);
@@ -202,10 +205,10 @@ export default function OrdersPage() {
 
   const fetchAgents = async () => {
     try {
-      const res = await fetch("/api/agents");
+      const res = await apiFetch("/api/agents");
       if (res.ok) {
-        const agentsData = await res.json();
-        setAgents(agentsData);
+        const agentsData = await res.json().catch(() => []);
+        setAgents(Array.isArray(agentsData) ? agentsData : []);
       }
     } catch (error) {
       console.error("Failed to fetch agents:", error);
@@ -214,10 +217,10 @@ export default function OrdersPage() {
 
   const fetchWarehouses = async () => {
     try {
-      const res = await fetch("/api/warehouses");
+      const res = await apiFetch("/api/warehouses");
       if (res.ok) {
-        const warehousesData = await res.json();
-        setWarehouses(warehousesData);
+        const warehousesData = await res.json().catch(() => []);
+        setWarehouses(Array.isArray(warehousesData) ? warehousesData : []);
       }
     } catch (error) {
       console.error("Failed to fetch warehouses:", error);
@@ -226,10 +229,10 @@ export default function OrdersPage() {
 
   const fetchProducts = async () => {
     try {
-      const res = await fetch("/api/products");
+      const res = await apiFetch("/api/products");
       if (res.ok) {
-        const productsData = await res.json();
-        setProducts(productsData);
+        const productsData = await res.json().catch(() => []);
+        setProducts(Array.isArray(productsData) ? productsData : []);
       }
     } catch (error) {
       console.error("Failed to fetch products:", error);
@@ -238,7 +241,7 @@ export default function OrdersPage() {
 
   const getProductImage = (productId?: string) => {
     if (!productId) return "";
-    const p = products.find((x) => x.id === productId);
+    const p = safeProducts.find((x) => x.id === productId);
     if (p && Array.isArray(p.images) && p.images.length > 0) {
       return p.images[0];
     }
@@ -284,19 +287,19 @@ export default function OrdersPage() {
     setUpdating(true);
     setUpdatingOrderIds((prev) => new Set(prev).add(id));
     try {
-      const res = await fetch(`/api/orders/${id}`, {
+      const res = await apiFetch(`/api/orders/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updates),
       });
       if (res.ok) {
-        const updated = await res.json();
-        const currentOrder = data.find((o) => o.id === id);
+        const updated = await res.json().catch(() => ({}));
+        const currentOrder = safeData.find((o) => o.id === id);
         const updatedOrder = { ...currentOrder, ...updated };
-        setData(data.map((o) => o.id === id ? updatedOrder : o));
+        setData(safeData.map((o) => o.id === id ? updatedOrder : o));
         return true;
       } else {
-        const err = await res.json();
+        const err = await res.json().catch(() => ({}));
         alert(lang === "en" ? "Failed: " : lang === "zh-CN" ? "操作失败: " : "操作失敗: " + (err.error || "Unknown error"));
         return false;
       }
@@ -314,10 +317,15 @@ export default function OrdersPage() {
     }
   };
 
-  const filtered = data.filter((o) => {
+  const safeData = Array.isArray(data) ? data : [];
+  const safeAgents = Array.isArray(agents) ? agents : [];
+  const safeProducts = Array.isArray(products) ? products : [];
+  const safeWarehouses = Array.isArray(warehouses) ? warehouses : [];
+
+  const filtered = safeData.filter((o) => {
     const searchText = q.toLowerCase();
     const mq = !q ||
-      o.orderNo.toLowerCase().includes(searchText) ||
+      (o.orderNo || "").toLowerCase().includes(searchText) ||
       (o.contactName && o.contactName.toLowerCase().includes(searchText)) ||
       (o.company && o.company.toLowerCase().includes(searchText)) ||
       (o.phone && o.phone.toLowerCase().includes(searchText)) ||
@@ -334,7 +342,7 @@ export default function OrdersPage() {
       (o.warehouse && o.warehouse === warehouseFilter) ||
       (o.items && o.items.some((item: any) => item.warehouseId === warehouseFilter || item.warehouse === warehouseFilter));
 
-    const orderDate = new Date(o.date);
+    const orderDate = o.date ? new Date(o.date) : new Date(0);
     const fromDate = dateFrom ? new Date(dateFrom) : null;
     const toDate = dateTo ? new Date(dateTo + "T23:59:59") : null;
     const mdate = (!fromDate || orderDate >= fromDate) && (!toDate || orderDate <= toDate);
@@ -357,7 +365,7 @@ export default function OrdersPage() {
     return (nameCountMap[name] || 0) > 1;
   };
 
-  const selectedOrder = data.find((o) => o.id === selected);
+  const selectedOrder = safeData.find((o) => o.id === selected);
 
   const handleCopy = (text: string) => {
     if (!text) return;
@@ -401,7 +409,7 @@ export default function OrdersPage() {
     ];
 
     const rows = filtered.map((o) => {
-      const agent = agents.find((a) => a.id === o.agentId);
+      const agent = safeAgents.find((a) => a.id === o.agentId);
       const itemsStr = (o.items || [])
         .map((it: any) => `${it.name} x${it.quantity} @${it.price}`)
         .join("; ");
@@ -455,7 +463,7 @@ export default function OrdersPage() {
     }
 
     if (fee > 0 && selectedOrder.status === "pending_qrcode") {
-      const creditRes = await fetch("/api/credit", {
+      const creditRes = await apiFetch("/api/credit", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -466,7 +474,7 @@ export default function OrdersPage() {
         }),
       });
       if (!creditRes.ok) {
-        const err = await creditRes.json();
+        const err = await creditRes.json().catch(() => ({}));
         alert(lang === "en" ? "Failed to deduct shipping fee: " : lang === "zh-CN" ? "运费扣除失败: " : "運費扣除失敗: " + (err.error || "Unknown error"));
         return;
       }
@@ -635,17 +643,17 @@ export default function OrdersPage() {
 
     setUpdating(true);
     try {
-      const res = await fetch(`/api/orders/${selectedOrder.id}/cancel`, {
+      const res = await apiFetch(`/api/orders/${selectedOrder.id}/cancel`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "approve", adminName: "admin" }),
       });
 
       if (res.ok) {
-        const updated = await res.json();
-        setData(data.map((o) => o.id === selectedOrder.id ? updated : o));
+        const updated = await res.json().catch(() => ({}));
+        setData(safeData.map((o) => o.id === selectedOrder.id ? updated : o));
       } else {
-        const err = await res.json();
+        const err = await res.json().catch(() => ({}));
         alert(err.error || "操作失败");
       }
     } catch (error) {
@@ -664,17 +672,17 @@ export default function OrdersPage() {
 
     setUpdating(true);
     try {
-      const res = await fetch(`/api/orders/${selectedOrder.id}/cancel`, {
+      const res = await apiFetch(`/api/orders/${selectedOrder.id}/cancel`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "reject", adminName: "admin" }),
       });
 
       if (res.ok) {
-        const updated = await res.json();
-        setData(data.map((o) => o.id === selectedOrder.id ? updated : o));
+        const updated = await res.json().catch(() => ({}));
+        setData(safeData.map((o) => o.id === selectedOrder.id ? updated : o));
       } else {
-        const err = await res.json();
+        const err = await res.json().catch(() => ({}));
         alert(err.error || "操作失败");
       }
     } catch (error) {
@@ -749,7 +757,7 @@ export default function OrdersPage() {
                 onChange={(e) => setAgentFilter(e.target.value)}
               >
                 <option value="all">{lang === "en" ? "All Agents" : lang === "zh-CN" ? "全部代理商" : "全部代理商"}</option>
-                {agents.map((a) => (
+                {safeAgents.map((a) => (
                   <option key={a.id} value={a.id}>{a.company}</option>
                 ))}
               </select>
@@ -763,7 +771,7 @@ export default function OrdersPage() {
                 onChange={(e) => setWarehouseFilter(e.target.value)}
               >
                 <option value="all">{lang === "en" ? "All Warehouses" : lang === "zh-CN" ? "全部仓库" : "全部倉庫"}</option>
-                {warehouses.map((w) => (
+                {safeWarehouses.map((w) => (
                   <option key={w.id} value={w.id}>{w.name}</option>
                 ))}
               </select>
@@ -1438,7 +1446,7 @@ export default function OrdersPage() {
                   }
                   setUpdating(true);
                   try {
-                    const res = await fetch(`/api/orders/${selectedOrder.id}`, {
+                    const res = await apiFetch(`/api/orders/${selectedOrder.id}`, {
                       method: "PUT",
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({
@@ -1447,14 +1455,14 @@ export default function OrdersPage() {
                       }),
                     });
                     if (res.ok) {
-                      const updated = await res.json();
+                      const updated = await res.json().catch(() => ({}));
                       const updatedOrder = { ...selectedOrder, ...updated };
-                      setData(data.map((o) => o.id === selectedOrder.id ? updatedOrder : o));
-                      setSelected(updatedOrder);
+                      setData(safeData.map((o) => o.id === selectedOrder.id ? updatedOrder : o));
+                      setSelectedOrder(updatedOrder);
                       setShowShipModal(false);
                       setShipInfo({ trackingNumber: "", trackingImage: "" });
                     } else {
-                      const err = await res.json();
+                      const err = await res.json().catch(() => ({}));
                       alert(lang === "en" ? "Save failed: " : lang === "zh-CN" ? "保存失败: " : "保存失敗: " + (err.error || "Unknown error"));
                     }
                   } catch (error) {
@@ -1534,7 +1542,7 @@ export default function OrdersPage() {
                 </thead>
                 <tbody>
                   {pageItems.map((o) => {
-                    const agent = agents.find((a) => a.id === o.agentId);
+                    const agent = safeAgents.find((a) => a.id === o.agentId);
                     const isDup = isDuplicateName(o.contactName);
                     return (
                       <tr key={o.id}>
@@ -1573,7 +1581,7 @@ export default function OrdersPage() {
 
             <div className="sm:hidden space-y-3">
               {pageItems.map((o) => {
-                const agent = agents.find((a) => a.id === o.agentId);
+                const agent = safeAgents.find((a) => a.id === o.agentId);
                 const isDup = isDuplicateName(o.contactName);
                 return (
                   <div

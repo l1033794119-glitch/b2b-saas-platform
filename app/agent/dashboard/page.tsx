@@ -44,7 +44,7 @@ interface DateFilter {
 }
 
 export default function AgentDashboard() {
-  const { t, user, currency, lang } = useApp();
+  const { t, user, currency, lang, apiFetch } = useApp();
   const [credit, setCredit] = useState<CreditRecord | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<any[]>([]);
@@ -102,8 +102,9 @@ export default function AgentDashboard() {
   // 筛选订单
   const getFilteredOrders = () => {
     const { start, end } = getDateRange();
-    return orders.filter((order) => {
-      const orderDate = new Date(order.date);
+    const safeOrders = Array.isArray(orders) ? orders : [];
+    return safeOrders.filter((order) => {
+      const orderDate = order.date ? new Date(order.date) : new Date(0);
       return orderDate >= start && orderDate <= end;
     });
   };
@@ -111,7 +112,8 @@ export default function AgentDashboard() {
   // 获取运费记录（从信用交易中筛选）
   const getShippingFeeRecords = () => {
     if (!credit?.transactions) return [];
-    return credit.transactions.filter((txn) =>
+    const txns = Array.isArray(credit.transactions) ? credit.transactions : [];
+    return txns.filter((txn) =>
       txn.type === "order_deduct" && txn.note?.includes("Shipping fee")
     );
   };
@@ -122,7 +124,7 @@ export default function AgentDashboard() {
     const totalOrders = filteredOrders.length;
     const totalSpent = filteredOrders
       .filter((o) => o.status !== "cancelled")
-      .reduce((sum, o) => sum + o.total, 0);
+      .reduce((sum, o) => sum + (o.total || 0), 0);
     const totalShippingFees = filteredOrders
       .filter((o) => o.shippingFee && o.shippingFee > 0)
       .reduce((sum, o) => sum + (o.shippingFee || 0), 0);
@@ -134,38 +136,40 @@ export default function AgentDashboard() {
     if (!user?.id) return;
 
     // 获取信用记录
-    fetch(`/api/credit?agentId=${user.id}`)
-      .then((r) => r.ok ? r.json() : null)
+    apiFetch(`/api/credit?agentId=${user.id}`)
+      .then((r) => r.ok ? r.json().catch(() => null) : null)
       .then((data) => { if (data) setCredit(data); });
 
     // 获取订单（只拉取自己的订单，后端会根据 session 强制过滤）
-    fetch(`/api/orders?agentId=${user.id}`)
-      .then((r) => r.ok ? r.json() : [])
+    apiFetch(`/api/orders?agentId=${user.id}`)
+      .then((r) => r.ok ? r.json().catch(() => []) : [])
       .then((data) => {
         const myOrders = Array.isArray(data) ? data : [];
         setOrders(myOrders);
       });
 
     // 获取产品列表（用于显示商品图片）
-    fetch("/api/products")
-      .then((r) => r.ok ? r.json() : [])
+    apiFetch("/api/products")
+      .then((r) => r.ok ? r.json().catch(() => []) : [])
       .then((data) => { if (Array.isArray(data)) setProducts(data); });
 
     // 获取通知（如果 API 存在）
-    fetch("/api/notifications")
-      .then((r) => r.ok ? r.json() : [])
+    apiFetch("/api/notifications")
+      .then((r) => r.ok ? r.json().catch(() => []) : [])
       .catch(() => [])
       .then((data) => {
         if (Array.isArray(data)) {
           setNotifications(data.filter((n: any) => n.userId === user.id || !n.userId));
         }
       });
-  }, [user?.id]);
+  }, [user?.id, apiFetch]);
 
   const stats = getStats();
   const filteredOrders = getFilteredOrders();
   const shippingRecords = getShippingFeeRecords();
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const safeNotifications = Array.isArray(notifications) ? notifications : [];
+  const unreadCount = safeNotifications.filter((n) => !n.read).length;
+  const safeProducts = Array.isArray(products) ? products : [];
   const dateOptions = getDateFilterOptions();
 
   // 计算已购买商品统计（按SKU聚合，含图片和名称）
@@ -176,7 +180,7 @@ export default function AgentDashboard() {
       if (o.items && Array.isArray(o.items)) {
         o.items.forEach((item: any) => {
           const key = item.productId || item.sku || item.name;
-          const product = products.find((p: any) => p.id === item.productId);
+          const product = safeProducts.find((p: any) => p.id === item.productId);
           const image = item.image || product?.images?.[0] || "";
           const qty = item.quantity || item.qty || 1;
           const existing = productMap.get(key);
@@ -197,7 +201,7 @@ export default function AgentDashboard() {
     });
 
     return Array.from(productMap.values()).sort((a, b) => b.qty - a.qty);
-  }, [filteredOrders, products]);
+  }, [filteredOrders, safeProducts]);
 
   return (
     <AgentLayout title={lang === "en" ? "Welcome back" : lang === "zh-CN" ? "欢迎回来" : "歡迎回來"} subtitle={user?.company || user?.name}>
@@ -443,14 +447,14 @@ export default function AgentDashboard() {
       {/* 通知 */}
       <div className="card p-5">
         <h2 className="text-base font-semibold mb-4">{t("notifications")}</h2>
-        {notifications.length === 0 ? (
+        {safeNotifications.length === 0 ? (
           <div className="text-center py-8 text-slate-500">
             <Bell className="w-12 h-12 mx-auto mb-3 opacity-30" />
             <p>{lang === "en" ? "No notifications" : lang === "zh-CN" ? "暂无通知" : "暫無通知"}</p>
           </div>
         ) : (
           <div className="space-y-2">
-            {notifications.slice(0, 4).map((n) => (
+            {safeNotifications.slice(0, 4).map((n) => (
               <div key={n.id} className={`rounded-xl border p-3 ${n.read ? "border-slate-200 dark:border-slate-800" : "border-emerald-500/30 bg-emerald-500/5"}`}>
                 <div className="flex items-start justify-between gap-3">
                   <div>

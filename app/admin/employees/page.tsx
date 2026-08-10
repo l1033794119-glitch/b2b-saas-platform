@@ -36,7 +36,7 @@ interface Employee {
 }
 
 export default function EmployeesPage() {
-  const { t, lang } = useApp();
+  const { t, lang, apiFetch } = useApp();
   const [list, setList] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
@@ -48,9 +48,9 @@ export default function EmployeesPage() {
   const fetchEmployees = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/employees");
+      const res = await apiFetch("/api/employees");
       if (res.ok) {
-        const data = await res.json();
+        const data = await res.json().catch(() => []);
         setList(Array.isArray(data) ? data : []);
       }
     } catch {
@@ -58,18 +58,19 @@ export default function EmployeesPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [apiFetch]);
 
   useEffect(() => {
     fetchEmployees();
   }, [fetchEmployees]);
 
-  const filtered = list.filter((e) => {
+  const safeList = Array.isArray(list) ? list : [];
+  const filtered = safeList.filter((e) => {
     if (!q) return true;
     const qq = q.toLowerCase();
     return (
-      e.name.toLowerCase().includes(qq) ||
-      e.email.toLowerCase().includes(qq)
+      String(e.name || "").toLowerCase().includes(qq) ||
+      String(e.email || "").toLowerCase().includes(qq)
     );
   });
 
@@ -98,19 +99,22 @@ export default function EmployeesPage() {
     setStatus("submitting");
     setMessage("");
     try {
-      const res = await fetch("/api/employees", {
+      const res = await apiFetch("/api/employees", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(emp),
       });
       if (res.ok) {
-        const saved = await res.json();
-        setList((prev) => {
-          if (editing) {
-            return prev.map((e) => (e.id === saved.id ? saved : e));
-          }
-          return [...prev, saved];
-        });
+        const saved = await res.json().catch(() => (null));
+        if (saved) {
+          setList((prev) => {
+            const safePrev = Array.isArray(prev) ? prev : [];
+            if (editing) {
+              return safePrev.map((e) => (e.id === saved.id ? saved : e));
+            }
+            return [...safePrev, saved];
+          });
+        }
         setStatus("success");
         setMessage(editing
           ? (lang === "zh-CN" ? "员工更新成功！" : "Employee updated!")
@@ -118,7 +122,7 @@ export default function EmployeesPage() {
         );
         setTimeout(() => closeModal(), 1500);
       } else {
-        const err = await res.json();
+        const err = await res.json().catch(() => ({}));
         setMessage(err.error || "Failed");
         setStatus("error");
       }
@@ -131,11 +135,11 @@ export default function EmployeesPage() {
   const handleDelete = async (id: string) => {
     if (!confirm(lang === "zh-CN" ? "确定删除此员工？" : "Delete this employee?")) return;
     try {
-      const res = await fetch(`/api/employees?id=${id}`, { method: "DELETE" });
+      const res = await apiFetch(`/api/employees?id=${id}`, { method: "DELETE" });
       if (res.ok) {
-        setList((prev) => prev.filter((e) => e.id !== id));
+        setList((prev) => (Array.isArray(prev) ? prev.filter((e) => e.id !== id) : prev));
       } else {
-        const err = await res.json();
+        const err = await res.json().catch(() => ({}));
         alert(err.error || "Failed to delete");
       }
     } catch {
@@ -143,8 +147,8 @@ export default function EmployeesPage() {
     }
   };
 
-  const activeCount = list.filter((e) => e.active).length;
-  const totalCount = list.length;
+  const activeCount = safeList.filter((e) => e.active).length;
+  const totalCount = safeList.length;
 
   return (
     <AdminLayout

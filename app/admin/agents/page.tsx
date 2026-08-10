@@ -23,7 +23,7 @@ interface Agent {
 }
 
 export default function AgentsPage() {
-  const { t, currency, lang } = useApp();
+  const { t, currency, lang, apiFetch } = useApp();
   const [data, setData] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
@@ -36,36 +36,42 @@ export default function AgentsPage() {
   const fetchAgents = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/agents");
+      const res = await apiFetch("/api/agents");
       if (res.ok) {
-        const json = await res.json();
-        setData(json);
+        const json = await res.json().catch(() => []);
+        setData(Array.isArray(json) ? json : []);
       }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [apiFetch]);
 
   useEffect(() => {
     fetchAgents();
   }, [fetchAgents]);
 
-  const filtered = data.filter((a) => {
-    const mq = !q || a.company.toLowerCase().includes(q.toLowerCase()) || a.contact.toLowerCase().includes(q.toLowerCase()) || a.email.toLowerCase().includes(q.toLowerCase());
+  const safeData = Array.isArray(data) ? data : [];
+  const filtered = safeData.filter((a) => {
+    const mq = !q ||
+      String(a.company || "").toLowerCase().includes(q.toLowerCase()) ||
+      String(a.contact || "").toLowerCase().includes(q.toLowerCase()) ||
+      String(a.email || "").toLowerCase().includes(q.toLowerCase());
     const mf = flt === "all" || a.status === flt;
     return mq && mf;
   });
 
   const approve = async (id: string) => {
     try {
-      const res = await fetch("/api/agents", {
+      const res = await apiFetch("/api/agents", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ agentId: id, status: "active" }),
       });
       if (res.ok) {
-        const updated = await res.json();
-        setData((prev) => prev.map((a) => a.id === id ? updated : a));
+        const updated = await res.json().catch(() => (null));
+        if (updated) {
+          setData((prev) => (Array.isArray(prev) ? prev.map((a) => a.id === id ? updated : a) : prev));
+        }
       }
     } catch {
       // ignore
@@ -74,14 +80,16 @@ export default function AgentsPage() {
 
   const disable = async (id: string) => {
     try {
-      const res = await fetch("/api/agents", {
+      const res = await apiFetch("/api/agents", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ agentId: id, status: "disabled" }),
       });
       if (res.ok) {
-        const updated = await res.json();
-        setData((prev) => prev.map((a) => a.id === id ? updated : a));
+        const updated = await res.json().catch(() => (null));
+        if (updated) {
+          setData((prev) => (Array.isArray(prev) ? prev.map((a) => a.id === id ? updated : a) : prev));
+        }
       }
     } catch {
       // ignore
@@ -92,22 +100,25 @@ export default function AgentsPage() {
     setStatus("submitting");
     setMessage("");
     try {
-      const res = await fetch("/api/agents", {
+      const res = await apiFetch("/api/agents", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(agent),
       });
       if (res.ok) {
-        const saved = await res.json();
-        setData((prev) => {
-          const idx = prev.findIndex((a) => a.id === saved.id);
-          if (idx >= 0) {
-            const next = [...prev];
-            next[idx] = saved;
-            return next;
-          }
-          return [...prev, saved];
-        });
+        const saved = await res.json().catch(() => (null));
+        if (saved) {
+          setData((prev) => {
+            const safe = Array.isArray(prev) ? prev : [];
+            const idx = safe.findIndex((a) => a.id === saved.id);
+            if (idx >= 0) {
+              const next = [...safe];
+              next[idx] = saved;
+              return next;
+            }
+            return [...safe, saved];
+          });
+        }
         setStatus("success");
         setMessage(lang === "en" ? "Agent added successfully!" : lang === "zh-CN" ? "代理商添加成功！" : "代理商新增成功！");
         setTimeout(() => {
@@ -117,7 +128,7 @@ export default function AgentsPage() {
           setMessage("");
         }, 1500);
       } else {
-        const err = await res.json();
+        const err = await res.json().catch(() => ({}));
         setMessage(err.error || (lang === "en" ? "Failed to add agent" : lang === "zh-CN" ? "添加失败" : "新增失敗"));
         setStatus("error");
       }
@@ -130,9 +141,9 @@ export default function AgentsPage() {
   const handleDelete = async (id: string) => {
     if (!confirm(lang === "en" ? "Delete this agent?" : lang === "zh-CN" ? "删除此代理商？" : "刪除此代理商？")) return;
     try {
-      const res = await fetch(`/api/agents?agentId=${id}`, { method: "DELETE" });
+      const res = await apiFetch(`/api/agents?agentId=${id}`, { method: "DELETE" });
       if (res.ok) {
-        setData((prev) => prev.filter((a) => a.id !== id));
+        setData((prev) => (Array.isArray(prev) ? prev.filter((a) => a.id !== id) : prev));
       }
     } catch {
       // ignore
@@ -140,7 +151,7 @@ export default function AgentsPage() {
   };
 
   return (
-    <AdminLayout title={t("agents")} subtitle={`${formatNumber(data.length)} ${lang === "en" ? "agents" : lang === "zh-CN" ? "代理商" : "代理商"}`}>
+    <AdminLayout title={t("agents")} subtitle={`${formatNumber(safeData.length)} ${lang === "en" ? "agents" : lang === "zh-CN" ? "代理商" : "代理商"}`}>
       <div className="flex flex-wrap gap-3 mb-5">
         <div className="flex-1 min-w-[240px] relative">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />

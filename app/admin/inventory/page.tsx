@@ -48,7 +48,7 @@ interface Wh {
 }
 
 export default function InventoryPage() {
-  const { t, currency, lang } = useApp();
+  const { t, currency, lang, apiFetch } = useApp();
   const [products, setProducts] = useState<Product[]>([]);
   const [logs, setLogs] = useState<InventoryLog[]>([]);
   const [warehouses, setWarehouses] = useState<Wh[]>([]);
@@ -66,28 +66,28 @@ export default function InventoryPage() {
   const fetchData = useCallback(async () => {
     try {
       const [invRes, logsRes, whRes] = await Promise.all([
-        fetch("/api/inventory"),
-        fetch("/api/inventory?action=logs"),
-        fetch("/api/warehouses"),
+        apiFetch("/api/inventory"),
+        apiFetch("/api/inventory?action=logs"),
+        apiFetch("/api/warehouses"),
       ]);
       if (invRes.ok) {
-        const data = await invRes.json();
-        setProducts(data.products || []);
+        const data = await invRes.json().catch(() => ({}));
+        setProducts(Array.isArray(data?.products) ? data.products : []);
       }
       if (logsRes.ok) {
-        const logsData = await logsRes.json();
-        setLogs(logsData);
+        const logsData = await logsRes.json().catch(() => []);
+        setLogs(Array.isArray(logsData) ? logsData : []);
       }
       if (whRes.ok) {
-        const whs = await whRes.json();
-        setWarehouses(whs);
+        const whs = await whRes.json().catch(() => []);
+        setWarehouses(Array.isArray(whs) ? whs : []);
       }
     } catch (error) {
       console.error("Failed to fetch inventory:", error);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [apiFetch]);
 
   useEffect(() => {
     fetchData();
@@ -97,7 +97,7 @@ export default function InventoryPage() {
     if (!selectedProduct) return;
     setSubmitting(true);
     try {
-      const res = await fetch("/api/inventory", {
+      const res = await apiFetch("/api/inventory", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -109,13 +109,16 @@ export default function InventoryPage() {
         }),
       });
       if (res.ok) {
-        const data = await res.json();
-        setProducts((prev) =>
-          prev.map((p) => (p.id === selectedProduct.id ? data.product : p))
-        );
-        const logsRes = await fetch("/api/inventory?action=logs");
+        const data = await res.json().catch(() => ({}));
+        if (data?.product) {
+          setProducts((prev) =>
+            prev.map((p) => (p.id === selectedProduct.id ? data.product : p))
+          );
+        }
+        const logsRes = await apiFetch("/api/inventory?action=logs");
         if (logsRes.ok) {
-          setLogs(await logsRes.json());
+          const logsData = await logsRes.json().catch(() => []);
+          setLogs(Array.isArray(logsData) ? logsData : []);
         }
         setSelectedProduct(null);
         setQty(1);
@@ -128,24 +131,26 @@ export default function InventoryPage() {
     }
   };
 
-  const cats = ["all", ...Array.from(new Set(products.map((p) => p.category)))];
-  const warehouseNames = ["all", ...Array.from(new Set(products.map((p) => p.warehouse)))];
-  // 仓库筛选值可能是 warehouseId 或 warehouse 名称
-  // 仓库筛选选项优先使用 warehouses 列表（按 ID），回退到按名称
+  const cats = ["all", ...Array.from(new Set(products.map((p) => p.category)).filter(Boolean))];
+  const warehouseNames = ["all", ...Array.from(new Set(products.map((p) => p.warehouse)).filter(Boolean))];
   const warehouseOptions = warehouses.length > 0
     ? [{ id: "all", name: "" }, ...warehouses]
     : [{ id: "all", name: "" }, ...products.map(p => ({ id: p.warehouse, name: p.warehouse }))];
 
-  const filteredProducts = products.filter((p) => {
-    const matchQ = !searchQ || p.name.toLowerCase().includes(searchQ.toLowerCase()) || p.sku.toLowerCase().includes(searchQ.toLowerCase()) || p.nameZh.includes(searchQ);
-    const matchC = catFilter === "all" || p.category === catFilter;
-    const matchW = warehouseFilter === "all" || p.warehouseId === warehouseFilter || p.warehouse === warehouseFilter;
-    return matchQ && matchC && matchW;
-  });
+  const filteredProducts = Array.isArray(products)
+    ? products.filter((p) => {
+        const matchQ = !searchQ ||
+          String(p.name || "").toLowerCase().includes(searchQ.toLowerCase()) ||
+          String(p.sku || "").toLowerCase().includes(searchQ.toLowerCase()) ||
+          String(p.nameZh || "").includes(searchQ);
+        const matchC = catFilter === "all" || p.category === catFilter;
+        const matchW = warehouseFilter === "all" || p.warehouseId === warehouseFilter || p.warehouse === warehouseFilter;
+        return matchQ && matchC && matchW;
+      })
+    : [];
 
-  const lowStockProducts = products.filter((p) => p.stock < 100);
-
-  const totalStock = filteredProducts.reduce((s, p) => s + p.stock, 0);
+  const lowStockProducts = filteredProducts.filter((p) => p.stock < 100);
+  const totalStock = filteredProducts.reduce((s, p) => s + (p.stock || 0), 0);
 
   const actionLabels = {
     stock_in: { en: "入库", zh: "入庫" },

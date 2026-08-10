@@ -26,7 +26,7 @@ interface CreditTransaction {
 }
 
 export default function CreditLimitsPage() {
-  const { t, currency, lang } = useApp();
+  const { t, currency, lang, apiFetch } = useApp();
   const [records, setRecords] = useState<CreditRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -40,19 +40,22 @@ export default function CreditLimitsPage() {
   const fetchCredits = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/credit");
+      const res = await apiFetch("/api/credit");
       if (res.ok) {
-        const data = await res.json();
-        setRecords(Array.isArray(data) ? data : [data]);
+        const data = await res.json().catch(() => []);
+        const safe = Array.isArray(data) ? data : (data ? [data] : []);
+        setRecords(safe);
       }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [apiFetch]);
 
   useEffect(() => {
     fetchCredits();
   }, [fetchCredits]);
+
+  const safeRecords = Array.isArray(records) ? records : [];
 
   const openModal = (record: CreditRecord) => {
     setSelectedAgent(record);
@@ -83,7 +86,7 @@ export default function CreditLimitsPage() {
     setStatus("submitting");
     setMessage("");
     try {
-      const res = await fetch("/api/credit", {
+      const res = await apiFetch("/api/credit", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -94,13 +97,18 @@ export default function CreditLimitsPage() {
         }),
       });
       if (res.ok) {
-        const updated = await res.json();
-        setRecords((prev) => prev.map((r) => r.agentId === selectedAgent?.agentId ? updated : r));
+        const updated = await res.json().catch(() => (null));
+        if (updated) {
+          setRecords((prev) => {
+            const safe = Array.isArray(prev) ? prev : [];
+            return safe.map((r) => r.agentId === selectedAgent?.agentId ? updated : r);
+          });
+        }
         setStatus("success");
         setMessage(lang === "en" ? "Credit limit updated successfully!" : lang === "zh-CN" ? "信用额度更新成功！" : "信用額度更新成功！");
         setTimeout(() => { closeModal(); fetchCredits(); }, 1500);
       } else {
-        const err = await res.json();
+        const err = await res.json().catch(() => ({}));
         setMessage(err.error || (lang === "en" ? "Failed to update" : lang === "zh-CN" ? "更新失败" : "更新失敗"));
         setStatus("error");
       }
@@ -118,7 +126,7 @@ export default function CreditLimitsPage() {
     setStatus("submitting");
     setMessage("");
     try {
-      const res = await fetch("/api/credit", {
+      const res = await apiFetch("/api/credit", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -128,13 +136,18 @@ export default function CreditLimitsPage() {
         }),
       });
       if (res.ok) {
-        const updated = await res.json();
-        setRecords((prev) => prev.map((r) => r.agentId === selectedAgent?.agentId ? updated : r));
+        const updated = await res.json().catch(() => (null));
+        if (updated) {
+          setRecords((prev) => {
+            const safe = Array.isArray(prev) ? prev : [];
+            return safe.map((r) => r.agentId === selectedAgent?.agentId ? updated : r);
+          });
+        }
         setStatus("success");
         setMessage(lang === "en" ? "Outstanding cleared successfully!" : lang === "zh-CN" ? "已用额度清零成功！" : "已用額度清零成功！");
         setTimeout(() => { closeModal(); fetchCredits(); }, 1500);
       } else {
-        const err = await res.json();
+        const err = await res.json().catch(() => ({}));
         setMessage(err.error || (lang === "en" ? "Failed to clear" : lang === "zh-CN" ? "清零失败" : "清零失敗"));
         setStatus("error");
       }
@@ -182,10 +195,10 @@ export default function CreditLimitsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {loading ? (
             <div className="col-span-full text-center py-16 text-slate-400">{lang === "en" ? "Loading..." : "加载中..."}</div>
-          ) : records.length === 0 ? (
+          ) : safeRecords.length === 0 ? (
             <div className="col-span-full text-center py-16 text-slate-400">{lang === "en" ? "No agents found" : "暂无代理商数据"}</div>
           ) : (
-            records.map((r) => (
+            safeRecords.map((r) => (
               <div key={r.agentId} className="card p-5">
                 <div className="flex items-center justify-between mb-3">
                   <div className="font-semibold">{r.company}</div>
@@ -226,9 +239,9 @@ export default function CreditLimitsPage() {
         </div>
       ) : (
         <div className="space-y-3">
-          {records.map((rec) => (
+          {safeRecords.map((rec) => (
             <PageCard key={rec.agentId} title={rec.company} subtitle={`${formatCurrency(rec.creditLimit, currency)} — ${formatCurrency(rec.available, currency)} ${lang === "en" ? "available" : lang === "zh-CN" ? "可用" : "可用"}`}>
-              {rec.transactions.length === 0 ? (
+              {(Array.isArray(rec.transactions) ? rec.transactions : []).length === 0 ? (
                 <div className="text-center py-8 text-slate-400 text-sm">{lang === "en" ? "No transactions yet" : lang === "zh-CN" ? "暂无交易记录" : "暫無交易記錄"}</div>
               ) : (
                 <div className="space-y-2">

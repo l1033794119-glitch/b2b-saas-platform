@@ -48,7 +48,7 @@ interface Order {
 }
 
 export default function ShippingPage() {
-  const { t, currency, lang } = useApp();
+  const { t, currency, lang, apiFetch } = useApp();
   const [data, setData] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
@@ -74,10 +74,10 @@ export default function ShippingPage() {
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/orders");
+      const res = await apiFetch("/api/orders");
       if (res.ok) {
-        const ordersData = await res.json();
-        setData(ordersData || []);
+        const ordersData = await res.json().catch(() => []);
+        setData(Array.isArray(ordersData) ? ordersData : []);
       }
     } catch (error) {
       console.error("Failed to fetch orders:", error);
@@ -107,7 +107,8 @@ export default function ShippingPage() {
     setPage(1);
   }, [q, flt]);
 
-  const filtered = data.filter((o) => {
+  const safeData = Array.isArray(data) ? data : [];
+  const filtered = safeData.filter((o) => {
     if (!["pending_delivery", "pending_tracking", "shipped", "completed"].includes(o.status)) {
       return false;
     }
@@ -115,7 +116,7 @@ export default function ShippingPage() {
     if (q) {
       const searchText = q.toLowerCase();
       return (
-        o.orderNo.toLowerCase().includes(searchText) ||
+        (o.orderNo || "").toLowerCase().includes(searchText) ||
         (o.contactName && o.contactName.toLowerCase().includes(searchText)) ||
         (o.company && o.company.toLowerCase().includes(searchText)) ||
         (o.shippingAddress && o.shippingAddress.toLowerCase().includes(searchText)) ||
@@ -144,20 +145,20 @@ export default function ShippingPage() {
   const updateOrder = async (id: string, updates: Partial<Order>) => {
     setUpdating(true);
     try {
-      const res = await fetch(`/api/orders/${id}`, {
+      const res = await apiFetch(`/api/orders/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updates),
       });
       if (res.ok) {
-        const updated = await res.json();
-        const currentOrder = data.find((o) => o.id === id);
+        const updated = await res.json().catch(() => ({}));
+        const currentOrder = safeData.find((o) => o.id === id);
         const updatedOrder = { ...currentOrder, ...updated };
-        setData(data.map((o) => o.id === id ? updatedOrder : o));
+        setData(safeData.map((o) => o.id === id ? updatedOrder : o));
         if (selectedId === id) setSelectedOrder(updatedOrder);
         return true;
       } else {
-        const err = await res.json();
+        const err = await res.json().catch(() => ({}));
         alert(lang === "en" ? "Failed: " : lang === "zh-CN" ? "操作失败: " : "操作失敗: " + (err.error || "Unknown error"));
         return false;
       }
@@ -182,13 +183,14 @@ export default function ShippingPage() {
     try {
       const formData = new FormData();
       formData.append("file", file);
-      const res = await fetch("/api/upload", {
+      const res = await apiFetch("/api/upload", {
         method: "POST",
+        headers: {},
         body: formData,
       });
       if (res.ok) {
-        const data = await res.json();
-        setTempWaybillImage(data.url);
+        const data = await res.json().catch(() => ({}));
+        setTempWaybillImage(data.url || "");
       } else {
         alert(lang === "en" ? "Upload failed" : lang === "zh-CN" ? "上传失败" : "上傳失敗");
       }

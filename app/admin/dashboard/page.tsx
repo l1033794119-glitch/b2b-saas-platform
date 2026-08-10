@@ -137,9 +137,8 @@ function filterOrdersByDate(orders: any[], dateRange: { start: Date; end: Date }
 }
 
 export default function DashboardPage() {
-  const { t, currency, lang } = useApp();
+  const { t, currency, lang, apiFetch } = useApp();
 
-  // 真实数据状态
   const [products, setProducts] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [agents, setAgents] = useState<any[]>([]);
@@ -147,7 +146,6 @@ export default function DashboardPage() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // 筛选状态
   const [dateFilter, setDateFilter] = useState<DateFilterType>("this_month");
   const [customDateRange, setCustomDateRange] = useState({ start: "", end: "" });
   const [showDateDropdown, setShowDateDropdown] = useState(false);
@@ -159,10 +157,10 @@ export default function DashboardPage() {
     setLoading(true);
     try {
       const [productsRes, ordersRes, agentsRes, warehousesRes] = await Promise.all([
-        fetch("/api/products").then(r => r.json()).catch(() => []),
-        fetch("/api/orders").then(r => r.json()).catch(() => []),
-        fetch("/api/agents").then(r => r.json()).catch(() => []),
-        fetch("/api/warehouses").then(r => r.json()).catch(() => []),
+        apiFetch("/api/products").then(r => r.json()).catch(() => []),
+        apiFetch("/api/orders").then(r => r.json()).catch(() => []),
+        apiFetch("/api/agents").then(r => r.json()).catch(() => []),
+        apiFetch("/api/warehouses").then(r => r.json()).catch(() => []),
       ]);
 
       setProducts(Array.isArray(productsRes) ? productsRes : []);
@@ -170,9 +168,8 @@ export default function DashboardPage() {
       setAgents(Array.isArray(agentsRes) ? agentsRes : []);
       setWarehouses(Array.isArray(warehousesRes) ? warehousesRes : []);
 
-      // 获取通知（如果API存在）
       try {
-        const notifsRes = await fetch("/api/notifications").then(r => r.json()).catch(() => []);
+        const notifsRes = await apiFetch("/api/notifications").then(r => r.json()).catch(() => []);
         setNotifications(Array.isArray(notifsRes) ? notifsRes : []);
       } catch {
         setNotifications([]);
@@ -182,7 +179,7 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [apiFetch]);
 
   useEffect(() => {
     fetchData();
@@ -196,7 +193,8 @@ export default function DashboardPage() {
 
   // 根据日期筛选后的订单
   const filteredOrders = useMemo(() => {
-    let result = filterOrdersByDate(orders, dateRange);
+    const safeOrders = Array.isArray(orders) ? orders : [];
+    let result = filterOrdersByDate(safeOrders, dateRange);
 
     // 状态筛选
     if (statusFilter !== "all") {
@@ -217,10 +215,11 @@ export default function DashboardPage() {
     return result;
   }, [orders, dateRange, statusFilter, searchKeyword]);
 
+  const safeProducts = Array.isArray(products) ? products : [];
   // 计算统计数据（基于筛选后的订单）
-  const totalStock = products.reduce((s, p) => s + (p.stock || 0), 0);
-  const totalValue = products.reduce((s, p) => s + (p.stock || 0) * (p.costPrice || 0), 0);
-  const lowStock = products.filter((p) => (p.stock || 0) < 50).length;
+  const totalStock = safeProducts.reduce((s, p) => s + (p.stock || 0), 0);
+  const totalValue = safeProducts.reduce((s, p) => s + (p.stock || 0) * (p.costPrice || 0), 0);
+  const lowStock = safeProducts.filter((p) => (p.stock || 0) < 50).length;
 
   // 基于筛选后订单的统计
   const totalRevenue = filteredOrders.reduce((sum: number, o: any) => sum + (o.total || 0), 0);

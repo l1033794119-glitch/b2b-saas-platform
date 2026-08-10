@@ -37,7 +37,7 @@ interface Warehouse {
 }
 
 export default function ProductsPage() {
-  const { t, currency, lang } = useApp();
+  const { t, currency, lang, apiFetch } = useApp();
   const [data, setData] = useState<Product[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,38 +50,43 @@ export default function ProductsPage() {
   const fetchProducts = useCallback(async () => {
     try {
       const [pRes, wRes] = await Promise.all([
-        fetch("/api/products"),
-        fetch("/api/warehouses"),
+        apiFetch("/api/products"),
+        apiFetch("/api/warehouses"),
       ]);
-      const pJson = await pRes.json();
-      setData(pJson);
-      if (wRes.ok) setWarehouses(await wRes.json());
+      const pJson = await pRes.json().catch(() => []);
+      setData(Array.isArray(pJson) ? pJson : []);
+      if (wRes.ok) {
+        const wJson = await wRes.json().catch(() => []);
+        setWarehouses(Array.isArray(wJson) ? wJson : []);
+      }
     } catch {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [apiFetch]);
 
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
 
-  const cats = ["all", ...Array.from(new Set(data.map((p) => p.category)))];
-  const filtered = data.filter((p) => {
-    const matchQ = query
-      ? (p.name.toLowerCase().includes(query.toLowerCase()) ||
-          p.sku.toLowerCase().includes(query.toLowerCase()) ||
-          p.nameZh.includes(query))
-      : true;
-    const matchC = category === "all" || p.category === category;
-    return matchQ && matchC;
-  });
+  const cats = ["all", ...Array.from(new Set(data.map((p) => p.category)).filter(Boolean))];
+  const filtered = Array.isArray(data)
+    ? data.filter((p) => {
+        const matchQ = query
+          ? (String(p.name || "").toLowerCase().includes(query.toLowerCase()) ||
+              String(p.sku || "").toLowerCase().includes(query.toLowerCase()) ||
+              String(p.nameZh || "").includes(query))
+          : true;
+        const matchC = category === "all" || p.category === category;
+        return matchQ && matchC;
+      })
+    : [];
 
   const handleDelete = async (id: string) => {
     if (!confirm(lang === "en" ? "Delete this product?" : lang === "zh-CN" ? "删除此产品？" : "刪除此產品？")) return;
     setDeleting(id);
     try {
-      const res = await fetch(`/api/products/${id}`, { method: "DELETE" });
+      const res = await apiFetch(`/api/products/${id}`, { method: "DELETE" });
       if (res.ok) {
         setData((prev) => prev.filter((p) => p.id !== id));
       }
@@ -95,13 +100,13 @@ export default function ProductsPage() {
   const handleSave = async (product: Partial<Product>) => {
     setSaving(true);
     try {
-      const res = await fetch("/api/products", {
+      const res = await apiFetch("/api/products", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(product),
       });
-      const saved = await res.json();
-      if (res.ok) {
+      const saved = await res.json().catch(() => ({}));
+      if (res.ok && saved?.id) {
         setData((prev) => {
           const idx = prev.findIndex((p) => p.id === saved.id);
           if (idx >= 0) {
@@ -114,9 +119,9 @@ export default function ProductsPage() {
         setShowForm(false);
         setEditing(null);
       } else {
-        alert(lang === "en" ? "Failed to save product: " : lang === "zh-CN" ? "保存产品失败: " : "保存產品失敗: " + (saved.error || "Unknown error"));
+        alert((lang === "en" ? "Failed to save product: " : lang === "zh-CN" ? "保存产品失败: " : "保存產品失敗: ") + (saved?.error || "Unknown error"));
       }
-    } catch (err) {
+    } catch {
       alert(lang === "en" ? "Failed to save product" : lang === "zh-CN" ? "保存产品失败" : "保存產品失敗");
     } finally {
       setSaving(false);
@@ -219,7 +224,7 @@ export default function ProductsPage() {
   );
 }
 
-function ProductForm({ product, categories, warehouses, onSave, onClose, lang, t, currency, saving }: {
+function ProductForm({ product, categories, warehouses, onSave, onClose, lang, t, currency, saving, apiFetch }: {
   product: Partial<Product> | null;
   categories: string[];
   warehouses: Warehouse[];
@@ -229,6 +234,7 @@ function ProductForm({ product, categories, warehouses, onSave, onClose, lang, t
   t: any;
   currency: string;
   saving: boolean;
+  apiFetch: (url: string, options?: RequestInit) => Promise<Response>;
 }) {
   const [form, setForm] = useState<Partial<Product>>(() => {
     const defaultWh = warehouses[0];
@@ -288,12 +294,13 @@ function ProductForm({ product, categories, warehouses, onSave, onClose, lang, t
       const formData = new FormData();
       formData.append("file", file);
 
-      const res = await fetch("/api/upload", {
+      const res = await apiFetch("/api/upload", {
         method: "POST",
+        headers: {}, // apiFetch 默认添加 Content-Type: application/json，上传需去掉
         body: formData,
       });
 
-      const result = await res.json();
+      const result = await res.json().catch(() => ({}));
       if (res.ok && result.url) {
         setForm((f) => ({ ...f, images: [...(f.images || []), result.url] }));
       } else {
@@ -311,7 +318,7 @@ function ProductForm({ product, categories, warehouses, onSave, onClose, lang, t
     if (imageUrl && imageUrl.startsWith("/uploads/")) {
       const fileName = imageUrl.replace("/uploads/", "");
       try {
-        await fetch(`/api/upload?fileName=${encodeURIComponent(fileName)}`, {
+        await apiFetch(`/api/upload?fileName=${encodeURIComponent(fileName)}`, {
           method: "DELETE",
         });
       } catch {
