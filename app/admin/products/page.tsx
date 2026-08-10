@@ -400,7 +400,7 @@ function ProductForm({ product, categories, warehouses, onSave, onClose, lang, t
                 className="select"
                 value={form.warehouseId || ""}
                 onChange={(e) => {
-                  const wh = safeWarehouses.find((w) => w.id === e.target.value);
+                  const wh = warehouses.find((w) => w.id === e.target.value);
                   if (wh) {
                     setForm((f) => ({ ...f, warehouseId: wh.id, warehouse: wh.name }));
                   } else {
@@ -408,7 +408,7 @@ function ProductForm({ product, categories, warehouses, onSave, onClose, lang, t
                   }
                 }}
               >
-                {safeWarehouses.map((w) => (
+                {warehouses.map((w) => (
                   <option key={w.id} value={w.id}>{w.name}</option>
                 ))}
               </select>
