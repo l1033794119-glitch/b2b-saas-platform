@@ -22,10 +22,10 @@ const ADMIN_SESSION_MS = 8 * 60 * 60 * 1000;
 const AGENT_SESSION_MS = 24 * 60 * 60 * 1000;
 
 /**
- * 生成标准 HTTP Set-Cookie 头字符串
- * （不依赖 NextResponse.cookies.set，避免 middleware 管道改写为 x-middleware-set-cookie）
+ * 创建 JSON 响应，同时通过 response.cookies.set 写入 session cookie
+ * middleware.ts 已删除，cookies.set() 设置的 cookie 会正确出现在标准 Set-Cookie 头中
  */
-function buildSetCookie(params: {
+function jsonWithCookie<T>(body: T, cookieParams: {
   name: string;
   value: string;
   maxAgeSec: number;
@@ -33,40 +33,18 @@ function buildSetCookie(params: {
   httpOnly?: boolean;
   secure?: boolean;
   sameSite?: "strict" | "lax" | "none";
-}): string {
-  const parts: string[] = [`${params.name}=${params.value}`];
-  if (params.path) parts.push(`Path=${params.path}`);
-  // Max-Age > 0 设置有效期；Max-Age = 0 立即过期（用于登出删除 cookie）
-  parts.push(`Max-Age=${params.maxAgeSec}`);
-  // Expires 头作为对不支持 Max-Age 的老浏览器兜底
-  if (params.maxAgeSec > 0) {
-    const expires = new Date(Date.now() + params.maxAgeSec * 1000).toUTCString();
-    parts.push(`Expires=${expires}`);
-  } else {
-    parts.push(`Expires=Thu, 01 Jan 1970 00:00:00 GMT`);
-  }
-  if (params.httpOnly) parts.push("HttpOnly");
-  if (params.secure) parts.push("Secure");
-  const sameSiteVal = (params.sameSite || "lax").charAt(0).toUpperCase() + (params.sameSite || "lax").slice(1);
-  parts.push(`SameSite=${sameSiteVal}`);
-  return parts.join("; ");
-}
-
-/**
- * 创建 JSON 响应，同时通过标准 Set-Cookie 头写入 session cookie
- * —— 用原生 Headers 绕过 Next.js middleware 管道把 cookie 改成 x-middleware-set-cookie 的 bug
- */
-function jsonWithCookie<T>(body: T, cookieStr: string): NextResponse {
-  return new NextResponse(JSON.stringify(body), {
-    status: 200,
-    headers: {
-      "Content-Type": "application/json",
-      "Set-Cookie": cookieStr,
-      "Cache-Control": "no-cache, no-store, must-revalidate",
-      "Pragma": "no-cache",
-      "Expires": "Thu, 01 Jan 1970 00:00:00 GMT",
-    },
+}): NextResponse {
+  const response = NextResponse.json(body);
+  response.cookies.set({
+    name: cookieParams.name,
+    value: cookieParams.value,
+    maxAge: cookieParams.maxAgeSec,
+    path: cookieParams.path || "/",
+    httpOnly: cookieParams.httpOnly ?? true,
+    secure: cookieParams.secure ?? false,
+    sameSite: cookieParams.sameSite || "lax",
   });
+  return response;
 }
 
 export async function POST(req: NextRequest) {
@@ -181,15 +159,6 @@ export async function POST(req: NextRequest) {
 
       const maxAgeSec = Math.floor(ADMIN_SESSION_MS / 1000);
       const secureCookie = process.env.NODE_ENV === "production" && isHttps;
-      const setCookieStr = buildSetCookie({
-        name: "session_id",
-        value: sessionId,
-        maxAgeSec,
-        path: "/",
-        httpOnly: true,
-        sameSite: "lax",
-        secure: secureCookie,
-      });
 
       return jsonWithCookie(
         {
@@ -204,7 +173,15 @@ export async function POST(req: NextRequest) {
           csrfToken,
           sessionMaxAgeSec: maxAgeSec,
         },
-        setCookieStr
+        {
+          name: "session_id",
+          value: sessionId,
+          maxAgeSec,
+          path: "/",
+          httpOnly: true,
+          sameSite: "lax",
+          secure: secureCookie,
+        }
       );
     } else {
       const agents: any[] = await query(
@@ -286,15 +263,6 @@ export async function POST(req: NextRequest) {
 
       const maxAgeSec = Math.floor(AGENT_SESSION_MS / 1000);
       const secureCookie = process.env.NODE_ENV === "production" && isHttps;
-      const setCookieStr = buildSetCookie({
-        name: "session_id",
-        value: sessionId,
-        maxAgeSec,
-        path: "/",
-        httpOnly: true,
-        sameSite: "lax",
-        secure: secureCookie,
-      });
 
       return jsonWithCookie(
         {
@@ -311,7 +279,15 @@ export async function POST(req: NextRequest) {
           csrfToken,
           sessionMaxAgeSec: maxAgeSec,
         },
-        setCookieStr
+        {
+          name: "session_id",
+          value: sessionId,
+          maxAgeSec,
+          path: "/",
+          httpOnly: true,
+          sameSite: "lax",
+          secure: secureCookie,
+        }
       );
     }
   } catch (error) {
@@ -436,18 +412,19 @@ export async function DELETE(req: NextRequest) {
       }
     }
 
-    // 用标准 Set-Cookie 头清除 cookie（Max-Age=0 立即过期）
-    const setCookieStr = buildSetCookie({
-      name: "session_id",
-      value: "",
-      maxAgeSec: 0,
-      path: "/",
-      httpOnly: true,
-      sameSite: "lax",
-      secure: secureCookie,
-    });
-
-    return jsonWithCookie({ success: true }, setCookieStr);
+    // 用 response.cookies.set 清除 cookie（Max-Age=0 立即过期）
+    return jsonWithCookie(
+      { success: true },
+      {
+        name: "session_id",
+        value: "",
+        maxAgeSec: 0,
+        path: "/",
+        httpOnly: true,
+        sameSite: "lax",
+        secure: secureCookie,
+      }
+    );
   } catch (error) {
     console.error("Session deletion error:", error);
     return NextResponse.json(
