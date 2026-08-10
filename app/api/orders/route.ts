@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAllOrders, getOrdersByAgentId, createOrder, getProductById, updateProductStock, getAgentById, deductCredit } from "@/lib/repository";
 import { requireAuth, requireAdmin, checkOwnership, SessionUser } from "@/lib/auth";
 import { verifyCsrfToken, issueCsrfToken, checkRateLimit } from "@/lib/rate-limit";
+import { verifyCaptcha } from "@/lib/captcha";
 
 function formatMySQLDate(date: Date = new Date()): string {
   const d = new Date(date);
@@ -69,6 +70,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           error: "Invalid or expired CSRF token. Please refresh the page and try again",
+        },
+        { status: 403 }
+      );
+    }
+
+    // ===== hCaptcha 人机验证：必须通过验证码才能下单 =====
+    // 目的：彻底禁止自动化脚本（SHOPYY/Shoplazza 同步）下单
+    const captchaToken = body.captchaToken || body["h-captcha-response"] || null;
+    const remoteIp =
+      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      req.headers.get("x-real-ip") ||
+      null;
+    const captchaOk = await verifyCaptcha(captchaToken, remoteIp);
+    if (!captchaOk) {
+      return NextResponse.json(
+        {
+          error: "Captcha verification failed. Please complete the captcha and try again",
         },
         { status: 403 }
       );

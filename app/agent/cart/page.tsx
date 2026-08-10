@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { AgentLayout } from "@/components/Layout";
 import { PageCard } from "@/components/Sidebar";
 import { useApp } from "@/components/AppProvider";
 import { useCart } from "@/lib/cart";
 import { formatCurrency, formatNumber } from "@/lib/utils";
+import { Hcaptcha, HcaptchaHandle } from "@/components/Hcaptcha";
 import { Minus, Plus, Trash2, ShoppingCart, CreditCard, AlertCircle, CheckCircle, X, MapPin, Phone, Mail, User } from "lucide-react";
 
 interface ShippingInfo {
@@ -67,6 +68,12 @@ function CartInner({
   const [productStocks, setProductStocks] = useState<Map<string, number>>(new Map());
   const [stockWarning, setStockWarning] = useState<string>("");
   const [priceUpdateCount, setPriceUpdateCount] = useState<number>(0);
+  // hCaptcha 人机验证：未通过验证前禁止下单
+  const [captchaToken, setCaptchaToken] = useState<string>("");
+  const captchaRef = useRef<HcaptchaHandle>(null);
+  const HCAPTCHA_SITEKEY =
+    process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY ||
+    "10000000-ffff-ffff-ffff-000000000001";
 
   const [shippingInfo, setShippingInfo] = useState<ShippingInfo>({
     address: "",
@@ -176,6 +183,13 @@ function CartInner({
       return;
     }
 
+    // ===== hCaptcha 校验：必须完成人机验证才能下单 =====
+    if (!captchaToken) {
+      setMessage(lang === "en" ? "Please complete the captcha verification" : lang === "zh-CN" ? "请先完成人机验证" : "請先完成人機驗證");
+      setStatus("error");
+      return;
+    }
+
     setStatus("submitting");
 
     const orderItems = items.map((i) => ({
@@ -192,6 +206,8 @@ function CartInner({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         _csrf: csrfToken,
+        captchaToken,
+        "h-captcha-response": captchaToken,
         agentId,
         items: orderItems,
         total: grandTotal,
@@ -211,6 +227,9 @@ function CartInner({
       if (respData.csrfToken) {
         setCsrfToken(respData.csrfToken);
       }
+      // hCaptcha token 也是一次性的，重置以便下次下单
+      captchaRef.current?.reset();
+      setCaptchaToken("");
       clear();
       setShowCheckoutModal(false);
       setStatus("success");
@@ -219,16 +238,26 @@ function CartInner({
       setTimeout(() => { setStatus("idle"); setMessage(""); }, 3000);
     } else {
       const err = await orderRes.json();
-      // 403：CSRF token 失效，刷新页面重新获取
+      // hCaptcha token 已用过或失败，重置让用户重新验证
+      captchaRef.current?.reset();
+      setCaptchaToken("");
+      // 403：CSRF token 失效或 Captcha 验证失败
       if (orderRes.status === 403) {
-        setMessage((lang === "en" ? "Session expired, refreshing page..." : lang === "zh-CN" ? "会话过期，正在刷新页面..." : "會話過期，正在刷新頁面..."));
-        setTimeout(() => window.location.reload(), 1500);
+        const isCaptchaError = err.error && /captcha/i.test(err.error);
+        if (isCaptchaError) {
+          setMessage(err.error || (lang === "en" ? "Captcha verification failed, please try again" : lang === "zh-CN" ? "人机验证失败，请重试" : "人機驗證失敗，請重試"));
+          setStatus("error");
+        } else {
+          setMessage((lang === "en" ? "Session expired, refreshing page..." : lang === "zh-CN" ? "会话过期，正在刷新页面..." : "會話過期，正在刷新頁面..."));
+          setTimeout(() => window.location.reload(), 1500);
+        }
       } else if (orderRes.status === 429) {
         setMessage(err.error || (lang === "en" ? "Too many orders, please wait a moment" : lang === "zh-CN" ? "下单过于频繁，请稍候再试" : "下單過於頻繁，請稍候再試"));
+        setStatus("error");
       } else {
         setMessage(err.error || (lang === "en" ? "Failed to submit order" : lang === "zh-CN" ? "订单提交失败" : "訂單提交失敗"));
+        setStatus("error");
       }
-      setStatus("error");
     }
   };
 
@@ -385,7 +414,14 @@ function CartInner({
               <h2 className="text-lg font-semibold">
                 {lang === "en" ? "Checkout" : lang === "zh-CN" ? "结账" : "結賬"}
               </h2>
-              <button onClick={() => setShowCheckoutModal(false)} className="text-slate-400 hover:text-slate-700">
+              <button
+                onClick={() => {
+                  captchaRef.current?.reset();
+                  setCaptchaToken("");
+                  setShowCheckoutModal(false);
+                }}
+                className="text-slate-400 hover:text-slate-700"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -495,6 +531,33 @@ function CartInner({
                 </div>
               </div>
 
+              {/* hCaptcha 人机验证：防止外部平台脚本自动化下单 */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium mb-1.5 flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-500" />
+                  {lang === "en" ? "Security Verification *" : lang === "zh-CN" ? "安全验证 *" : "安全驗證 *"}
+                </label>
+                <div className="flex justify-center">
+                  <Hcaptcha
+                    ref={captchaRef}
+                    sitekey={HCAPTCHA_SITEKEY}
+                    theme="dark"
+                    onVerify={(token) => setCaptchaToken(token)}
+                    onExpire={() => setCaptchaToken("")}
+                    onError={() => setCaptchaToken("")}
+                  />
+                </div>
+                {!captchaToken && (
+                  <div className="text-xs text-slate-400 text-center">
+                    {lang === "en"
+                      ? "Please complete the captcha to enable order submission"
+                      : lang === "zh-CN"
+                      ? "请完成验证码后才能提交订单"
+                      : "請完成驗證碼後才能提交訂單"}
+                  </div>
+                )}
+              </div>
+
               {status === "error" && (
                 <div className="flex items-start gap-2 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/40">
                   <AlertCircle className="w-4 h-4 text-rose-500 mt-0.5 flex-shrink-0" />
@@ -504,15 +567,19 @@ function CartInner({
 
               <div className="flex gap-3 pt-2">
                 <button
-                  onClick={() => setShowCheckoutModal(false)}
+                  onClick={() => {
+                    captchaRef.current?.reset();
+                    setCaptchaToken("");
+                    setShowCheckoutModal(false);
+                  }}
                   className="flex-1 btn-ghost justify-center"
                 >
                   {lang === "en" ? "Cancel" : lang === "zh-CN" ? "取消" : "取消"}
                 </button>
                 <button
                   onClick={handleSubmitOrder}
-                  disabled={status === "submitting"}
-                  className="flex-1 btn-primary justify-center flex items-center gap-2"
+                  disabled={status === "submitting" || !captchaToken}
+                  className="flex-1 btn-primary justify-center flex items-center gap-2 disabled:opacity-50"
                 >
                   {status === "submitting" && <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
                   {status === "submitting" ? (lang === "en" ? "Submitting..." : lang === "zh-CN" ? "提交中..." : "提交中...") : (lang === "en" ? "Place Order" : lang === "zh-CN" ? "提交订单" : "提交訂單")}
