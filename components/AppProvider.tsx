@@ -196,21 +196,46 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       });
 
       const data = await res.json();
+
+      if (!res.ok) {
+        // 登录失败：401 凭据错误 / 429 锁定 / 500 会话创建失败
+        lastLoginError.current = data.error || `登录失败 (${res.status})`;
+        console.warn("Login failed:", { status: res.status, error: data.error });
+        return false;
+      }
+
       if (data.success && data.user) {
-        // 登录成功后，再 GET 校验一次 session 是否真的生效（防止 sessions 表 INSERT 被 try/catch 吞掉
-        // 导致 cookie 有值但数据库查不到，后续 apiFetch 全 401 → 跳回登录）
-        try {
-          const verifyRes = await fetch("/api/auth/session", {
-            method: "GET",
-            credentials: "include",
-          });
-          const v = await verifyRes.json();
-          if (!v.authenticated) {
-            lastLoginError.current = "Session not persisted, please try again";
-            return false;
+        // 等待浏览器处理 Set-Cookie（某些浏览器需要几毫秒才能把新 cookie 写入 jar，
+        // 紧接着的 GET 如果立刻发，会因为 cookie 还没带上而返回 authenticated:false）
+        await new Promise((r) => setTimeout(r, 200));
+
+        // 然后再 GET 校验一次 session 是否真的入库了（防止 sessions 表 INSERT
+        // 被 try/catch 吞掉导致 cookie 有值但数据库查不到）
+        let verified = false;
+        let lastVerifyError = "";
+        for (let attempt = 0; attempt < 3; attempt++) {
+          try {
+            const verifyRes = await fetch("/api/auth/session", {
+              method: "GET",
+              credentials: "include",
+            });
+            const v = await verifyRes.json();
+            if (v.authenticated && v.user) {
+              verified = true;
+              break;
+            } else {
+              lastVerifyError = v.error || "Session not authenticated";
+            }
+          } catch (e: any) {
+            lastVerifyError = e?.message || "Verify request failed";
           }
-        } catch {
-          // 校验请求失败，但登录 POST 已成功 → 继续跳转
+          await new Promise((r) => setTimeout(r, 200));
+        }
+
+        if (!verified) {
+          lastLoginError.current = `Session 验证失败: ${lastVerifyError || "请稍后重试"}`;
+          console.error("Login session verification failed after retries");
+          return false;
         }
 
         setUser(data.user);

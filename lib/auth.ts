@@ -33,7 +33,7 @@ export async function getSessionUser(req: NextRequest): Promise<SessionUser | nu
       if (!emp.active) return null;
       return {
         id: emp.id,
-        role: "admin",
+        role: "super_admin",
         email: emp.email,
         name: emp.name,
       };
@@ -79,12 +79,8 @@ export async function requireAdmin(req: NextRequest): Promise<SessionUser | Next
   const user = await getSessionUser(req);
   if (!user) return unauthorized();
   // 前端登录返回的角色可能是带前缀的 super_admin/warehouse_manager 等，这里都视为 admin 角色类型
-  if (user.role !== "admin" &&
-      user.role !== "super_admin" &&
-      user.role !== "warehouse_manager" &&
-      user.role !== "finance_manager" &&
-      user.role !== "operations_manager" &&
-      user.role !== "customer_service") {
+  const adminRoles = ["admin", "super_admin", "warehouse_manager", "finance_manager", "operations_manager", "customer_service"];
+  if (!adminRoles.includes(user.role as string)) {
     return forbidden("Admin access required");
   }
   return user;
@@ -102,7 +98,8 @@ export function checkOwnership(
   user: SessionUser,
   resourceAgentId: string | undefined | null
 ): boolean {
-  if (user.role === "admin") return true;
+  const adminRoles = ["admin", "super_admin", "warehouse_manager", "finance_manager", "operations_manager", "customer_service"];
+  if (adminRoles.includes(user.role as string)) return true;
   if (!resourceAgentId) return false;
   return user.id === resourceAgentId;
 }

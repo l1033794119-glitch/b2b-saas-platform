@@ -20,7 +20,8 @@ export default function AdminLogin() {
     if (user) {
       const adminRoles = ["super_admin", "warehouse_manager", "finance_manager", "operations_manager", "customer_service"];
       if (adminRoles.includes(user.role)) {
-        router.push(getAdminDefaultHref(user.permissions));
+        const perms = user.permissions || {};
+        router.push(getAdminDefaultHref(perms));
       }
     }
   }, [user, router]);
@@ -35,8 +36,10 @@ export default function AdminLogin() {
         setError(lastLoginError.current || (lang === "en" ? "Invalid admin credentials" : lang === "zh-CN" ? "管理员凭据无效" : "管理員憑證無效"));
         return;
       }
-      const userData = JSON.parse(localStorage.getItem("app.user") || "{}");
-      router.push(getAdminDefaultHref(userData.permissions));
+      // 直接使用 AppProvider context 中的 user（已在 login() 内 setUser）
+      // user 已由 useEffect 处理跳转，这里保险起见也 push 一次
+      const perms = (user?.permissions as Record<string, boolean>) || {};
+      router.push(getAdminDefaultHref(perms));
     } catch {
       setError(lang === "en" ? "Network error, please try again" : lang === "zh-CN" ? "网络错误，请重试" : "網路錯誤，請重試");
     } finally {

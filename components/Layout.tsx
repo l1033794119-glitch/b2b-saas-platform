@@ -20,7 +20,10 @@ export function AdminLayout({ children, title, subtitle }:
                   user?.role === "customer_service";
 
   useEffect(() => {
-    if ((!user || !isAdmin) && pathname !== "/admin/login") {
+    // user 为 null 时说明 AppProvider 仍在初始化 session，此时不跳转
+    // 等待 AppProvider checkSession 完成后再判断
+    if (user === null) return;
+    if (!isAdmin && pathname !== "/admin/login") {
       router.push("/admin/login");
     }
     if (user && isAdmin && user.permissions) {
@@ -33,7 +36,16 @@ export function AdminLayout({ children, title, subtitle }:
     }
   }, [user, isAdmin, router, pathname]);
 
-  if (!user || !isAdmin) {
+  // user 为 null 时（AppProvider 仍在初始化 session），显示 loading
+  if (user === null) {
+    return (
+      <div className="flex min-h-[100dvh] items-center justify-center">
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-slate-200 dark:border-slate-700 border-t-[#34c759]" />
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
     return (
       <div className="flex min-h-[100dvh] items-center justify-center">
         <div className="animate-spin rounded-full h-10 w-10 border-2 border-slate-200 dark:border-slate-700 border-t-[#34c759]" />
@@ -66,7 +78,9 @@ export function AgentLayout({ children, title, subtitle }:
   const isAgent = user?.role === "agent";
 
   useEffect(() => {
-    if (!user || !isAgent) {
+    // user 为 null 时说明 AppProvider 仍在初始化 session，此时不跳转
+    if (user === null) return;
+    if (!isAgent) {
       if (user && user.role !== "agent") {
         router.push("/admin/dashboard");
       } else {
@@ -75,7 +89,16 @@ export function AgentLayout({ children, title, subtitle }:
     }
   }, [user, isAgent, router]);
 
-  if (!user || !isAgent) {
+  // user 为 null 时（AppProvider 仍在初始化 session），显示 loading
+  if (user === null) {
+    return (
+      <div className="flex min-h-[100dvh] items-center justify-center">
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-slate-200 dark:border-slate-700 border-t-[#34c759]" />
+      </div>
+    );
+  }
+
+  if (!isAgent) {
     return (
       <div className="flex min-h-[100dvh] items-center justify-center">
         <div className="animate-spin rounded-full h-10 w-10 border-2 border-slate-200 dark:border-slate-700 border-t-[#34c759]" />

@@ -41,12 +41,18 @@ export const db = getPool();
 
 // 自动建表（sessions / kvs）—— 安全加固依赖的表之前在 SQL 里，部署时常被漏掉导致 401 死循环
 let tablesInitialized = false;
-async function ensureTables() {
+let tablesInitializing: Promise<void> | null = null;
+
+async function ensureTables(): Promise<void> {
   if (tablesInitialized) return;
   if (!process.env.DATABASE_URL) return;
-  try {
+
+  // 正在初始化中，则复用同一个 Promise
+  if (tablesInitializing) return tablesInitializing;
+
+  tablesInitializing = (async () => {
     const pool = getPool();
-    await pool.query(`
+    const createSql = `
       CREATE TABLE IF NOT EXISTS sessions (
         session_id VARCHAR(120) PRIMARY KEY,
         user_id VARCHAR(100) NOT NULL,
@@ -56,21 +62,42 @@ async function ensureTables() {
         INDEX idx_user (user_id, user_type),
         INDEX idx_expires (expires_at)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-    `);
-    await pool.query(`
+    `;
+    const createKvs = `
       CREATE TABLE IF NOT EXISTS kvs (
         k VARCHAR(255) PRIMARY KEY,
         v TEXT,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-    `);
-    tablesInitialized = true;
-  } catch (e: any) {
-    console.warn("⚠️  自动建表失败:", e?.message || String(e));
-  }
+    `;
+
+    // 重试 3 次（首次启动可能 MySQL 尚未就绪）
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        await pool.query(createSql);
+        await pool.query(createKvs);
+        tablesInitialized = true;
+        return;
+      } catch (e: any) {
+        const msg = e?.message || String(e);
+        // 如果 error code 1050 (Table already exists) 也算成功
+        if (msg.includes("already exists")) {
+          tablesInitialized = true;
+          return;
+        }
+        if (attempt >= 2) {
+          console.warn("⚠️  自动建表最终失败:", msg);
+          return;
+        }
+        await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
+      }
+    }
+  })();
+
+  return tablesInitializing;
 }
-// 立即尝试一次，并在首次查询/执行时兜底
-ensureTables();
+// 立即尝试一次
+ensureTables().catch(() => {});
 
 export async function isDatabaseConfigured(): Promise<boolean> {
   if (!process.env.DATABASE_URL) return false;

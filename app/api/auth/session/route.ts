@@ -98,13 +98,30 @@ export async function POST(req: NextRequest) {
       const sessionId = generateSessionId();
       const expiresAt = new Date(Date.now() + ADMIN_SESSION_MS);
 
-      try {
-        await execute(
-          "INSERT INTO sessions (session_id, user_id, user_type, expires_at, created_at) VALUES (?, ?, ?, ?, ?)",
-          [sessionId, employee.id, "admin", formatMySQLDate(expiresAt), formatMySQLDate()]
+      // 强制重试写入 session，失败时抛出以便前端知道登录失败
+      let sessionInserted = false;
+      let lastErr: any = null;
+      for (let retry = 0; retry < 3; retry++) {
+        try {
+          await execute(
+            "INSERT INTO sessions (session_id, user_id, user_type, expires_at, created_at) VALUES (?, ?, ?, ?, ?)",
+            [sessionId, employee.id, "admin", formatMySQLDate(expiresAt), formatMySQLDate()]
+          );
+          sessionInserted = true;
+          break;
+        } catch (dbError: any) {
+          lastErr = dbError;
+          console.warn(`Session insert attempt ${retry + 1} failed:`, dbError?.message || String(dbError));
+          await new Promise((r) => setTimeout(r, 300 * (retry + 1)));
+        }
+      }
+
+      if (!sessionInserted) {
+        console.error("Failed to create admin session after retries:", lastErr?.message || String(lastErr));
+        return NextResponse.json(
+          { success: false, error: "登录会话创建失败，请稍后重试" },
+          { status: 500 }
         );
-      } catch (dbError) {
-        console.log("Session table may not exist");
       }
 
       // 为管理员 session 颁发 CSRF token（下单时校验）
@@ -185,13 +202,30 @@ export async function POST(req: NextRequest) {
       const sessionId = generateSessionId();
       const expiresAt = new Date(Date.now() + AGENT_SESSION_MS);
 
-      try {
-        await execute(
-          "INSERT INTO sessions (session_id, user_id, user_type, expires_at, created_at) VALUES (?, ?, ?, ?, ?)",
-          [sessionId, agent.id, "agent", formatMySQLDate(expiresAt), formatMySQLDate()]
+      // 强制重试写入 session，失败时抛出以便前端知道登录失败
+      let sessionInserted = false;
+      let lastErr: any = null;
+      for (let retry = 0; retry < 3; retry++) {
+        try {
+          await execute(
+            "INSERT INTO sessions (session_id, user_id, user_type, expires_at, created_at) VALUES (?, ?, ?, ?, ?)",
+            [sessionId, agent.id, "agent", formatMySQLDate(expiresAt), formatMySQLDate()]
+          );
+          sessionInserted = true;
+          break;
+        } catch (dbError: any) {
+          lastErr = dbError;
+          console.warn(`Session insert attempt ${retry + 1} failed:`, dbError?.message || String(dbError));
+          await new Promise((r) => setTimeout(r, 300 * (retry + 1)));
+        }
+      }
+
+      if (!sessionInserted) {
+        console.error("Failed to create agent session after retries:", lastErr?.message || String(lastErr));
+        return NextResponse.json(
+          { success: false, error: "登录会话创建失败，请稍后重试" },
+          { status: 500 }
         );
-      } catch (dbError) {
-        console.log("Session table may not exist");
       }
 
       // 为代理商 session 颁发 CSRF token（下单时校验）
