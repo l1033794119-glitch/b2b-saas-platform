@@ -27,7 +27,7 @@ interface ProductStock {
 }
 
 export default function CartPage() {
-  const { t, currency, lang, user, csrfToken, setCsrfToken } = useApp();
+  const { t, currency, lang, user, csrfToken, setCsrfToken, apiFetch } = useApp();
   return (
     <AgentLayout title={t("shopping_cart")}>
       <CartInner
@@ -38,6 +38,7 @@ export default function CartPage() {
         level={user?.level}
         csrfToken={csrfToken}
         setCsrfToken={setCsrfToken}
+        apiFetch={apiFetch}
       />
     </AgentLayout>
   );
@@ -51,6 +52,7 @@ function CartInner({
   level,
   csrfToken,
   setCsrfToken,
+  apiFetch,
 }: {
   t: any;
   currency: string;
@@ -59,6 +61,7 @@ function CartInner({
   level?: string;
   csrfToken: string | null;
   setCsrfToken: (t: string | null) => void;
+  apiFetch: (url: string, options?: RequestInit) => Promise<Response>;
 }) {
   const { items, update, remove, total, count, clear, syncPrices } = useCart();
   const [creditData, setCreditData] = useState<{ limit: number; used: number; available: number } | null>(null);
@@ -92,10 +95,9 @@ function CartInner({
   const fetchCredit = async () => {
     if (!agentId) return;
     try {
-      const res = await fetch(`/api/credit?agentId=${agentId}`);
+      const res = await apiFetch(`/api/credit?agentId=${agentId}`);
       if (res.ok) {
         const data = await res.json();
-        // Map API field names to expected names
         setCreditData({
           limit: data.creditLimit,
           used: data.outstanding,
@@ -116,9 +118,10 @@ function CartInner({
   // Fetch product stocks and sync latest prices
   const fetchProductStocks = async () => {
     try {
-      const res = await fetch("/api/products");
+      const res = await apiFetch("/api/products");
       if (res.ok) {
         const products = await res.json();
+        if (!Array.isArray(products)) return;
         const stockMap = new Map<string, number>();
         const priceMap: Record<string, number> = {};
         const priceKey = level === "A" ? "levelAPrice" : level === "C" ? "levelCPrice" : "levelBPrice";
@@ -130,7 +133,6 @@ function CartInner({
           }
         });
         setProductStocks(stockMap);
-        // 同步购物车中的价格为数据库最新价格
         const changed = syncPrices(priceMap);
         if (changed > 0) {
           setPriceUpdateCount(changed);
@@ -201,7 +203,7 @@ function CartInner({
       image: i.image || "",
     }));
 
-    const orderRes = await fetch("/api/orders", {
+    const orderRes = await apiFetch("/api/orders", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

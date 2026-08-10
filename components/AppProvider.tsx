@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState, useRef } from "react";
+import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from "react";
 import { Lang, languageLabels, translate } from "@/lib/i18n";
 
 type Role =
@@ -34,6 +34,7 @@ interface AppContextValue {
   csrfToken: string | null;
   setCsrfToken: (token: string | null) => void;
   lastLoginError: React.MutableRefObject<string>;
+  apiFetch: (url: string, options?: RequestInit) => Promise<Response>;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -89,6 +90,56 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [currency, setCurrencyState] = useState<string>(getCurrencyFromStorage);
   const [isSessionChecked, setIsSessionChecked] = useState(false);
   const [csrfToken, setCsrfToken] = useState<string | null>(null);
+  const lastLoginError = useRef<string>("");
+  const userRef = useRef<User | null>(null);
+
+  // 同步 user 到 ref，供 apiFetch 使用
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
+
+  // 401 处理中防止重复跳转
+  const redirectingRef = useRef(false);
+
+  const apiFetch = useCallback(async (url: string, options?: RequestInit): Promise<Response> => {
+    const defaultOptions: RequestInit = {
+      credentials: "include",
+      headers: { "Content-Type": "application/json", ...(options?.headers || {}) },
+    };
+
+    let res: Response;
+    try {
+      res = await fetch(url, { ...defaultOptions, ...options });
+    } catch (err) {
+      console.error("apiFetch network error:", err);
+      // 构造一个 500 响应
+      return new Response(JSON.stringify({ error: "Network error" }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // 401 未授权 → 清除登录态并跳转登录页
+    if (res.status === 401 && !redirectingRef.current) {
+      redirectingRef.current = true;
+      setUser(null);
+      setCsrfToken(null);
+      localStorage.removeItem("app.user");
+      setTimeout(() => {
+        redirectingRef.current = false;
+        const currentPath = window.location.pathname;
+        if (currentPath.startsWith("/admin")) {
+          window.location.href = "/admin/login";
+        } else if (currentPath.startsWith("/agent")) {
+          window.location.href = "/login";
+        } else if (currentPath !== "/login" && currentPath !== "/admin/login") {
+          window.location.href = "/";
+        }
+      }, 100);
+    }
+
+    return res;
+  }, []);
 
   useEffect(() => {
     const checkSession = async () => {
@@ -111,7 +162,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setIsSessionChecked(true);
       }
     };
-    
+
     checkSession();
   }, []);
 
@@ -153,7 +204,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
         return true;
       }
-      // 登录失败：保存后端返回的错误信息（如"剩余尝试次数"、"账号锁定"等）
       lastLoginError.current = data.error || "Login failed";
       return false;
     } catch (error: any) {
@@ -163,9 +213,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // 保存最近一次登录错误信息，供登录页读取
-  const lastLoginError = useRef<string>("");
-
   const logout = async () => {
     try {
       await fetch("/api/auth/session", {
@@ -173,7 +220,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         credentials: "include",
       });
     } catch {}
-    
+
     setUser(null);
     setCsrfToken(null);
     localStorage.removeItem("app.user");
@@ -191,8 +238,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     csrfToken,
     setCsrfToken,
     lastLoginError,
+    apiFetch,
   };
-  
+
   return (
     <AppContext.Provider value={value}>
       {isSessionChecked ? children : (

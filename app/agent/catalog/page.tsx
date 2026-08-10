@@ -31,7 +31,7 @@ interface Warehouse {
 }
 
 export default function CatalogPage() {
-  const { t, currency, lang, user } = useApp();
+  const { t, currency, lang, user, apiFetch } = useApp();
   const { count, lastAdded } = useCart();
   const [products, setProducts] = useState<Product[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
@@ -44,21 +44,21 @@ export default function CatalogPage() {
     setLoading(true);
     try {
       const [productsRes, warehousesRes] = await Promise.all([
-        fetch("/api/products"),
-        fetch("/api/warehouses"),
+        apiFetch("/api/products"),
+        apiFetch("/api/warehouses"),
       ]);
       if (productsRes.ok) {
         const data = await productsRes.json();
-        setProducts(data);
+        setProducts(Array.isArray(data) ? data : []);
       }
       if (warehousesRes.ok) {
         const whData = await warehousesRes.json();
-        setWarehouses(whData);
+        setWarehouses(Array.isArray(whData) ? whData : []);
       }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [apiFetch]);
 
   useEffect(() => {
     fetchProducts();
