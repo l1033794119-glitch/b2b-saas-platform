@@ -154,13 +154,14 @@ export default function ProductsPage() {
         <ProductForm
           product={editing}
           categories={cats.filter((c) => c !== "all")}
-          warehouses={warehouses}
+          warehouses={safeWarehouses}
           onSave={handleSave}
           onClose={() => { setShowForm(false); setEditing(null); }}
           lang={lang}
           t={t}
           currency={currency}
           saving={saving}
+          apiFetch={apiFetch}
         />
       )}
 
