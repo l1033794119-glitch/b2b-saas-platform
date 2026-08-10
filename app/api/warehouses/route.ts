@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAllWarehouses, createWarehouse, deleteWarehouse, getAllProducts, getAllInventoryLogs } from "@/lib/repository";
+import { requireAuth, requireAdmin } from "@/lib/auth";
 
-// GET - 获取所有仓库（附带库存统计）
-export async function GET() {
+// GET - 获取所有仓库（需登录）
+export async function GET(req: NextRequest) {
   try {
+    const authResult = await requireAuth(req);
+    if (authResult instanceof NextResponse) return authResult;
+
     const warehouses = await getAllWarehouses();
     return NextResponse.json(warehouses);
   } catch (error: any) {
@@ -12,9 +16,12 @@ export async function GET() {
   }
 }
 
-// POST - 创建仓库
+// POST - 创建仓库（仅管理员）
 export async function POST(req: NextRequest) {
   try {
+    const authResult = await requireAdmin(req);
+    if (authResult instanceof NextResponse) return authResult;
+
     const body = await req.json();
     const { name, location, manager } = body;
 
@@ -36,9 +43,12 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// DELETE - 删除仓库及其关联的产品和库存日志
+// DELETE - 删除仓库及其关联的产品和库存日志（仅管理员）
 export async function DELETE(req: NextRequest) {
   try {
+    const authResult = await requireAdmin(req);
+    if (authResult instanceof NextResponse) return authResult;
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
     const body = await req.json().catch(() => ({}));

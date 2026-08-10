@@ -138,11 +138,11 @@ export default function AgentDashboard() {
       .then((r) => r.ok ? r.json() : null)
       .then((data) => { if (data) setCredit(data); });
 
-    // 获取订单
-    fetch("/api/orders")
+    // 获取订单（只拉取自己的订单，后端会根据 session 强制过滤）
+    fetch(`/api/orders?agentId=${user.id}`)
       .then((r) => r.ok ? r.json() : [])
       .then((data) => {
-        const myOrders = Array.isArray(data) ? data.filter((o: Order) => o.agentId === user.id) : [];
+        const myOrders = Array.isArray(data) ? data : [];
         setOrders(myOrders);
       });
 

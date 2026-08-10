@@ -1,26 +1,58 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAllProducts, createOrUpdateProduct, getProductById } from "@/lib/repository";
+import { requireAuth, requireAdmin, SessionUser } from "@/lib/auth";
 
-// GET - 获取所有产品（支持按仓库筛选）
+// GET - 获取所有产品（代理商看不到成本价和其他等级价）
 export async function GET(req: NextRequest) {
   try {
+    const authResult = await requireAuth(req);
+    if (authResult instanceof NextResponse) return authResult;
+    const user = authResult as SessionUser;
+
     const { searchParams } = new URL(req.url);
     const warehouseId = searchParams.get("warehouseId");
     const products = await getAllProducts();
 
+    let filtered = products;
     if (warehouseId) {
-      return NextResponse.json(products.filter((p: any) => p.warehouseId === warehouseId));
+      filtered = filtered.filter((p: any) => p.warehouseId === warehouseId);
     }
-    return NextResponse.json(products);
+
+    // 代理商看不到成本价、其他等级价、库存等敏感信息
+    if (user.role === "agent") {
+      const level = user.level || "B";
+      const priceKey = level === "A" ? "levelAPrice" : level === "C" ? "levelCPrice" : "levelBPrice";
+      filtered = filtered.map((p: any) => ({
+        id: p.id,
+        sku: p.sku,
+        name: p.name,
+        nameZh: p.nameZh,
+        category: p.category,
+        brand: p.brand,
+        images: p.images,
+        description: p.description,
+        descriptionZh: p.descriptionZh,
+        price: p[priceKey], // 当前等级的价格
+        warehouse: p.warehouse,
+        warehouseId: p.warehouseId,
+        status: p.status,
+        // 不返回 costPrice、wholesalePrice、retailPrice、levelAPrice、levelBPrice、levelCPrice、stock
+      })) as any;
+    }
+
+    return NextResponse.json(filtered);
   } catch (error: any) {
     console.error("Products GET error:", error);
     return NextResponse.json({ error: error.message || "Failed to fetch products" }, { status: 500 });
   }
 }
 
-// POST - 创建或更新产品
+// POST - 创建或更新产品（仅管理员）
 export async function POST(req: NextRequest) {
   try {
+    const authResult = await requireAdmin(req);
+    if (authResult instanceof NextResponse) return authResult;
+
     const body = await req.json();
 
     if (!body.id && body.sku) {

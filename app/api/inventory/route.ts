@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAllProducts, updateProductStock, addInventoryLog, getAllInventoryLogs, getProductById } from "@/lib/repository";
+import { requireAdmin, requireAuth } from "@/lib/auth";
 
-// GET - 获取库存概览或库存日志
+// GET - 获取库存概览或库存日志（仅管理员）
 export async function GET(req: NextRequest) {
   try {
+    const authResult = await requireAdmin(req);
+    if (authResult instanceof NextResponse) return authResult;
+
     const { searchParams } = new URL(req.url);
     const action = searchParams.get("action");
 
@@ -28,9 +32,12 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST - 执行库存操作（入库/出库/调整）
+// POST - 执行库存操作（仅管理员，入库/出库/调整）
 export async function POST(req: NextRequest) {
   try {
+    const authResult = await requireAdmin(req);
+    if (authResult instanceof NextResponse) return authResult;
+
     const body = await req.json();
     const { action, productId, qty, note, operator, fromWarehouse, toWarehouse } = body;
 

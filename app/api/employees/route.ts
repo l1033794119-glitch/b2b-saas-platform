@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAllEmployees, getEmployeeById, getEmployeeByEmail, createEmployee, updateEmployee, deleteEmployee } from "@/lib/repository";
+import { requireAdmin } from "@/lib/auth";
 
 const MENU_PERMISSIONS = [
   { key: "dashboard", label: "仪表盘", labelEn: "Dashboard" },
@@ -18,14 +19,17 @@ const MENU_PERMISSIONS = [
   { key: "settings", label: "系统设置", labelEn: "Settings" },
 ];
 
-// GET - 获取所有员工或登录验证
+// GET - 获取所有员工（仅管理员）
 export async function GET(req: NextRequest) {
   try {
+    const authResult = await requireAdmin(req);
+    if (authResult instanceof NextResponse) return authResult;
+
     const { searchParams } = new URL(req.url);
     const email = searchParams.get("email");
     const password = searchParams.get("password");
 
-    // 员工登录验证
+    // 员工登录验证（通过 session 接口进行，这里保留但不推荐）
     if (email && password) {
       const emp = await getEmployeeByEmail(email, password);
       if (!emp) {
@@ -43,9 +47,12 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST - 创建员工
+// POST - 创建员工（仅管理员）
 export async function POST(req: NextRequest) {
   try {
+    const authResult = await requireAdmin(req);
+    if (authResult instanceof NextResponse) return authResult;
+
     const body = await req.json();
     const employees = await getAllEmployees();
 
@@ -73,9 +80,12 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// PUT - 更新员工信息
+// PUT - 更新员工信息（仅管理员）
 export async function PUT(req: NextRequest) {
   try {
+    const authResult = await requireAdmin(req);
+    if (authResult instanceof NextResponse) return authResult;
+
     const body = await req.json();
     const employees = await getAllEmployees();
     const idx = employees.findIndex((e: any) => e.id === body.id);
@@ -99,9 +109,12 @@ export async function PUT(req: NextRequest) {
   }
 }
 
-// DELETE - 删除员工
+// DELETE - 删除员工（仅管理员）
 export async function DELETE(req: NextRequest) {
   try {
+    const authResult = await requireAdmin(req);
+    if (authResult instanceof NextResponse) return authResult;
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
 

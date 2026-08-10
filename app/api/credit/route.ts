@@ -1,14 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAllCredits, getCreditByAgentId, deductCredit, repayCredit, setCreditLimit } from "@/lib/repository";
+import { requireAuth, requireAdmin, SessionUser } from "@/lib/auth";
 
-// GET - 获取所有信用额度记录或按代理商筛选
+// GET - 获取信用额度记录
+// 代理商只能查看自己的信用额度；管理员可查看全部
 export async function GET(req: NextRequest) {
   try {
-    const { searchParams } = new URL(req.url);
-    const agentId = searchParams.get("agentId");
+    const authResult = await requireAuth(req);
+    if (authResult instanceof NextResponse) return authResult;
+    const user = authResult as SessionUser;
 
-    if (agentId) {
-      const record = await getCreditByAgentId(agentId);
+    const { searchParams } = new URL(req.url);
+    const requestedAgentId = searchParams.get("agentId");
+
+    // 代理商只能查看自己的信用额度
+    if (user.role === "agent") {
+      const record = await getCreditByAgentId(user.id);
+      if (!record) {
+        return NextResponse.json({ error: "Agent credit record not found" }, { status: 404 });
+      }
+      return NextResponse.json(record);
+    }
+
+    // 管理员
+    if (requestedAgentId) {
+      const record = await getCreditByAgentId(requestedAgentId);
       if (!record) {
         return NextResponse.json({ error: "Agent credit record not found" }, { status: 404 });
       }
@@ -23,9 +39,12 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// PUT - 信用额度操作（扣减/还款/设置额度/清零）
+// PUT - 信用额度操作（仅管理员，扣减/还款/设置额度/清零）
 export async function PUT(req: NextRequest) {
   try {
+    const authResult = await requireAdmin(req);
+    if (authResult instanceof NextResponse) return authResult;
+
     const body = await req.json();
     const { agentId, action, creditLimit, amount, note } = body;
 

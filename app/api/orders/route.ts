@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAllOrders, getOrdersByAgentId, createOrder, getProductById, updateProductStock, getAgentById } from "@/lib/repository";
+import { getAllOrders, getOrdersByAgentId, createOrder, getProductById, updateProductStock, getAgentById, deductCredit } from "@/lib/repository";
+import { requireAuth, requireAdmin, checkOwnership, SessionUser } from "@/lib/auth";
 
 function formatMySQLDate(date: Date = new Date()): string {
   const d = new Date(date);
@@ -9,11 +10,23 @@ function formatMySQLDate(date: Date = new Date()): string {
 // GET - 获取所有订单或按代理商筛选
 export async function GET(req: NextRequest) {
   try {
-    const { searchParams } = new URL(req.url);
-    const agentId = searchParams.get("agentId");
+    const authResult = await requireAuth(req);
+    if (authResult instanceof NextResponse) return authResult;
+    const user = authResult as SessionUser;
 
-    if (agentId) {
-      const orders = await getOrdersByAgentId(agentId);
+    const { searchParams } = new URL(req.url);
+    const requestedAgentId = searchParams.get("agentId");
+
+    // 代理商只能查看自己的订单；管理员可指定 agentId 或查看全部
+    if (user.role === "agent") {
+      // 忽略前端传入的 agentId，强制使用当前登录用户 ID
+      const orders = await getOrdersByAgentId(user.id);
+      return NextResponse.json(orders);
+    }
+
+    // 管理员
+    if (requestedAgentId) {
+      const orders = await getOrdersByAgentId(requestedAgentId);
       return NextResponse.json(orders);
     }
 
@@ -28,8 +41,15 @@ export async function GET(req: NextRequest) {
 // POST - 创建订单（包含库存扣减）
 export async function POST(req: NextRequest) {
   try {
+    const authResult = await requireAuth(req);
+    if (authResult instanceof NextResponse) return authResult;
+    const user = authResult as SessionUser;
+
     const body = await req.json();
-    const { agentId, items, total, shippingAddress, postalCode, country, contactName, phone, email, note } = body;
+    const { agentId: bodyAgentId, items, total, shippingAddress, postalCode, country, contactName, phone, email, note } = body;
+
+    // 代理商只能为自己创建订单；管理员可指定任意 agentId
+    const agentId = user.role === "agent" ? user.id : bodyAgentId;
 
     if (!agentId || !items || items.length === 0) {
       return NextResponse.json({ error: "Invalid order data" }, { status: 400 });
@@ -86,32 +106,18 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 从代理商信用额度扣减
+    // 从代理商信用额度扣减（直接调用函数，避免内部 HTTP 请求被鉴权拦截）
     try {
-      const creditResponse = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/api/credit`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          agentId,
-          action: "deduct",
-          amount: serverTotal || total,
-          note: `Order ${body.orderNo || `ORD-${Date.now()}`}`,
-        }),
-      });
-
-      if (!creditResponse.ok) {
-        // 信用扣减失败，回滚库存
-        for (const item of items) {
-          const product = await getProductById(item.productId);
-          if (product) {
-            await updateProductStock(item.productId, (product.stock || 0) + (item.quantity || 0));
-          }
+      await deductCredit(agentId, serverTotal || total, `Order ${body.orderNo || `ORD-${Date.now()}`}`);
+    } catch (creditError: any) {
+      // 信用扣减失败，回滚库存
+      for (const item of items) {
+        const product = await getProductById(item.productId);
+        if (product) {
+          await updateProductStock(item.productId, (product.stock || 0) + (item.quantity || 0));
         }
-        const err = await creditResponse.json();
-        return NextResponse.json({ error: err.error || "Insufficient credit" }, { status: 400 });
       }
-    } catch (creditError) {
-      console.error("Credit deduction failed:", creditError);
+      return NextResponse.json({ error: creditError?.message || "Insufficient credit" }, { status: 400 });
     }
 
     const order = {

@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
+import { requireAuth } from "@/lib/auth";
 
+// POST - 上传文件（需登录）
 export async function POST(req: NextRequest) {
   try {
+    const authResult = await requireAuth(req);
+    if (authResult instanceof NextResponse) return authResult;
+
     const formData = await req.formData();
     const file = formData.get("file") as File;
 
@@ -44,13 +49,22 @@ export async function POST(req: NextRequest) {
   }
 }
 
+// DELETE - 删除文件（仅管理员）
 export async function DELETE(req: NextRequest) {
   try {
+    const authResult = await requireAuth(req);
+    if (authResult instanceof NextResponse) return authResult;
+
     const { searchParams } = new URL(req.url);
     const fileName = searchParams.get("fileName");
 
     if (!fileName) {
       return NextResponse.json({ error: "File name is required" }, { status: 400 });
+    }
+
+    // 防止路径遍历：只允许文件名，不允许路径分隔符
+    if (fileName.includes("/") || fileName.includes("..") || fileName.includes("\\")) {
+      return NextResponse.json({ error: "Invalid file name" }, { status: 400 });
     }
 
     const uploadDir = path.join(process.cwd(), "public", "uploads");

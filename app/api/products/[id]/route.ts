@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { deleteProduct, getProductById } from "@/lib/repository";
+import { requireAdmin } from "@/lib/auth";
 
-// DELETE - 删除产品及相关库存日志
+// DELETE - 删除产品及相关库存日志（仅管理员）
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   try {
+    const authResult = await requireAdmin(req);
+    if (authResult instanceof NextResponse) return authResult;
+
     const id = params?.id;
     if (!id) {
       return NextResponse.json({ error: "Product ID required" }, { status: 400 });

@@ -8,6 +8,7 @@ import {
   addInventoryLog,
   repayCredit,
 } from "@/lib/repository";
+import { requireAuth, requireAdmin, checkOwnership, SessionUser } from "@/lib/auth";
 
 function formatMySQLDate(date: Date = new Date()): string {
   const d = new Date(date);
@@ -23,6 +24,10 @@ const cancellableStatuses = [
 // POST - 代理商发起取消订单申请
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
+    const authResult = await requireAuth(req);
+    if (authResult instanceof NextResponse) return authResult;
+    const user = authResult as SessionUser;
+
     const body = await req.json();
     const { cancelReason } = body;
 
@@ -38,6 +43,14 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       return NextResponse.json(
         { error: "订单不存在" },
         { status: 404 }
+      );
+    }
+
+    // 校验归属：代理商只能取消自己的订单
+    if (!checkOwnership(user, order.agentId)) {
+      return NextResponse.json(
+        { error: "无权操作他人订单" },
+        { status: 403 }
       );
     }
 
@@ -76,6 +89,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 // PUT - 管理员审核取消订单（批准或拒绝）
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   try {
+    const authResult = await requireAdmin(req);
+    if (authResult instanceof NextResponse) return authResult;
+
     const body = await req.json();
     const { action, adminName } = body;
 

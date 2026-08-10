@@ -1,24 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAllAgents, getAgentById, createAgent, updateAgent, deleteAgent, getAgentByEmail } from "@/lib/repository";
+import { requireAuth, requireAdmin, SessionUser } from "@/lib/auth";
 
-// GET - 获取所有代理商或按条件筛选
+// GET - 获取代理商信息
+// 代理商只能查看自己的信息；管理员可查看全部
 export async function GET(req: NextRequest) {
   try {
+    const authResult = await requireAuth(req);
+    if (authResult instanceof NextResponse) return authResult;
+    const user = authResult as SessionUser;
+
     const { searchParams } = new URL(req.url);
     const agentId = searchParams.get("agentId");
-    const email = searchParams.get("email");
-    const password = searchParams.get("password");
 
-    // 登录验证：邮箱 + 密码
-    if (email && password) {
-      const agent = await getAgentByEmail(email, password);
+    // 代理商只能查看自己的信息
+    if (user.role === "agent") {
+      const agent = await getAgentById(user.id);
       if (!agent) {
-        return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+        return NextResponse.json({ error: "Agent not found" }, { status: 404 });
       }
       return NextResponse.json(agent);
     }
 
-    // 按 ID 获取
+    // 管理员：按 ID 获取
     if (agentId) {
       const agent = await getAgentById(agentId);
       if (!agent) {
@@ -27,7 +31,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(agent);
     }
 
-    // 返回所有代理商（不含密码）
+    // 管理员：返回所有代理商
     const agents = await getAllAgents();
     return NextResponse.json(agents);
   } catch (error: any) {
@@ -36,9 +40,12 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST - 创建代理商
+// POST - 创建代理商（仅管理员）
 export async function POST(req: NextRequest) {
   try {
+    const authResult = await requireAdmin(req);
+    if (authResult instanceof NextResponse) return authResult;
+
     const body = await req.json();
 
     // 检查邮箱是否已存在
@@ -73,21 +80,40 @@ export async function POST(req: NextRequest) {
 }
 
 // PUT - 更新代理商信息
+// 管理员可修改任意代理商；代理商只能修改自己的非敏感字段（contact、phone、country、password）
 export async function PUT(req: NextRequest) {
   try {
+    const authResult = await requireAuth(req);
+    if (authResult instanceof NextResponse) return authResult;
+    const user = authResult as SessionUser;
+
     const body = await req.json();
     const { agentId, ...updates } = body;
 
-    if (!agentId) {
+    // 代理商只能修改自己的信息
+    const targetAgentId = user.role === "agent" ? user.id : agentId;
+
+    if (!targetAgentId) {
       return NextResponse.json({ error: "agentId required" }, { status: 400 });
     }
 
-    const existing = await getAgentById(agentId);
+    const existing = await getAgentById(targetAgentId);
     if (!existing) {
       return NextResponse.json({ error: "Agent not found" }, { status: 404 });
     }
 
-    const result = await updateAgent(agentId, updates);
+    // 代理商不能修改敏感字段（creditLimit、outstanding、level、status）
+    let allowedUpdates = updates;
+    if (user.role === "agent") {
+      allowedUpdates = {};
+      // 仅允许修改联系信息和密码
+      if (updates.contact !== undefined) allowedUpdates.contact = updates.contact;
+      if (updates.phone !== undefined) allowedUpdates.phone = updates.phone;
+      if (updates.country !== undefined) allowedUpdates.country = updates.country;
+      if (updates.password !== undefined) allowedUpdates.password = updates.password;
+    }
+
+    const result = await updateAgent(targetAgentId, allowedUpdates);
     return NextResponse.json(result);
   } catch (error: any) {
     console.error("Agents PUT error:", error);
@@ -95,9 +121,12 @@ export async function PUT(req: NextRequest) {
   }
 }
 
-// DELETE - 删除代理商
+// DELETE - 删除代理商（仅管理员）
 export async function DELETE(req: NextRequest) {
   try {
+    const authResult = await requireAdmin(req);
+    if (authResult instanceof NextResponse) return authResult;
+
     const { searchParams } = new URL(req.url);
     const agentId = searchParams.get("agentId");
 
