@@ -205,12 +205,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (data.success && data.user) {
-        // 等待浏览器处理 Set-Cookie（某些浏览器需要几毫秒才能把新 cookie 写入 jar，
-        // 紧接着的 GET 如果立刻发，会因为 cookie 还没带上而返回 authenticated:false）
+        // === 关键修复：Next.js 14.2.15 的 response.cookies.set() 会把 cookie 放到
+        // x-middleware-set-cookie 头而非标准 Set-Cookie 头，浏览器不识别导致 cookie 丢失。
+        // 这里从响应 body 中取 sessionId，用 document.cookie 手动写入。===
+        if (data.sessionId) {
+          const maxAge = data.sessionMaxAgeSec || 28800;
+          const isHttps = window.location.protocol === "https:";
+          const secureFlag = isHttps ? "; Secure" : "";
+          document.cookie = `session_id=${data.sessionId}; path=/; max-age=${maxAge}; SameSite=Lax${secureFlag}`;
+        }
+
+        // 等待 cookie 写入完成
         await new Promise((r) => setTimeout(r, 200));
 
-        // 然后再 GET 校验一次 session 是否真的入库了（防止 sessions 表 INSERT
-        // 被 try/catch 吞掉导致 cookie 有值但数据库查不到）
+        // GET 校验 session 是否真的生效
         let verified = false;
         let lastVerifyError = "";
         for (let attempt = 0; attempt < 3; attempt++) {
@@ -261,6 +269,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         credentials: "include",
       });
     } catch {}
+
+    // 手动清除 session_id cookie（与 login 中的设置对应）
+    document.cookie = "session_id=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax";
 
     setUser(null);
     setCsrfToken(null);

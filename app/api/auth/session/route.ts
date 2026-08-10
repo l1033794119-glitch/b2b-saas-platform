@@ -170,6 +170,7 @@ export async function POST(req: NextRequest) {
             role: "super_admin",
             permissions,
           },
+          sessionId,  // 前端用 document.cookie 手动设置（绕过 Next.js x-middleware-set-cookie bug）
           csrfToken,
           sessionMaxAgeSec: maxAgeSec,
         },
@@ -276,6 +277,7 @@ export async function POST(req: NextRequest) {
             country: agent.country,
             level: agent.level,
           },
+          sessionId,  // 前端用 document.cookie 手动设置（绕过 Next.js x-middleware-set-cookie bug）
           csrfToken,
           sessionMaxAgeSec: maxAgeSec,
         },
