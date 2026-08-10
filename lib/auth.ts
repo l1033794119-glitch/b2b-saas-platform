@@ -78,7 +78,15 @@ export async function requireAuth(req: NextRequest): Promise<SessionUser | NextR
 export async function requireAdmin(req: NextRequest): Promise<SessionUser | NextResponse> {
   const user = await getSessionUser(req);
   if (!user) return unauthorized();
-  if (user.role !== "admin") return forbidden("Admin access required");
+  // 前端登录返回的角色可能是带前缀的 super_admin/warehouse_manager 等，这里都视为 admin 角色类型
+  if (user.role !== "admin" &&
+      user.role !== "super_admin" &&
+      user.role !== "warehouse_manager" &&
+      user.role !== "finance_manager" &&
+      user.role !== "operations_manager" &&
+      user.role !== "customer_service") {
+    return forbidden("Admin access required");
+  }
   return user;
 }
 

@@ -197,6 +197,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       const data = await res.json();
       if (data.success && data.user) {
+        // 登录成功后，再 GET 校验一次 session 是否真的生效（防止 sessions 表 INSERT 被 try/catch 吞掉
+        // 导致 cookie 有值但数据库查不到，后续 apiFetch 全 401 → 跳回登录）
+        try {
+          const verifyRes = await fetch("/api/auth/session", {
+            method: "GET",
+            credentials: "include",
+          });
+          const v = await verifyRes.json();
+          if (!v.authenticated) {
+            lastLoginError.current = "Session not persisted, please try again";
+            return false;
+          }
+        } catch {
+          // 校验请求失败，但登录 POST 已成功 → 继续跳转
+        }
+
         setUser(data.user);
         localStorage.setItem("app.user", JSON.stringify(data.user));
         if (data.csrfToken) {

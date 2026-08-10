@@ -41,6 +41,7 @@ export default function CatalogPage() {
   const [selectedWarehouse, setSelectedWarehouse] = useState("all");
 
   const fetchProducts = useCallback(async () => {
+    if (!user?.id) return;
     setLoading(true);
     try {
       const [productsRes, warehousesRes] = await Promise.all([
@@ -58,7 +59,7 @@ export default function CatalogPage() {
     } finally {
       setLoading(false);
     }
-  }, [apiFetch]);
+  }, [apiFetch, user?.id]);
 
   useEffect(() => {
     fetchProducts();

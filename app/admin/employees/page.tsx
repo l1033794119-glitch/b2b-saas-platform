@@ -36,7 +36,7 @@ interface Employee {
 }
 
 export default function EmployeesPage() {
-  const { t, lang, apiFetch } = useApp();
+  const { t, lang, apiFetch, user } = useApp();
   const [list, setList] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
@@ -46,6 +46,7 @@ export default function EmployeesPage() {
   const [message, setMessage] = useState("");
 
   const fetchEmployees = useCallback(async () => {
+    if (!user?.id) return;
     setLoading(true);
     try {
       const res = await apiFetch("/api/employees");
@@ -58,7 +59,7 @@ export default function EmployeesPage() {
     } finally {
       setLoading(false);
     }
-  }, [apiFetch]);
+  }, [apiFetch, user?.id]);
 
   useEffect(() => {
     fetchEmployees();

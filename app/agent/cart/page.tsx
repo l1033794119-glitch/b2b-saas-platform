@@ -117,6 +117,7 @@ function CartInner({
 
   // Fetch product stocks and sync latest prices
   const fetchProductStocks = async () => {
+    if (!user?.id) return;
     try {
       const res = await apiFetch("/api/products");
       if (res.ok) {
@@ -143,7 +144,7 @@ function CartInner({
 
   useEffect(() => {
     fetchProductStocks();
-  }, []);
+  }, [user?.id]);
 
   // Handle quantity update with stock validation
   const handleUpdate = (productId: string, qty: number) => {

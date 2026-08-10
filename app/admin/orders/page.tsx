@@ -72,7 +72,7 @@ const statuses = [
 ];
 
 export default function OrdersPage() {
-  const { t, currency, lang, apiFetch } = useApp();
+  const { t, currency, lang, apiFetch, user } = useApp();
   const [data, setData] = useState<Order[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -190,6 +190,7 @@ export default function OrdersPage() {
   };
 
   const fetchOrders = async () => {
+    if (!user?.id) return;
     try {
       const res = await apiFetch("/api/orders");
       if (res.ok) {
@@ -204,6 +205,7 @@ export default function OrdersPage() {
   };
 
   const fetchAgents = async () => {
+    if (!user?.id) return;
     try {
       const res = await apiFetch("/api/agents");
       if (res.ok) {
@@ -216,6 +218,7 @@ export default function OrdersPage() {
   };
 
   const fetchWarehouses = async () => {
+    if (!user?.id) return;
     try {
       const res = await apiFetch("/api/warehouses");
       if (res.ok) {
@@ -228,6 +231,7 @@ export default function OrdersPage() {
   };
 
   const fetchProducts = async () => {
+    if (!user?.id) return;
     try {
       const res = await apiFetch("/api/products");
       if (res.ok) {
@@ -253,7 +257,7 @@ export default function OrdersPage() {
     fetchAgents();
     fetchWarehouses();
     fetchProducts();
-  }, []);
+  }, [user?.id]);
 
   useEffect(() => {
     setPage(1);

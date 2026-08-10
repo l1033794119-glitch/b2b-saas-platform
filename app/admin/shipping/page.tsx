@@ -48,7 +48,7 @@ interface Order {
 }
 
 export default function ShippingPage() {
-  const { t, currency, lang, apiFetch } = useApp();
+  const { t, currency, lang, apiFetch, user } = useApp();
   const [data, setData] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
@@ -72,6 +72,7 @@ export default function ShippingPage() {
   ];
 
   const fetchOrders = async () => {
+    if (!user?.id) return;
     setLoading(true);
     try {
       const res = await apiFetch("/api/orders");
@@ -88,7 +89,7 @@ export default function ShippingPage() {
 
   useEffect(() => {
     fetchOrders();
-  }, []);
+  }, [user?.id]);
 
   useEffect(() => {
     if (selectedOrder && typeof window !== "undefined") {

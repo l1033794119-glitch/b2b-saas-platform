@@ -137,7 +137,7 @@ function filterOrdersByDate(orders: any[], dateRange: { start: Date; end: Date }
 }
 
 export default function DashboardPage() {
-  const { t, currency, lang, apiFetch } = useApp();
+  const { t, currency, lang, apiFetch, user } = useApp();
 
   const [products, setProducts] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
@@ -154,6 +154,7 @@ export default function DashboardPage() {
   const [searchKeyword, setSearchKeyword] = useState<string>("");
 
   const fetchData = useCallback(async () => {
+    if (!user?.id) return; // 登录态未确认前不发请求，避免触发 401 跳回登录
     setLoading(true);
     try {
       const [productsRes, ordersRes, agentsRes, warehousesRes] = await Promise.all([
@@ -179,7 +180,7 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, [apiFetch]);
+  }, [apiFetch, user?.id]);
 
   useEffect(() => {
     fetchData();

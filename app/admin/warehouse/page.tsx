@@ -30,7 +30,7 @@ interface Product {
 }
 
 export default function WarehousePage() {
-  const { t, currency, lang, apiFetch } = useApp();
+  const { t, currency, lang, apiFetch, user } = useApp();
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,6 +47,7 @@ export default function WarehousePage() {
   const [cleanupLoading, setCleanupLoading] = useState(false);
 
   const fetchData = async () => {
+    if (!user?.id) return;
     setLoading(true);
     try {
       const [wRes, pRes] = await Promise.all([
@@ -68,7 +69,7 @@ export default function WarehousePage() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [user?.id]);
 
   const handleCreateWarehouse = async () => {
     setError("");

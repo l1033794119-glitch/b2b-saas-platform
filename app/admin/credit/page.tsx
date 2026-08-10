@@ -26,7 +26,7 @@ interface CreditTransaction {
 }
 
 export default function CreditLimitsPage() {
-  const { t, currency, lang, apiFetch } = useApp();
+  const { t, currency, lang, apiFetch, user } = useApp();
   const [records, setRecords] = useState<CreditRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -38,6 +38,7 @@ export default function CreditLimitsPage() {
   const [activeTab, setActiveTab] = useState<"overview" | "transactions">("overview");
 
   const fetchCredits = useCallback(async () => {
+    if (!user?.id) return;
     setLoading(true);
     try {
       const res = await apiFetch("/api/credit");
@@ -49,7 +50,7 @@ export default function CreditLimitsPage() {
     } finally {
       setLoading(false);
     }
-  }, [apiFetch]);
+  }, [apiFetch, user?.id]);
 
   useEffect(() => {
     fetchCredits();

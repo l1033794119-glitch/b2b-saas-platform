@@ -23,7 +23,7 @@ interface Agent {
 }
 
 export default function AgentsPage() {
-  const { t, currency, lang, apiFetch } = useApp();
+  const { t, currency, lang, apiFetch, user } = useApp();
   const [data, setData] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
@@ -34,6 +34,7 @@ export default function AgentsPage() {
   const [message, setMessage] = useState("");
 
   const fetchAgents = useCallback(async () => {
+    if (!user?.id) return;
     setLoading(true);
     try {
       const res = await apiFetch("/api/agents");
@@ -44,7 +45,7 @@ export default function AgentsPage() {
     } finally {
       setLoading(false);
     }
-  }, [apiFetch]);
+  }, [apiFetch, user?.id]);
 
   useEffect(() => {
     fetchAgents();

@@ -48,7 +48,7 @@ interface Wh {
 }
 
 export default function InventoryPage() {
-  const { t, currency, lang, apiFetch } = useApp();
+  const { t, currency, lang, apiFetch, user } = useApp();
   const [products, setProducts] = useState<Product[]>([]);
   const [logs, setLogs] = useState<InventoryLog[]>([]);
   const [warehouses, setWarehouses] = useState<Wh[]>([]);
@@ -64,6 +64,7 @@ export default function InventoryPage() {
   const [warehouseFilter, setWarehouseFilter] = useState("all");
 
   const fetchData = useCallback(async () => {
+    if (!user?.id) return;
     try {
       const [invRes, logsRes, whRes] = await Promise.all([
         apiFetch("/api/inventory"),
@@ -87,7 +88,7 @@ export default function InventoryPage() {
     } finally {
       setLoading(false);
     }
-  }, [apiFetch]);
+  }, [apiFetch, user?.id]);
 
   useEffect(() => {
     fetchData();
