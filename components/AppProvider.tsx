@@ -207,12 +207,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (data.success && data.user) {
         // === 关键修复：Next.js 14.2.15 的 response.cookies.set() 会把 cookie 放到
         // x-middleware-set-cookie 头而非标准 Set-Cookie 头，浏览器不识别导致 cookie 丢失。
-        // 这里从响应 body 中取 sessionId，用 document.cookie 手动写入。===
+        // 这里从响应 body 中取 sessionId，用 document.cookie 手动写入。
+        // 注意：JS document.cookie 设置 Secure cookie 在部分浏览器（Safari）上受限，
+        // 所以先不带 Secure 写入；如果写入后读不到，立即带 SameSite=None 重试。 ===
         if (data.sessionId) {
           const maxAge = data.sessionMaxAgeSec || 28800;
-          const isHttps = window.location.protocol === "https:";
-          const secureFlag = isHttps ? "; Secure" : "";
-          document.cookie = `sid=${data.sessionId}; path=/; max-age=${maxAge}; SameSite=Lax${secureFlag}`;
+
+          // 第一轮：最兼容的写法（不加 Secure，避免 Safari 拒绝 JS 设置 Secure cookie）
+          const cookieV1 = `sid=${data.sessionId}; path=/; max-age=${maxAge}; SameSite=Lax`;
+          document.cookie = cookieV1;
+
+          // 验证是否写入成功
+          if (!document.cookie.includes("sid=")) {
+            // 第二轮：SameSite 也去掉（极个别浏览器对 SameSite + JS 设置不兼容）
+            const cookieV2 = `sid=${data.sessionId}; path=/; max-age=${maxAge}`;
+            document.cookie = cookieV2;
+          }
+          if (!document.cookie.includes("sid=")) {
+            // 第三轮：尝试 SameSite=None + Secure（只有服务端 Set-Cookie 真的能设 Secure，但试试）
+            const cookieV3 = `sid=${data.sessionId}; path=/; max-age=${maxAge}; SameSite=None; Secure`;
+            document.cookie = cookieV3;
+          }
         }
 
         // 等待 cookie 写入完成
