@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
 
     // ===== CSRF Token 校验：必须携带登录时颁发的 token =====
     // 目的：防止外部脚本直接调用 API 下单，必须先通过浏览器登录获取 token
-    const sessionId = req.cookies.get("sid")?.value || "";
+    const sessionId = req.cookies.get("b2b_sid")?.value || "";
     const body = await req.json();
     const submittedCsrf = body._csrf || body.csrfToken || null;
     const csrfOk = await verifyCsrfToken(sessionId, submittedCsrf);

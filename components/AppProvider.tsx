@@ -214,18 +214,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           const maxAge = data.sessionMaxAgeSec || 28800;
 
           // 第一轮：最兼容的写法（不加 Secure，避免 Safari 拒绝 JS 设置 Secure cookie）
-          const cookieV1 = `sid=${data.sessionId}; path=/; max-age=${maxAge}; SameSite=Lax`;
+          const cookieV1 = `b2b_sid=${data.sessionId}; path=/; max-age=${maxAge}; SameSite=Lax`;
           document.cookie = cookieV1;
 
           // 验证是否写入成功
-          if (!document.cookie.includes("sid=")) {
+          if (!document.cookie.includes("b2b_sid=")) {
             // 第二轮：SameSite 也去掉（极个别浏览器对 SameSite + JS 设置不兼容）
-            const cookieV2 = `sid=${data.sessionId}; path=/; max-age=${maxAge}`;
+            const cookieV2 = `b2b_sid=${data.sessionId}; path=/; max-age=${maxAge}`;
             document.cookie = cookieV2;
           }
-          if (!document.cookie.includes("sid=")) {
+          if (!document.cookie.includes("b2b_sid=")) {
             // 第三轮：尝试 SameSite=None + Secure（只有服务端 Set-Cookie 真的能设 Secure，但试试）
-            const cookieV3 = `sid=${data.sessionId}; path=/; max-age=${maxAge}; SameSite=None; Secure`;
+            const cookieV3 = `b2b_sid=${data.sessionId}; path=/; max-age=${maxAge}; SameSite=None; Secure`;
             document.cookie = cookieV3;
           }
         }
@@ -285,8 +285,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       });
     } catch {}
 
-    // 手动清除 sid cookie（与 login 中的设置对应）
-    document.cookie = "sid=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax";
+    // 手动清除 b2b_sid cookie（与 login 中的设置对应）
+    document.cookie = "b2b_sid=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax";
 
     setUser(null);
     setCsrfToken(null);

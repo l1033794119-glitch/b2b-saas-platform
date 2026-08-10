@@ -158,32 +158,26 @@ export async function POST(req: NextRequest) {
         : (employee.permissions || {});
 
       const maxAgeSec = Math.floor(ADMIN_SESSION_MS / 1000);
-      const secureCookie = process.env.NODE_ENV === "production" && isHttps;
 
-      return jsonWithCookie(
-        {
-          success: true,
-          user: {
-            id: employee.id,
-            name: employee.name,
-            email: employee.email,
-            role: "super_admin",
-            permissions,
-          },
-          sessionId,  // 前端用 document.cookie 手动设置（绕过 Next.js x-middleware-set-cookie bug）
-          csrfToken,
-          sessionMaxAgeSec: maxAgeSec,
+      // ⚠️ 不再通过 response.cookies.set() 设置 cookie！
+      // 原因：
+      // 1. Next.js 会把它写入 x-middleware-set-cookie 自定义头（Nginx 反代不识别）
+      // 2. 一旦带上 httpOnly: true，浏览器端 JS 的 document.cookie 再也无法覆盖同名 cookie
+      //    （这是安全特性，HttpOnly 对 JS 不可见不可写，包括"设置同名 cookie 尝试覆盖"也会静默失败）
+      // 正确做法：只在响应 body 中返回 sessionId，前端 JS 用 document.cookie 写入 b2b_sid
+      return NextResponse.json({
+        success: true,
+        user: {
+          id: employee.id,
+          name: employee.name,
+          email: employee.email,
+          role: "super_admin",
+          permissions,
         },
-        {
-          name: "sid",
-          value: sessionId,
-          maxAgeSec,
-          path: "/",
-          httpOnly: true,
-          sameSite: "lax",
-          secure: secureCookie,
-        }
-      );
+        sessionId,  // 前端用 document.cookie 手动设置
+        csrfToken,
+        sessionMaxAgeSec: maxAgeSec,
+      });
     } else {
       const agents: any[] = await query(
         "SELECT * FROM agents WHERE email = ?",
@@ -263,34 +257,23 @@ export async function POST(req: NextRequest) {
       const csrfToken = await issueCsrfToken(sessionId);
 
       const maxAgeSec = Math.floor(AGENT_SESSION_MS / 1000);
-      const secureCookie = process.env.NODE_ENV === "production" && isHttps;
 
-      return jsonWithCookie(
-        {
-          success: true,
-          user: {
-            id: agent.id,
-            name: agent.contact || agent.company,
-            email: agent.email,
-            role: "agent",
-            company: agent.company,
-            country: agent.country,
-            level: agent.level,
-          },
-          sessionId,  // 前端用 document.cookie 手动设置（绕过 Next.js x-middleware-set-cookie bug）
-          csrfToken,
-          sessionMaxAgeSec: maxAgeSec,
+      // 同样：代理商也不再通过 cookies.set() 设置 cookie，避免 HttpOnly 冲突
+      return NextResponse.json({
+        success: true,
+        user: {
+          id: agent.id,
+          name: agent.contact || agent.company,
+          email: agent.email,
+          role: "agent",
+          company: agent.company,
+          country: agent.country,
+          level: agent.level,
         },
-        {
-          name: "sid",
-          value: sessionId,
-          maxAgeSec,
-          path: "/",
-          httpOnly: true,
-          sameSite: "lax",
-          secure: secureCookie,
-        }
-      );
+        sessionId,  // 前端用 document.cookie 手动设置
+        csrfToken,
+        sessionMaxAgeSec: maxAgeSec,
+      });
     }
   } catch (error) {
     console.error("Session creation error:", error);
@@ -303,7 +286,7 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    const sessionId = req.cookies.get("sid")?.value;
+    const sessionId = req.cookies.get("b2b_sid")?.value;
     if (!sessionId) {
       return NextResponse.json({ authenticated: false });
     }
@@ -399,11 +382,7 @@ export async function GET(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const sessionId = req.cookies.get("sid")?.value;
-
-    const forwardedProto = req.headers.get("x-forwarded-proto");
-    const isHttps = forwardedProto === "https" || req.nextUrl.protocol === "https:";
-    const secureCookie = process.env.NODE_ENV === "production" && isHttps;
+    const sessionId = req.cookies.get("b2b_sid")?.value;
 
     if (sessionId) {
       try {
@@ -414,19 +393,9 @@ export async function DELETE(req: NextRequest) {
       }
     }
 
-    // 用 response.cookies.set 清除 cookie（Max-Age=0 立即过期）
-    return jsonWithCookie(
-      { success: true },
-      {
-        name: "session_id",
-        value: "",
-        maxAgeSec: 0,
-        path: "/",
-        httpOnly: true,
-        sameSite: "lax",
-        secure: secureCookie,
-      }
-    );
+    // 不再通过 cookies.set() 清除 cookie（同样有 HttpOnly 冲突）
+    // 前端 JS 在 logout() 中自行清除 b2b_sid cookie
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Session deletion error:", error);
     return NextResponse.json(
