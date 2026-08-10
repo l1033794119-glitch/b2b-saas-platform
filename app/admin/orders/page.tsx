@@ -1458,7 +1458,6 @@ export default function OrdersPage() {
                       const updated = await res.json().catch(() => ({}));
                       const updatedOrder = { ...selectedOrder, ...updated };
                       setData(safeData.map((o) => o.id === selectedOrder.id ? updatedOrder : o));
-                      setSelectedOrder(updatedOrder);
                       setShowShipModal(false);
                       setShipInfo({ trackingNumber: "", trackingImage: "" });
                     } else {
