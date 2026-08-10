@@ -14,7 +14,10 @@ function generateSessionId(): string {
 
 function formatMySQLDate(date: Date = new Date()): string {
   const d = new Date(date);
-  return d.toISOString().replace("T", " ").substring(0, 19);
+  // 使用本地时区（而非 UTC），确保与 MySQL NOW() 返回的时间一致
+  // toISOString() 返回 UTC，会导致 INSERT 写入的时间比 MySQL NOW() 少 8 小时
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
 // 会话有效期：管理员 8 小时，代理商 24 小时
@@ -287,26 +290,12 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   try {
     const sessionId = req.cookies.get("b2b_sid")?.value;
-
-    // 调试：返回 cookie 读取结果（方便排查）
     if (!sessionId) {
-      // 列出所有 cookie 名（从请求头解析，不暴露敏感值）
-      const cookieHeader = req.headers.get("cookie") || "";
-      const cookieNames = cookieHeader.split(";").map(c => c.trim().split("=")[0]).filter(Boolean);
-      return NextResponse.json({
-        authenticated: false,
-        debug: {
-          reason: "NO_COOKIE",
-          cookieNamesReceived: cookieNames,
-          cookieHeaderPresent: !!cookieHeader,
-          cookieHeader: cookieHeader.substring(0, 200),
-        }
-      });
+      return NextResponse.json({ authenticated: false });
     }
 
     let sessionUser = null;
     let sessionType = null;
-    let dbErrorMsg = null;
 
     try {
       const sessions: any[] = await query(
@@ -318,20 +307,12 @@ export async function GET(req: NextRequest) {
         sessionUser = sessions[0].user_id;
         sessionType = sessions[0].user_type;
       }
-    } catch (dbError: any) {
-      dbErrorMsg = dbError?.message || String(dbError);
-      console.log("Session table query failed:", dbErrorMsg);
+    } catch (dbError) {
+      console.log("Session table query failed");
     }
 
     if (!sessionUser) {
-      return NextResponse.json({
-        authenticated: false,
-        debug: {
-          reason: "SESSION_NOT_FOUND",
-          sessionIdValue: sessionId,
-          dbError: dbErrorMsg,
-        }
-      });
+      return NextResponse.json({ authenticated: false });
     }
 
     // 如果有 CSRF token，也返回给前端（页面刷新时用）
