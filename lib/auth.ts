@@ -3,7 +3,7 @@ import { query } from "@/lib/db";
 
 export interface SessionUser {
   id: string;
-  role: "admin" | "agent";
+  role: "admin" | "agent" | "super_admin" | "warehouse_manager" | "finance_manager" | "operations_manager" | "customer_service";
   email?: string;
   name?: string;
   level?: string;
