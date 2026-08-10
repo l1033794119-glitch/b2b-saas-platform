@@ -216,6 +216,8 @@ export default function DashboardPage() {
   }, [orders, dateRange, statusFilter, searchKeyword]);
 
   const safeProducts = Array.isArray(products) ? products : [];
+  const safeOrders = Array.isArray(orders) ? orders : [];
+  const safeWarehouses = Array.isArray(warehouses) ? warehouses : [];
   // 计算统计数据（基于筛选后的订单）
   const totalStock = safeProducts.reduce((s, p) => s + (p.stock || 0), 0);
   const totalValue = safeProducts.reduce((s, p) => s + (p.stock || 0) * (p.costPrice || 0), 0);
@@ -236,10 +238,10 @@ export default function DashboardPage() {
 
   // 生成图表数据
   const salesTrend = useMemo(
-    () => generateSalesTrend(orders, dateRange, dateFilter),
-    [orders, dateRange, dateFilter]
+    () => generateSalesTrend(safeOrders, dateRange, dateFilter),
+    [safeOrders, dateRange, dateFilter]
   );
-  const monthlyRevenue = useMemo(() => generateMonthlyRevenue(orders), [orders]);
+  const monthlyRevenue = useMemo(() => generateMonthlyRevenue(safeOrders), [safeOrders]);
 
   // 计算热销产品（基于筛选后订单中商品出现的次数）
   const topProducts = useMemo(() => {
@@ -656,7 +658,7 @@ export default function DashboardPage() {
                 <AlertTriangle className="w-4 h-4 text-amber-500" />
               </div>
               <div className="space-y-2 sm:space-y-3">
-                {products.filter((p) => (p.stock || 0) < 100).slice(0, 5).map((p) => {
+                {safeProducts.filter((p) => (p.stock || 0) < 100).slice(0, 5).map((p) => {
                   const stock = p.stock || 0;
                   const pct = Math.max(5, Math.min(100, (stock / 100) * 100));
                   return (
@@ -672,7 +674,7 @@ export default function DashboardPage() {
                     </div>
                   );
                 })}
-                {products.filter((p) => (p.stock || 0) < 100).length === 0 && (
+                {safeProducts.filter((p) => (p.stock || 0) < 100).length === 0 && (
                   <div className="text-center py-4 text-slate-400 text-sm">
                     {lang === "zh-CN" ? "库存充足" : "Stock levels are good"}
                   </div>
@@ -833,9 +835,9 @@ export default function DashboardPage() {
               <h2 className="text-base font-semibold mb-4">
                 {lang === "en" ? "Warehouses & stock" : lang === "zh-CN" ? "仓库与库存" : "倉庫與庫存"}
               </h2>
-              {warehouses.length > 0 ? (
+              {safeWarehouses.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
-                  {warehouses.map((w) => (
+                  {safeWarehouses.map((w) => (
                     <div key={w.id} className="rounded-xl border border-slate-200 dark:border-slate-800 p-4">
                       <div className="flex items-center justify-between mb-2">
                         <div className="text-sm font-semibold">{w.name}</div>

@@ -60,7 +60,7 @@ const statusConfig: Record<string, { labelEn: string; labelZhCN: string; labelZh
 };
 
 export default function MyOrdersPage() {
-  const { t, currency, lang, user } = useApp();
+  const { t, currency, lang, user, apiFetch } = useApp();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Order | null>(null);
@@ -156,7 +156,8 @@ export default function MyOrdersPage() {
 
   // 筛选订单
   const getFilteredOrders = () => {
-    let filtered = [...orders];
+    const safeOrders = Array.isArray(orders) ? orders : [];
+    let filtered = [...safeOrders];
 
     // 状态筛选
     if (statusFilter !== "all") {
@@ -167,7 +168,7 @@ export default function MyOrdersPage() {
     const dateRange = getDateRange();
     if (dateRange) {
       filtered = filtered.filter((o) => {
-        const orderDate = new Date(o.date);
+        const orderDate = o.date ? new Date(o.date) : new Date(0);
         return orderDate >= dateRange.start && orderDate <= dateRange.end;
       });
     }
@@ -176,7 +177,7 @@ export default function MyOrdersPage() {
     if (searchKeyword.trim()) {
       const keyword = searchKeyword.toLowerCase();
       filtered = filtered.filter((o) =>
-        o.orderNo.toLowerCase().includes(keyword) ||
+        (o.orderNo || "").toLowerCase().includes(keyword) ||
         o.contactName?.toLowerCase().includes(keyword) ||
         o.phone?.toLowerCase().includes(keyword) ||
         o.email?.toLowerCase().includes(keyword) ||
@@ -222,10 +223,10 @@ export default function MyOrdersPage() {
   const fetchOrders = async () => {
     if (!user?.id) return;
     try {
-      const res = await fetch(`/api/orders?agentId=${user.id}`);
+      const res = await apiFetch(`/api/orders?agentId=${user.id}`);
       if (res.ok) {
-        const data = await res.json();
-        setOrders(data);
+        const data = await res.json().catch(() => []);
+        setOrders(Array.isArray(data) ? data : []);
       }
     } catch (error) {
       console.error("Failed to fetch orders:", error);
@@ -263,7 +264,7 @@ export default function MyOrdersPage() {
 
     setCancelling(true);
     try {
-      const res = await fetch(`/api/orders/${selected.id}/cancel`, {
+      const res = await apiFetch(`/api/orders/${selected.id}/cancel`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ cancelReason: cancelReason.trim() }),
@@ -271,12 +272,13 @@ export default function MyOrdersPage() {
 
       if (res.ok) {
         const updated = await res.json();
-        setOrders(orders.map((o) => o.id === selected.id ? updated : o));
+        const safeOrders = Array.isArray(orders) ? orders : [];
+        setOrders(safeOrders.map((o) => o.id === selected.id ? updated : o));
         setSelected(updated);
         setShowCancelModal(false);
         setCancelReason("");
       } else {
-        const err = await res.json();
+        const err = await res.json().catch(() => ({ error: "取消失败" }));
         alert(err.error || "取消失败");
       }
     } catch (error) {
@@ -812,13 +814,14 @@ export default function MyOrdersPage() {
                       <button
                         onClick={() => {
                           if (confirm(lang === "en" ? "Are you sure you want to mark this order as completed?" : lang === "zh-CN" ? "确定要完成此订单吗？" : "確定要完成此訂單嗎？")) {
-                            fetch(`/api/orders/${selected.id}`, {
+                            apiFetch(`/api/orders/${selected.id}`, {
                               method: "PUT",
                               headers: { "Content-Type": "application/json" },
                               body: JSON.stringify({ status: "completed" }),
                             }).then((res) => {
                               if (res.ok) {
-                                setOrders(orders.map((o) => o.id === selected.id ? { ...o, status: "completed" } : o));
+                                const safeOrders = Array.isArray(orders) ? orders : [];
+                                setOrders(safeOrders.map((o) => o.id === selected.id ? { ...o, status: "completed" } : o));
                                 setSelected({ ...selected, status: "completed" });
                               }
                             });

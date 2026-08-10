@@ -324,12 +324,14 @@ export default function WarehousePage() {
 
               {/* 计算该仓库和孤儿产品的数量 */}
               {(() => {
-                const productsInWarehouse = products.filter((p) =>
+                const safeProducts = Array.isArray(products) ? products : [];
+                const safeWarehouses = Array.isArray(warehouses) ? warehouses : [];
+                const productsInWarehouse = safeProducts.filter((p) =>
                   (p.warehouseId && p.warehouseId === deleteTarget.id) || (!p.warehouseId && p.warehouse === deleteTarget.name)
                 );
-                const warehouseIds = new Set(warehouses.map(w => w.id));
-                const warehouseNames = new Set(warehouses.map(w => w.name));
-                const orphans = products.filter((p) => {
+                const warehouseIds = new Set(safeWarehouses.map(w => w.id));
+                const warehouseNames = new Set(safeWarehouses.map(w => w.name));
+                const orphans = safeProducts.filter((p) => {
                   const pid = p.warehouseId || "";
                   const pname = p.warehouse || "";
                   if (pid && warehouseIds.has(pid)) return false;

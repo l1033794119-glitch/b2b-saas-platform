@@ -75,11 +75,13 @@ export default function CatalogPage() {
     return () => document.removeEventListener("visibilitychange", handler);
   }, [fetchProducts]);
 
-  const cats = ["all", ...Array.from(new Set(products.map((p) => p.category)))];
+  const safeProducts = Array.isArray(products) ? products : [];
+  const safeWarehouses = Array.isArray(warehouses) ? warehouses : [];
+  const cats = ["all", ...Array.from(new Set(safeProducts.map((p) => p.category)))];
   const priceKey = user?.level === "A" ? "levelAPrice" : user?.level === "C" ? "levelCPrice" : "levelBPrice";
 
-  const filtered = products.filter((p) => {
-    const matchQ = !q || p.name.toLowerCase().includes(q.toLowerCase()) || p.sku.toLowerCase().includes(q.toLowerCase()) || p.nameZh.includes(q);
+  const filtered = safeProducts.filter((p) => {
+    const matchQ = !q || (p.name?.toLowerCase() || "").includes(q.toLowerCase()) || (p.sku?.toLowerCase() || "").includes(q.toLowerCase()) || (p.nameZh || "").includes(q);
     const matchC = cat === "all" || p.category === cat;
     const matchW = selectedWarehouse === "all" || p.warehouseId === selectedWarehouse;
     const active = p.status === "active";
@@ -109,7 +111,7 @@ export default function CatalogPage() {
           <option value="all">
             {lang === "en" ? "All warehouses" : lang === "zh-CN" ? "全部仓库" : "全部倉庫"}
           </option>
-          {warehouses.map((w) => (
+          {safeWarehouses.map((w) => (
             <option key={w.id} value={w.id}>
               {w.name}{w.location ? ` (${w.location})` : ""}
             </option>

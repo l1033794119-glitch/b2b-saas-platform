@@ -69,9 +69,10 @@ export default function ProductsPage() {
     fetchProducts();
   }, [fetchProducts]);
 
-  const cats = ["all", ...Array.from(new Set(data.map((p) => p.category)).filter(Boolean))];
-  const filtered = Array.isArray(data)
-    ? data.filter((p) => {
+  const safeProducts = Array.isArray(data) ? data : [];
+  const safeWarehouses = Array.isArray(warehouses) ? warehouses : [];
+  const cats = ["all", ...Array.from(new Set(safeProducts.map((p) => p.category))).filter(Boolean)];
+  const filtered = safeProducts.filter((p) => {
         const matchQ = query
           ? (String(p.name || "").toLowerCase().includes(query.toLowerCase()) ||
               String(p.sku || "").toLowerCase().includes(query.toLowerCase()) ||
@@ -79,8 +80,7 @@ export default function ProductsPage() {
           : true;
         const matchC = category === "all" || p.category === category;
         return matchQ && matchC;
-      })
-    : [];
+      });
 
   const handleDelete = async (id: string) => {
     if (!confirm(lang === "en" ? "Delete this product?" : lang === "zh-CN" ? "删除此产品？" : "刪除此產品？")) return;
@@ -399,7 +399,7 @@ function ProductForm({ product, categories, warehouses, onSave, onClose, lang, t
                 className="select"
                 value={form.warehouseId || ""}
                 onChange={(e) => {
-                  const wh = warehouses.find((w) => w.id === e.target.value);
+                  const wh = safeWarehouses.find((w) => w.id === e.target.value);
                   if (wh) {
                     setForm((f) => ({ ...f, warehouseId: wh.id, warehouse: wh.name }));
                   } else {
@@ -407,7 +407,7 @@ function ProductForm({ product, categories, warehouses, onSave, onClose, lang, t
                   }
                 }}
               >
-                {warehouses.map((w) => (
+                {safeWarehouses.map((w) => (
                   <option key={w.id} value={w.id}>{w.name}</option>
                 ))}
               </select>

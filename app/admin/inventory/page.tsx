@@ -131,14 +131,15 @@ export default function InventoryPage() {
     }
   };
 
-  const cats = ["all", ...Array.from(new Set(products.map((p) => p.category)).filter(Boolean))];
-  const warehouseNames = ["all", ...Array.from(new Set(products.map((p) => p.warehouse)).filter(Boolean))];
-  const warehouseOptions = warehouses.length > 0
-    ? [{ id: "all", name: "" }, ...warehouses]
-    : [{ id: "all", name: "" }, ...products.map(p => ({ id: p.warehouse, name: p.warehouse }))];
+  const safeProducts = Array.isArray(products) ? products : [];
+  const safeWarehouses = Array.isArray(warehouses) ? warehouses : [];
+  const cats = ["all", ...Array.from(new Set(safeProducts.map((p) => p.category))).filter(Boolean)];
+  const warehouseNames = ["all", ...Array.from(new Set(safeProducts.map((p) => p.warehouse))).filter(Boolean)];
+  const warehouseOptions = safeWarehouses.length > 0
+    ? [{ id: "all", name: "" }, ...safeWarehouses]
+    : [{ id: "all", name: "" }, ...safeProducts.map(p => ({ id: p.warehouse, name: p.warehouse }))];
 
-  const filteredProducts = Array.isArray(products)
-    ? products.filter((p) => {
+  const filteredProducts = safeProducts.filter((p) => {
         const matchQ = !searchQ ||
           String(p.name || "").toLowerCase().includes(searchQ.toLowerCase()) ||
           String(p.sku || "").toLowerCase().includes(searchQ.toLowerCase()) ||
@@ -146,8 +147,7 @@ export default function InventoryPage() {
         const matchC = catFilter === "all" || p.category === catFilter;
         const matchW = warehouseFilter === "all" || p.warehouseId === warehouseFilter || p.warehouse === warehouseFilter;
         return matchQ && matchC && matchW;
-      })
-    : [];
+      });
 
   const lowStockProducts = filteredProducts.filter((p) => p.stock < 100);
   const totalStock = filteredProducts.reduce((s, p) => s + (p.stock || 0), 0);
