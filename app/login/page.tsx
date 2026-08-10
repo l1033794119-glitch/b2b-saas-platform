@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { Globe, ShoppingBag } from "lucide-react";
 
 export default function AgentLogin() {
-  const { t, lang, setLang, login } = useApp();
+  const { t, lang, setLang, login, lastLoginError } = useApp();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -19,13 +19,19 @@ export default function AgentLogin() {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    const ok = await login(email, password, false);
-    setLoading(false);
-    if (!ok) {
-      setError(lang === "en" ? "Invalid email or password" : lang === "zh-CN" ? "邮箱或密码错误" : "電子郵件或密碼錯誤");
-      return;
+    try {
+      const ok = await login(email, password, false);
+      if (!ok) {
+        // 使用后端返回的具体错误信息（如"剩余尝试次数"、"账号锁定X分钟"）
+        setError(lastLoginError.current || (lang === "en" ? "Invalid email or password" : lang === "zh-CN" ? "邮箱或密码错误" : "電子郵件或密碼錯誤"));
+        return;
+      }
+      router.push("/agent/dashboard");
+    } catch {
+      setError(lang === "en" ? "Network error, please try again" : lang === "zh-CN" ? "网络错误，请重试" : "網路錯誤，請重試");
+    } finally {
+      setLoading(false);
     }
-    router.push("/agent/dashboard");
   };
 
   const langs: Lang[] = ["en", "zh-CN", "zh-TW"];

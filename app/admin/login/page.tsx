@@ -9,7 +9,7 @@ import { Globe, Lock, Shield } from "lucide-react";
 import { getAdminDefaultHref } from "@/lib/admin-menu";
 
 export default function AdminLogin() {
-  const { t, lang, setLang, login, user } = useApp();
+  const { t, lang, setLang, login, user, lastLoginError } = useApp();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -29,14 +29,19 @@ export default function AdminLogin() {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    const ok = await login(email, password, true);
-    setLoading(false);
-    if (!ok) {
-      setError(lang === "en" ? "Invalid admin credentials" : lang === "zh-CN" ? "管理员凭据无效" : "管理員憑證無效");
-      return;
+    try {
+      const ok = await login(email, password, true);
+      if (!ok) {
+        setError(lastLoginError.current || (lang === "en" ? "Invalid admin credentials" : lang === "zh-CN" ? "管理员凭据无效" : "管理員憑證無效"));
+        return;
+      }
+      const userData = JSON.parse(localStorage.getItem("app.user") || "{}");
+      router.push(getAdminDefaultHref(userData.permissions));
+    } catch {
+      setError(lang === "en" ? "Network error, please try again" : lang === "zh-CN" ? "网络错误，请重试" : "網路錯誤，請重試");
+    } finally {
+      setLoading(false);
     }
-    const userData = JSON.parse(localStorage.getItem("app.user") || "{}");
-    router.push(getAdminDefaultHref(userData.permissions));
   };
 
   const langs: Lang[] = ["en", "zh-CN", "zh-TW"];

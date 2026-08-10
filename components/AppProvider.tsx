@@ -33,6 +33,7 @@ interface AppContextValue {
   setCurrency: (c: string) => void;
   csrfToken: string | null;
   setCsrfToken: (token: string | null) => void;
+  lastLoginError: React.MutableRefObject<string>;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -142,7 +143,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         credentials: "include",
         body: JSON.stringify({ email, password, admin }),
       });
-      
+
       const data = await res.json();
       if (data.success && data.user) {
         setUser(data.user);
@@ -152,13 +153,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
         return true;
       }
-      throw new Error(data.error || "Login failed");
+      // 登录失败：保存后端返回的错误信息（如"剩余尝试次数"、"账号锁定"等）
+      lastLoginError.current = data.error || "Login failed";
+      return false;
     } catch (error: any) {
       console.error("Login failed:", error);
-      throw error;
+      lastLoginError.current = error?.message || "Network error, please try again";
+      return false;
     }
-    return false;
   };
+
+  // 保存最近一次登录错误信息，供登录页读取
+  const lastLoginError = useRef<string>("");
 
   const logout = async () => {
     try {
@@ -184,6 +190,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setCurrency,
     csrfToken,
     setCsrfToken,
+    lastLoginError,
   };
   
   return (
