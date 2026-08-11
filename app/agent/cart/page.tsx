@@ -241,22 +241,27 @@ function CartInner({
       setTimeout(() => { setStatus("idle"); setMessage(""); }, 3000);
     } else {
       const err = await orderRes.json();
+      // 无论成功还是失败，只要响应中带了新 CSRF token 就更新（一次性 token 已被消耗）
+      if (err.csrfToken) {
+        setCsrfToken(err.csrfToken);
+      }
       // hCaptcha token 已用过或失败，重置让用户重新验证
       captchaRef.current?.reset();
       setCaptchaToken("");
-      // 403：CSRF token 失效或 Captcha 验证失败
-      if (orderRes.status === 403) {
+
+      if (orderRes.status === 429) {
+        setMessage(err.error || (lang === "en" ? "Too many orders, please wait a moment" : lang === "zh-CN" ? "下单过于频繁，请稍候再试" : "下單過於頻繁，請稍候再試"));
+        setStatus("error");
+      } else if (orderRes.status === 403) {
         const isCaptchaError = err.error && /captcha/i.test(err.error);
         if (isCaptchaError) {
           setMessage(err.error || (lang === "en" ? "Captcha verification failed, please try again" : lang === "zh-CN" ? "人机验证失败，请重试" : "人機驗證失敗，請重試"));
           setStatus("error");
         } else {
-          setMessage((lang === "en" ? "Session expired, refreshing page..." : lang === "zh-CN" ? "会话过期，正在刷新页面..." : "會話過期，正在刷新頁面..."));
-          setTimeout(() => window.location.reload(), 1500);
+          // CSRF token 失效但已拿到新 token，直接提示重试而非刷新页面
+          setMessage(err.error || (lang === "en" ? "Verification expired, please try again" : lang === "zh-CN" ? "验证已过期，请重试" : "驗證已過期，請重試"));
+          setStatus("error");
         }
-      } else if (orderRes.status === 429) {
-        setMessage(err.error || (lang === "en" ? "Too many orders, please wait a moment" : lang === "zh-CN" ? "下单过于频繁，请稍候再试" : "下單過於頻繁，請稍候再試"));
-        setStatus("error");
       } else {
         setMessage(err.error || (lang === "en" ? "Failed to submit order" : lang === "zh-CN" ? "订单提交失败" : "訂單提交失敗"));
         setStatus("error");

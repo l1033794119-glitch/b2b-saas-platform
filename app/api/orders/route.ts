@@ -68,13 +68,22 @@ export async function POST(req: NextRequest) {
     const submittedCsrf = body._csrf || body.csrfToken || null;
     const csrfOk = await verifyCsrfToken(sessionId, submittedCsrf);
     if (!csrfOk) {
+      // token 已失效，重新颁发一个新 token 让前端可以继续操作
+      const freshToken = await issueCsrfToken(sessionId);
       return NextResponse.json(
         {
-          error: "Invalid or expired CSRF token. Please refresh the page and try again",
+          error: "Invalid or expired CSRF token. Please try again.",
+          csrfToken: freshToken,
         },
         { status: 403 }
       );
     }
+
+    // 辅助函数：CSRF token 已被一次性消耗，后续任何步骤失败时必须重新颁发
+    const failWithNewCsrf = (error: string, status: number, extra?: Record<string, any>) =>
+      issueCsrfToken(sessionId).then(newToken =>
+        NextResponse.json({ error, csrfToken: newToken, ...extra }, { status })
+      );
 
     // ===== hCaptcha 人机验证：必须通过验证码才能下单 =====
     // 目的：彻底禁止自动化脚本（SHOPYY/Shoplazza 同步）下单
@@ -85,12 +94,7 @@ export async function POST(req: NextRequest) {
       null;
     const captchaOk = await verifyCaptcha(captchaToken, remoteIp);
     if (!captchaOk) {
-      return NextResponse.json(
-        {
-          error: "Captcha verification failed. Please complete the captcha and try again",
-        },
-        { status: 403 }
-      );
+      return await failWithNewCsrf("Captcha verification failed. Please complete the captcha and try again", 403);
     }
 
     const { agentId: bodyAgentId, items, total, shippingAddress, postalCode, country, contactName, phone, email, note } = body;
@@ -99,7 +103,7 @@ export async function POST(req: NextRequest) {
     const agentId = user.role === "agent" ? user.id : bodyAgentId;
 
     if (!agentId || !items || items.length === 0) {
-      return NextResponse.json({ error: "Invalid order data" }, { status: 400 });
+      return await failWithNewCsrf("Invalid order data", 400);
     }
 
     // 检查库存是否足够，同时获取代理商等级
@@ -118,7 +122,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (stockErrors.length > 0) {
-      return NextResponse.json({ error: stockErrors.join("; ") }, { status: 400 });
+      return await failWithNewCsrf(stockErrors.join("; "), 400);
     }
 
     // 扣减库存并获取仓库信息，同时使用数据库最新价格覆盖前端传来的价格
@@ -164,7 +168,7 @@ export async function POST(req: NextRequest) {
           await updateProductStock(item.productId, (product.stock || 0) + (item.quantity || 0));
         }
       }
-      return NextResponse.json({ error: creditError?.message || "Insufficient credit" }, { status: 400 });
+      return await failWithNewCsrf(creditError?.message || "Insufficient credit", 400);
     }
 
     const order = {
@@ -202,6 +206,9 @@ export async function POST(req: NextRequest) {
     );
   } catch (error: any) {
     console.error("Orders POST error:", error);
-    return NextResponse.json({ error: error.message || "Invalid request" }, { status: 400 });
+    // 异常时也重新颁发 CSRF token，防止 token 被消耗后无法继续下单
+    const sid = req.cookies.get("b2b_sid")?.value || "";
+    const freshToken = await issueCsrfToken(sid).catch(() => null);
+    return NextResponse.json({ error: error.message || "Invalid request", csrfToken: freshToken }, { status: 400 });
   }
 }
