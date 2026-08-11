@@ -10,7 +10,7 @@ function getPool(): Pool {
   if (!connectionString) {
     console.warn("⚠️  DATABASE_URL 未配置 - 将使用内存存储作为后备方案");
     pool = createPool({
-      host: "localhost",
+      host: "127.0.0.1", // 强制 IPv4，避免 ::1 (IPv6 localhost) 被拒
       port: 3306,
       user: "placeholder",
       password: "placeholder",
@@ -21,8 +21,10 @@ function getPool(): Pool {
   }
 
   const url = new URL(connectionString);
+  // 如果 DATABASE_URL 写的是 localhost，强制替换为 127.0.0.1，避免 Node.js 解析为 IPv6 ::1
+  const hostname = url.hostname === "localhost" ? "127.0.0.1" : url.hostname;
   const dbConfig = {
-    host: url.hostname,
+    host: hostname,
     port: parseInt(url.port) || 3306,
     user: url.username,
     password: url.password,
