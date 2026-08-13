@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { getAllCredits, getCreditByAgentId, deductCredit, repayCredit, setCreditLimit } from "@/lib/repository";
 import { requireAuth, requireAdmin, SessionUser } from "@/lib/auth";
 

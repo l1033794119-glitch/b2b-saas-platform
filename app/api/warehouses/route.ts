@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { getAllWarehouses, createWarehouse, deleteWarehouse, getAllProducts, getAllInventoryLogs } from "@/lib/repository";
 import { requireAuth, requireAdmin } from "@/lib/auth";
 
