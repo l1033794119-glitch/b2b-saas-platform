@@ -5,7 +5,6 @@ import { requireAdmin, requireAuth } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
-export const revalidate = 0;
 
 // GET - 获取库存概览或库存日志（仅管理员）
 export async function GET(req: NextRequest) {

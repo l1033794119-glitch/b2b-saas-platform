@@ -6,7 +6,6 @@ import { hashPassword } from "@/lib/security";
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
-export const revalidate = 0;
 
 const MENU_PERMISSIONS = [
   { key: "dashboard", label: "仪表盘", labelEn: "Dashboard" },

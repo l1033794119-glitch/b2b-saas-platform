@@ -5,7 +5,6 @@ import { requireAdmin } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
-export const revalidate = 0;
 
 // DELETE - 删除产品及相关库存日志（仅管理员）
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {

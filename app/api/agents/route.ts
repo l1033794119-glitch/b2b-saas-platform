@@ -6,7 +6,6 @@ import { hashPassword } from "@/lib/security";
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
-export const revalidate = 0;
 
 // GET - 获取代理商信息
 // 代理商只能查看自己的信息；管理员可查看全部

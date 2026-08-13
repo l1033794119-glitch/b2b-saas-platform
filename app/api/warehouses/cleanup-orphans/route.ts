@@ -10,7 +10,6 @@ const INVENTORY_LOGS_FILE = path.join(DATA_DIR, "inventory_logs.json");
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
-export const revalidate = 0;
 
 // PUT /api/warehouses/cleanup-orphans - 删除不归属任何现有仓库的孤儿产品
 export async function PUT(req: NextRequest) {

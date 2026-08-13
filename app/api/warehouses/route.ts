@@ -5,7 +5,6 @@ import { requireAuth, requireAdmin } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
-export const revalidate = 0;
 
 // GET - 获取所有仓库（需登录）
 export async function GET(req: NextRequest) {

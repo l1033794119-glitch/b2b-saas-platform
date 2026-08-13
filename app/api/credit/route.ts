@@ -5,7 +5,6 @@ import { requireAuth, requireAdmin, SessionUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
-export const revalidate = 0;
 
 // GET - 获取信用额度记录
 // 代理商只能查看自己的信用额度；管理员可查看全部

@@ -7,7 +7,6 @@ import { requireAuth, requireAdmin, SessionUser } from "@/lib/auth";
 // Data Cache / Full Route Cache，避免 GET 返回旧图片 / 旧价格 / 旧库存。
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
-export const revalidate = 0;
 
 // GET - 获取所有产品（代理商看不到成本价和其他等级价）
 export async function GET(req: NextRequest) {

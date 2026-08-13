@@ -7,7 +7,6 @@ import { verifyCaptcha } from "@/lib/captcha";
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
-export const revalidate = 0;
 
 function formatMySQLDate(date: Date = new Date()): string {
   const d = new Date(date);

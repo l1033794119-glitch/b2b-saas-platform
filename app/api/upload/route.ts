@@ -6,7 +6,6 @@ import { requireAuth } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
-export const revalidate = 0;
 
 /**
  * 绝对定位上传目录，不依赖 process.cwd()
