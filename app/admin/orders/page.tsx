@@ -1295,7 +1295,9 @@ export default function OrdersPage() {
               </div>
               <div className="text-sm max-h-[500px] overflow-y-auto">
                 {selectedOrder.items.map((item, idx) => {
-                  const productImage = getProductImage(item.productId) || item.image;
+                  // 🚩 管理员订单详情里的订单产品图，只取产品管理对应产品的最新图。
+                  // 不再回落到订单快照 items.image，避免产品改图后继续显示旧坏图。
+                  const productImage = getProductImage(item.productId);
                   return (
                     <div key={idx} className="flex items-center gap-3 py-3 border-b border-slate-100 dark:border-slate-800 last:border-0">
                       <div className="relative w-14 h-14 bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden flex-shrink-0">

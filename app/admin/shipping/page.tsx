@@ -99,11 +99,12 @@ export default function ShippingPage() {
   };
 
   const getItemImage = (item: OrderItem): string | undefined => {
+    // 🚩 用户要求：物流管理 -> 订单详情里的产品图，只取产品管理中对应产品的最新图。
+    // 即使历史快照里的 items.image 没丢，也不再用它。
     if (item.productId) {
-      const latest = productImgCacheRef.current.get(String(item.productId));
-      if (latest) return latest;
+      return productImgCacheRef.current.get(String(item.productId));
     }
-    return item.image;
+    return undefined;
   };
 
   const statuses = [

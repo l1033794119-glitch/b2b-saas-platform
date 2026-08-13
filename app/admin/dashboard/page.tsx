@@ -281,28 +281,29 @@ export default function DashboardPage() {
       if (o.items && Array.isArray(o.items)) {
         o.items.forEach((item: any) => {
           const key = item.productId || item.sku || item.name;
-          const product = products.find((p: any) => p.id === item.productId);
-          // ⚠️ 这里 fallback 顺序不能反：
-          // 优先用 products 表的**最新**图片（产品改图/删旧图后，items.image 仍是
-          // 已删除的旧 URL，所以不能让它作为主来源）。
-          let latestImage = "";
-          if (product && Array.isArray(product.images) && typeof product.images[0] === "string") {
-            latestImage = product.images[0];
-          } else if (product && typeof product.images === "string") {
-            try {
-              const arr = JSON.parse(product.images);
-              if (Array.isArray(arr) && typeof arr[0] === "string") latestImage = arr[0];
-            } catch { /* noop */ }
+          const product = products.find((p: any) => String(p.id) === String(item.productId));
+          // 🚩 用户要求：所有仪表盘产品图，100% 只取「产品管理」中对应产品的最新图。
+          // 不再使用订单创建时写入的历史快照 items.image（它在产品换图后必然是旧的/已删除的）。
+          let image = "";
+          if (product) {
+            if (Array.isArray(product.images) && typeof product.images[0] === "string") {
+              image = product.images[0];
+            } else if (typeof product.images === "string") {
+              try {
+                const arr = JSON.parse(product.images);
+                if (Array.isArray(arr) && typeof arr[0] === "string") image = arr[0];
+              } catch { /* noop */ }
+            }
           }
-          const image = latestImage || item.image || "";
           const existing = productMap.get(key);
           if (existing) {
             existing.qty += item.quantity || item.qty || 1;
             existing.revenue += (item.price || 0) * (item.quantity || item.qty || 1);
+            if (!existing.image) existing.image = image;  // 合并时仍可能该 key 第一次没匹配，只补一次 image
           } else {
             productMap.set(key, {
               name: item.name,
-              sku: item.sku || "",
+              sku: item.sku || "-",
               image,
               qty: item.quantity || item.qty || 1,
               revenue: (item.price || 0) * (item.quantity || item.qty || 1),

@@ -111,11 +111,12 @@ export default function MyOrdersPage() {
   };
 
   const getItemImage = (item: OrderItem): string | undefined => {
+    // 🚩 代理端订单详情的产品图，也只取产品管理中的最新缩略图（按 productId 匹配）。
+    // 不再回落到订单创建时写死的 items.image。
     if (item.productId) {
-      const latest = productImgCacheRef.current.get(String(item.productId));
-      if (latest) return latest;
+      return productImgCacheRef.current.get(String(item.productId));
     }
-    return item.image;
+    return undefined;
   };
 
   // 获取状态筛选选项
