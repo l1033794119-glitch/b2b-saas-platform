@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { getAllAgents, getAgentById, createAgent, updateAgent, deleteAgent, getAgentByEmail } from "@/lib/repository";
 import { requireAuth, requireAdmin, SessionUser } from "@/lib/auth";
 import { hashPassword } from "@/lib/security";
+
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+export const revalidate = 0;
 
 // GET - 获取代理商信息
 // 代理商只能查看自己的信息；管理员可查看全部
@@ -75,6 +80,18 @@ export async function POST(req: NextRequest) {
     };
 
     const result = await createAgent(newAgent);
+
+    try {
+      revalidateTag("agents");
+      revalidatePath("/", "layout");
+      revalidatePath("/admin", "layout");
+      revalidatePath("/admin/dashboard");
+      revalidatePath("/admin/agents");
+      revalidatePath("/admin/credit");
+    } catch (err) {
+      console.warn("Agents POST revalidate failed:", err);
+    }
+
     return NextResponse.json(result, { status: 201 });
   } catch (error: any) {
     console.error("Agents POST error:", error);
@@ -123,6 +140,21 @@ export async function PUT(req: NextRequest) {
     }
 
     const result = await updateAgent(targetAgentId, allowedUpdates);
+
+    try {
+      revalidateTag("agents");
+      revalidatePath("/", "layout");
+      revalidatePath("/admin", "layout");
+      revalidatePath("/admin/dashboard");
+      revalidatePath("/admin/agents");
+      revalidatePath("/admin/credit");
+      revalidatePath("/agent", "layout");
+      revalidatePath("/agent/dashboard");
+      revalidatePath("/agent/settings");
+    } catch (err) {
+      console.warn("Agents PUT revalidate failed:", err);
+    }
+
     return NextResponse.json(result);
   } catch (error: any) {
     console.error("Agents PUT error:", error);
@@ -149,6 +181,18 @@ export async function DELETE(req: NextRequest) {
     }
 
     await deleteAgent(agentId);
+
+    try {
+      revalidateTag("agents");
+      revalidatePath("/", "layout");
+      revalidatePath("/admin", "layout");
+      revalidatePath("/admin/dashboard");
+      revalidatePath("/admin/agents");
+      revalidatePath("/admin/credit");
+    } catch (err) {
+      console.warn("Agents DELETE revalidate failed:", err);
+    }
+
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error("Agents DELETE error:", error);

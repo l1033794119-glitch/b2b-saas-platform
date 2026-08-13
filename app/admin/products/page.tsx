@@ -320,14 +320,22 @@ function ProductForm({ product, categories, warehouses, onSave, onClose, lang, t
     if (imageUrl && imageUrl.startsWith("/uploads/")) {
       const fileName = imageUrl.replace("/uploads/", "");
       try {
-        await apiFetch(`/api/upload?fileName=${encodeURIComponent(fileName)}`, {
+        const res = await apiFetch(`/api/upload?fileName=${encodeURIComponent(fileName)}`, {
           method: "DELETE",
         });
-      } catch {
+        // DELETE 幂等：即使后端返回非 2xx（比如历史版本返回 404），也不中断移除操作
+        if (!res.ok) {
+          console.warn(`删除图片 ${fileName} 非 2xx：${res.status}，继续移除`);
+        }
+      } catch (err) {
+        // 网络错误也 catch 住，绝对不能因为删除失败让 UI 卡死
+        console.warn(`删除图片 ${fileName} 网络异常：`, err);
       }
     }
     setForm((f) => ({ ...f, images: images.filter((_, i) => i !== idx) }));
   };
+
+  const uploadInputId = `product-image-upload-${product?.id ?? "new"}`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -340,11 +348,17 @@ function ProductForm({ product, categories, warehouses, onSave, onClose, lang, t
           <div>
             <label className="label">{lang === "en" ? "Product Images" : "产品图片"}</label>
             <div className="mb-3">
-              <label className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-600 hover:border-emerald-500 cursor-pointer transition-colors bg-slate-50 dark:bg-slate-800/50 hover:bg-emerald-500/10">
+              <label htmlFor={uploadInputId} className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-600 hover:border-emerald-500 cursor-pointer transition-colors bg-slate-50 dark:bg-slate-800/50 hover:bg-emerald-500/10">
                 <Upload className="w-5 h-5 text-slate-400" />
                 <span className="text-sm text-slate-500">{lang === "en" ? "Click to upload image (JPEG, PNG, GIF, WebP, BMP, SVG, TIFF, ICO, max 10MB)" : lang === "zh-CN" ? "点击上传图片（JPEG、PNG、GIF、WebP、BMP、SVG、TIFF、ICO，最大10MB）" : "點擊上傳圖片（JPEG、PNG、GIF、WebP、BMP、SVG、TIFF、ICO，最大10MB）"}</span>
-                <input type="file" accept="image/jpeg,image/png,image/gif,image/webp,image/bmp,image/svg+xml,image/tiff,image/ico" onChange={handleFileUpload} className="hidden" />
               </label>
+              <input
+                id={uploadInputId}
+                type="file"
+                accept="image/jpeg,image/png,image/gif,image/webp,image/bmp,image/svg+xml,image/tiff,image/ico"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
               {uploadError && (
                 <div className="mt-2 text-sm text-red-500 flex items-center gap-1">
                   <AlertCircle className="w-4 h-4" />

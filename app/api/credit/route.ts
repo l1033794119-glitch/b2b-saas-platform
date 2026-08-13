@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { getAllCredits, getCreditByAgentId, deductCredit, repayCredit, setCreditLimit } from "@/lib/repository";
 import { requireAuth, requireAdmin, SessionUser } from "@/lib/auth";
+
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+export const revalidate = 0;
 
 // GET - 获取信用额度记录
 // 代理商只能查看自己的信用额度；管理员可查看全部
@@ -90,6 +95,20 @@ export async function PUT(req: NextRequest) {
 
       default:
         return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+    }
+
+    try {
+      revalidateTag("agents");
+      revalidatePath("/", "layout");
+      revalidatePath("/admin", "layout");
+      revalidatePath("/admin/dashboard");
+      revalidatePath("/admin/credit");
+      revalidatePath("/admin/agents");
+      revalidatePath("/agent", "layout");
+      revalidatePath("/agent/dashboard");
+      revalidatePath("/agent/settings");
+    } catch (err) {
+      console.warn("Credit PUT revalidate failed:", err);
     }
 
     return NextResponse.json(result);

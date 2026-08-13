@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { promises as fs } from "fs";
 import path from "path";
 
@@ -6,6 +7,10 @@ const DATA_DIR = path.join(process.cwd(), "data");
 const PRODUCTS_FILE = path.join(DATA_DIR, "products.json");
 const WAREHOUSES_FILE = path.join(DATA_DIR, "warehouses.json");
 const INVENTORY_LOGS_FILE = path.join(DATA_DIR, "inventory_logs.json");
+
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+export const revalidate = 0;
 
 // PUT /api/warehouses/cleanup-orphans - 删除不归属任何现有仓库的孤儿产品
 export async function PUT(req: NextRequest) {

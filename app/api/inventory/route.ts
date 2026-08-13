@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { getAllProducts, updateProductStock, addInventoryLog, getAllInventoryLogs, getProductById } from "@/lib/repository";
 import { requireAdmin, requireAuth } from "@/lib/auth";
+
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+export const revalidate = 0;
 
 // GET - 获取库存概览或库存日志（仅管理员）
 export async function GET(req: NextRequest) {
@@ -83,6 +88,22 @@ export async function POST(req: NextRequest) {
       fromWarehouse,
       toWarehouse,
     });
+
+    try {
+      revalidateTag("products");
+      revalidateTag("inventory");
+      revalidatePath("/", "layout");
+      revalidatePath("/admin", "layout");
+      revalidatePath("/admin/dashboard");
+      revalidatePath("/admin/inventory");
+      revalidatePath("/admin/products");
+      revalidatePath("/agent", "layout");
+      revalidatePath("/agent/catalog");
+      revalidatePath("/agent/dashboard");
+      revalidatePath("/agent/cart");
+    } catch (err) {
+      console.warn("Inventory POST revalidate failed:", err);
+    }
 
     return NextResponse.json({
       success: true,

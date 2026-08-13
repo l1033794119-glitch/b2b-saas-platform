@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { getAllProducts, createOrUpdateProduct, getProductById } from "@/lib/repository";
 import { requireAuth, requireAdmin, SessionUser } from "@/lib/auth";
+
+// 产品数据是写操作频繁的业务数据，禁用 Next.js App Router 的
+// Data Cache / Full Route Cache，避免 GET 返回旧图片 / 旧价格 / 旧库存。
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+export const revalidate = 0;
 
 // GET - 获取所有产品（代理商看不到成本价和其他等级价）
 export async function GET(req: NextRequest) {
@@ -88,6 +95,24 @@ export async function POST(req: NextRequest) {
     };
 
     const result = await createOrUpdateProduct(product);
+
+    // 写操作完成后，立即失效所有可能展示产品的路由缓存
+    try {
+      revalidateTag("products");
+      revalidatePath("/", "layout");
+      revalidatePath("/admin", "layout");
+      revalidatePath("/admin/dashboard");
+      revalidatePath("/admin/products");
+      revalidatePath("/admin/inventory");
+      revalidatePath("/agent", "layout");
+      revalidatePath("/agent/catalog");
+      revalidatePath("/agent/dashboard");
+      revalidatePath("/agent/orders");
+      revalidatePath("/agent/cart");
+    } catch (err) {
+      console.warn("Products revalidate failed:", err);
+    }
+
     return NextResponse.json(result);
   } catch (error: any) {
     console.error("Products POST error:", error);

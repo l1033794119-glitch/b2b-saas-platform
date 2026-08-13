@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { getOrderById, updateOrder, deleteOrder, deductCredit, addInventoryLog, getProductById } from "@/lib/repository";
 import { requireAuth, checkOwnership, isAdminRole, SessionUser } from "@/lib/auth";
+
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+export const revalidate = 0;
 
 function formatMySQLDate(date: Date = new Date()): string {
   const d = new Date(date);
@@ -94,6 +99,22 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     }
 
     const updated = await updateOrder(params.id, updates);
+
+    // 订单修改后失效缓存
+    try {
+      revalidateTag("orders");
+      revalidateTag("products");
+      revalidatePath("/", "layout");
+      revalidatePath("/admin", "layout");
+      revalidatePath("/admin/dashboard");
+      revalidatePath("/admin/orders");
+      revalidatePath("/agent", "layout");
+      revalidatePath("/agent/dashboard");
+      revalidatePath("/agent/orders");
+    } catch (err) {
+      console.warn("Order PUT revalidate failed:", err);
+    }
+
     return NextResponse.json(updated);
   } catch (error: any) {
     console.error("Order PUT error:", error);
@@ -113,6 +134,21 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     }
 
     const result = await deleteOrder(params.id);
+
+    try {
+      revalidateTag("orders");
+      revalidateTag("products");
+      revalidatePath("/", "layout");
+      revalidatePath("/admin", "layout");
+      revalidatePath("/admin/dashboard");
+      revalidatePath("/admin/orders");
+      revalidatePath("/agent", "layout");
+      revalidatePath("/agent/dashboard");
+      revalidatePath("/agent/orders");
+    } catch (err) {
+      console.warn("Order DELETE revalidate failed:", err);
+    }
+
     return NextResponse.json(result);
   } catch (error: any) {
     console.error("Order DELETE error:", error);

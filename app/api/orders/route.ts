@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { getAllOrders, getOrdersByAgentId, createOrder, getProductById, updateProductStock, getAgentById, deductCredit } from "@/lib/repository";
 import { requireAuth, requireAdmin, checkOwnership, SessionUser } from "@/lib/auth";
 import { verifyCsrfToken, issueCsrfToken, checkRateLimit } from "@/lib/rate-limit";
 import { verifyCaptcha } from "@/lib/captcha";
+
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+export const revalidate = 0;
 
 function formatMySQLDate(date: Date = new Date()): string {
   const d = new Date(date);
@@ -199,6 +204,22 @@ export async function POST(req: NextRequest) {
 
     // 下单成功后重新颁发 CSRF token（一次性 token 已被消耗）
     const newCsrfToken = await issueCsrfToken(sessionId);
+
+    // 失效订单、产品库存、仪表盘缓存
+    try {
+      revalidateTag("orders");
+      revalidateTag("products");
+      revalidatePath("/", "layout");
+      revalidatePath("/admin", "layout");
+      revalidatePath("/admin/dashboard");
+      revalidatePath("/admin/orders");
+      revalidatePath("/agent", "layout");
+      revalidatePath("/agent/dashboard");
+      revalidatePath("/agent/orders");
+      revalidatePath("/agent/catalog");
+    } catch (err) {
+      console.warn("Orders POST revalidate failed:", err);
+    }
 
     return NextResponse.json(
       { ...result, csrfToken: newCsrfToken },

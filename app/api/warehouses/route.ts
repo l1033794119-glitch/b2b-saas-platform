@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { getAllWarehouses, createWarehouse, deleteWarehouse, getAllProducts, getAllInventoryLogs } from "@/lib/repository";
 import { requireAuth, requireAdmin } from "@/lib/auth";
+
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+export const revalidate = 0;
 
 // GET - 获取所有仓库（需登录）
 export async function GET(req: NextRequest) {
@@ -36,6 +41,20 @@ export async function POST(req: NextRequest) {
     }
 
     const warehouse = await createWarehouse({ name, location, manager });
+
+    try {
+      revalidateTag("warehouses");
+      revalidateTag("products");
+      revalidatePath("/", "layout");
+      revalidatePath("/admin", "layout");
+      revalidatePath("/admin/dashboard");
+      revalidatePath("/admin/warehouse");
+      revalidatePath("/admin/products");
+      revalidatePath("/admin/inventory");
+    } catch (err) {
+      console.warn("Warehouses POST revalidate failed:", err);
+    }
+
     return NextResponse.json(warehouse, { status: 201 });
   } catch (error: any) {
     console.error("Warehouses POST error:", error);
@@ -80,6 +99,23 @@ export async function DELETE(req: NextRequest) {
 
     // 删除仓库（数据库层会自动删除关联的产品和库存日志）
     await deleteWarehouse(targetWarehouseId);
+
+    try {
+      revalidateTag("warehouses");
+      revalidateTag("products");
+      revalidateTag("inventory");
+      revalidatePath("/", "layout");
+      revalidatePath("/admin", "layout");
+      revalidatePath("/admin/dashboard");
+      revalidatePath("/admin/warehouse");
+      revalidatePath("/admin/products");
+      revalidatePath("/admin/inventory");
+      revalidatePath("/agent", "layout");
+      revalidatePath("/agent/catalog");
+      revalidatePath("/agent/dashboard");
+    } catch (err) {
+      console.warn("Warehouses DELETE revalidate failed:", err);
+    }
 
     return NextResponse.json({
       success: true,

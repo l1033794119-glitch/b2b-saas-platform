@@ -417,19 +417,22 @@ export default function ShippingPage() {
                                 </button>
                               </div>
                             ) : (
-                              <label className="cursor-pointer block">
+                              <>
                                 <input
+                                  id="shipping-waybill-image-upload"
                                   type="file"
                                   accept="image/*"
                                   className="hidden"
                                   onChange={handleWaybillImageUpload}
                                 />
-                                <Upload className="w-8 h-8 mx-auto mb-2 text-amber-400" />
-                                <div className="text-sm text-amber-700 dark:text-amber-400">
-                                  {uploadingWaybillImage ? (lang === "en" ? "Uploading..." : lang === "zh-CN" ? "上传中..." : "上傳中...") : (lang === "en" ? "Click to upload" : lang === "zh-CN" ? "点击上传" : "點擊上傳")}
-                                </div>
-                                <div className="text-xs text-amber-500 mt-1">{lang === "en" ? "JPG, PNG up to 5MB" : lang === "zh-CN" ? "支持JPG、PNG，最大5MB" : "支持JPG、PNG，最大5MB"}</div>
-                              </label>
+                                <label htmlFor="shipping-waybill-image-upload" className="cursor-pointer block">
+                                  <Upload className="w-8 h-8 mx-auto mb-2 text-amber-400" />
+                                  <div className="text-sm text-amber-700 dark:text-amber-400">
+                                    {uploadingWaybillImage ? (lang === "en" ? "Uploading..." : lang === "zh-CN" ? "上传中..." : "上傳中...") : (lang === "en" ? "Click to upload" : lang === "zh-CN" ? "点击上传" : "點擊上傳")}
+                                  </div>
+                                  <div className="text-xs text-amber-500 mt-1">{lang === "en" ? "JPG, PNG up to 5MB" : lang === "zh-CN" ? "支持JPG、PNG，最大5MB" : "支持JPG、PNG，最大5MB"}</div>
+                                </label>
+                              </>
                             )}
                           </div>
                         </div>

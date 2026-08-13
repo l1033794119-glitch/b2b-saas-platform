@@ -8,6 +8,10 @@ import {
   issueCsrfToken,
 } from "@/lib/rate-limit";
 
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+export const revalidate = 0;
+
 function generateSessionId(): string {
   return `sess_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }

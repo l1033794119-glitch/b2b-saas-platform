@@ -3,6 +3,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+export const revalidate = 0;
+
 interface OCRResult {
   success: boolean;
   code?: string;
