@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { AgentLayout } from "@/components/Layout";
 import { StatusBadge } from "@/components/Sidebar";
 import { useApp } from "@/components/AppProvider";
@@ -77,6 +77,46 @@ export default function MyOrdersPage() {
   const [cancelling, setCancelling] = useState(false);
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 10;
+
+  // 订单 items.image 是历史快照，产品图更新/删除后会 404，
+  // 所以优先用产品表最新缩略图缓存（按 productId 索引）。
+  const productImgCacheRef = useRef<Map<string, string>>(new Map());
+
+  const fetchProductImages = async () => {
+    if (!user?.id) return;
+    try {
+      const res = await apiFetch("/api/products", { cache: "no-store" } as any);
+      if (!res.ok) return;
+      const list = await res.json().catch(() => []);
+      const cache = new Map<string, string>();
+      if (Array.isArray(list)) {
+        for (const p of list) {
+          const id = p?.id ? String(p.id) : null;
+          let first = "";
+          if (Array.isArray(p?.images) && typeof p.images[0] === "string") {
+            first = p.images[0];
+          } else if (typeof p?.images === "string") {
+            try {
+              const parsed = JSON.parse(p.images);
+              if (Array.isArray(parsed) && typeof parsed[0] === "string") first = parsed[0];
+            } catch { /* noop */ }
+          }
+          if (id && first) cache.set(id, first);
+        }
+      }
+      productImgCacheRef.current = cache;
+    } catch (err) {
+      console.warn("AgentOrders: 拉产品图缓存失败", err);
+    }
+  };
+
+  const getItemImage = (item: OrderItem): string | undefined => {
+    if (item.productId) {
+      const latest = productImgCacheRef.current.get(String(item.productId));
+      if (latest) return latest;
+    }
+    return item.image;
+  };
 
   // 获取状态筛选选项
   const getStatusFilterOptions = (): FilterOption[] => {
@@ -236,7 +276,9 @@ export default function MyOrdersPage() {
   };
 
   useEffect(() => {
+    if (!user?.id) return;
     fetchOrders();
+    fetchProductImages();
     const interval = setInterval(fetchOrders, 5000);
     return () => clearInterval(interval);
   }, [user?.id]);
@@ -751,11 +793,30 @@ export default function MyOrdersPage() {
                     {selected.items.map((item, idx) => (
                       <div key={idx} className="flex items-center gap-3 p-2 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
                         <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-lg overflow-hidden flex-shrink-0">
-                          {item.image ? (
-                            <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-xl">📦</div>
-                          )}
+                          {(() => {
+                            const src = getItemImage(item);
+                            return src ? (
+                              <img
+                                src={src}
+                                alt={item.name}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  const el = e.currentTarget;
+                                  if (el.parentElement) {
+                                    el.style.display = "none";
+                                    const fallback = document.createElement("div");
+                                    fallback.className = "w-full h-full flex items-center justify-center text-xl";
+                                    fallback.textContent = "📦";
+                                    if (!el.parentElement.querySelector(":scope > div")) {
+                                      el.parentElement.appendChild(fallback);
+                                    }
+                                  }
+                                }}
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-xl">📦</div>
+                            );
+                          })()}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="font-medium text-sm truncate">{item.name}</div>

@@ -282,7 +282,19 @@ export default function DashboardPage() {
         o.items.forEach((item: any) => {
           const key = item.productId || item.sku || item.name;
           const product = products.find((p: any) => p.id === item.productId);
-          const image = item.image || product?.images?.[0] || "";
+          // ⚠️ 这里 fallback 顺序不能反：
+          // 优先用 products 表的**最新**图片（产品改图/删旧图后，items.image 仍是
+          // 已删除的旧 URL，所以不能让它作为主来源）。
+          let latestImage = "";
+          if (product && Array.isArray(product.images) && typeof product.images[0] === "string") {
+            latestImage = product.images[0];
+          } else if (product && typeof product.images === "string") {
+            try {
+              const arr = JSON.parse(product.images);
+              if (Array.isArray(arr) && typeof arr[0] === "string") latestImage = arr[0];
+            } catch { /* noop */ }
+          }
+          const image = latestImage || item.image || "";
           const existing = productMap.get(key);
           if (existing) {
             existing.qty += item.quantity || item.qty || 1;
@@ -714,7 +726,23 @@ export default function DashboardPage() {
                   <div key={p.sku + idx} className="rounded-xl border border-slate-200 dark:border-slate-800 p-2 sm:p-3 hover:shadow-md transition-shadow">
                     <div className="relative w-full aspect-square bg-slate-100 dark:bg-slate-800 rounded-lg overflow-hidden mb-2 sm:mb-3">
                       {p.image ? (
-                        <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
+                        <img
+                          src={p.image}
+                          alt={p.name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            const el = e.currentTarget;
+                            if (el.parentElement) {
+                              el.style.display = "none";
+                              const fallback = document.createElement("div");
+                              fallback.className = "w-full h-full flex items-center justify-center text-2xl sm:text-3xl";
+                              fallback.textContent = "📦";
+                              if (!el.parentElement.querySelector(":scope > div")) {
+                                el.parentElement.appendChild(fallback);
+                              }
+                            }
+                          }}
+                        />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-2xl sm:text-3xl">📦</div>
                       )}

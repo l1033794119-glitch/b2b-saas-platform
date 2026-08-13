@@ -4,7 +4,7 @@ import { AdminLayout } from "@/components/Layout";
 import { PageCard, Badge } from "@/components/Sidebar";
 import { useApp } from "@/components/AppProvider";
 import { formatCurrency, formatNumber } from "@/lib/utils";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Truck, Package, Search, Eye, X, Phone, Mail, User,
   MapPin, Upload, Check, Edit2, FileText, QrCode, Copy
@@ -63,6 +63,49 @@ export default function ShippingPage() {
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 10;
 
+  // 产品 ID -> 最新缩略图缓存。
+  // 订单 items.image 是下单时的快照，产品改图/删图后会导致 404，
+  // 所以渲染时优先用这里的最新图（跟订单详情页的 getProductImage 对齐）。
+  const productImgCacheRef = useRef<Map<string, string>>(new Map());
+  const [productImgReady, setProductImgReady] = useState(false);
+
+  const fetchProductImages = async () => {
+    if (!user?.id) return;
+    try {
+      const res = await apiFetch("/api/products", { cache: "no-store" } as any);
+      if (!res.ok) return;
+      const list = await res.json().catch(() => []);
+      const cache = new Map<string, string>();
+      if (Array.isArray(list)) {
+        for (const p of list) {
+          const id = p?.id ? String(p.id) : null;
+          let first = "";
+          if (Array.isArray(p?.images) && typeof p.images[0] === "string") {
+            first = p.images[0];
+          } else if (typeof p?.images === "string") {
+            try {
+              const parsed = JSON.parse(p.images);
+              if (Array.isArray(parsed) && typeof parsed[0] === "string") first = parsed[0];
+            } catch { /* noop */ }
+          }
+          if (id && first) cache.set(id, first);
+        }
+      }
+      productImgCacheRef.current = cache;
+      setProductImgReady(true);
+    } catch (err) {
+      console.warn("Shipping: 拉取产品最新图缓存失败", err);
+    }
+  };
+
+  const getItemImage = (item: OrderItem): string | undefined => {
+    if (item.productId) {
+      const latest = productImgCacheRef.current.get(String(item.productId));
+      if (latest) return latest;
+    }
+    return item.image;
+  };
+
   const statuses = [
     { id: "all", labelEn: "All", labelZhCN: "全部", labelZhTW: "全部" },
     { id: "pending_delivery", labelEn: "Pending Delivery", labelZhCN: "待投递", labelZhTW: "待投遞" },
@@ -88,7 +131,9 @@ export default function ShippingPage() {
   };
 
   useEffect(() => {
+    if (!user?.id) return;
     fetchOrders();
+    fetchProductImages();
   }, [user?.id]);
 
   useEffect(() => {
@@ -485,11 +530,30 @@ export default function ShippingPage() {
                 {selectedOrder.items.map((item, idx) => (
                   <div key={idx} className="flex items-center gap-3 py-3 border-b border-slate-100 dark:border-slate-800 last:border-0">
                     <div className="relative w-14 h-14 bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden flex-shrink-0">
-                      {item.image ? (
-                        <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-xl">📦</div>
-                      )}
+                      {(() => {
+                        const src = getItemImage(item);
+                        return src ? (
+                          <img
+                            src={src}
+                            alt={item.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              const el = e.currentTarget;
+                              if (el.parentElement) {
+                                el.style.display = "none";
+                                const fallback = document.createElement("div");
+                                fallback.className = "w-full h-full flex items-center justify-center text-2xl";
+                                fallback.textContent = "📦";
+                                if (!el.parentElement.querySelector(":scope > div")) {
+                                  el.parentElement.appendChild(fallback);
+                                }
+                              }
+                            }}
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-2xl">📦</div>
+                        );
+                      })()}
                       <div className="absolute -top-2 -right-2 w-7 h-7 bg-emerald-500 text-white text-sm font-bold rounded-full flex items-center justify-center shadow-md border-2 border-white dark:border-slate-900">
                         {item.quantity}
                       </div>

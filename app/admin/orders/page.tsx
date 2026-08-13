@@ -1300,7 +1300,23 @@ export default function OrdersPage() {
                     <div key={idx} className="flex items-center gap-3 py-3 border-b border-slate-100 dark:border-slate-800 last:border-0">
                       <div className="relative w-14 h-14 bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden flex-shrink-0">
                         {productImage ? (
-                          <img src={productImage} alt={item.name} className="w-full h-full object-cover" />
+                          <img
+                            src={productImage}
+                            alt={item.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              const el = e.currentTarget;
+                              if (el.parentElement) {
+                                el.style.display = "none";
+                                const fallback = document.createElement("div");
+                                fallback.className = "w-full h-full flex items-center justify-center text-xl";
+                                fallback.textContent = "📦";
+                                if (!el.parentElement.querySelector(":scope > div")) {
+                                  el.parentElement.appendChild(fallback);
+                                }
+                              }
+                            }}
+                          />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-xl">📦</div>
                         )}
