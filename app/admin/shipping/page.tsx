@@ -3,7 +3,7 @@
 import { AdminLayout } from "@/components/Layout";
 import { PageCard, Badge } from "@/components/Sidebar";
 import { useApp } from "@/components/AppProvider";
-import { formatCurrency, formatNumber } from "@/lib/utils";
+import { formatCurrency, formatNumber, parseOrderDate } from "@/lib/utils";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Truck, Package, Search, Eye, X, Phone, Mail, User,
@@ -703,7 +703,7 @@ export default function ShippingPage() {
                   
                   <div className="flex items-center justify-between pt-3 border-t border-white/5">
                     <div className="text-xs text-slate-500">
-                      {new Date(o.date).toLocaleDateString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Shanghai" })}
+                      {parseOrderDate(o.date).toLocaleDateString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Shanghai" })}
                     </div>
                     <button onClick={() => selected(o.id)} className="btn-primary px-4 py-2 text-sm">
                       {t("view")}

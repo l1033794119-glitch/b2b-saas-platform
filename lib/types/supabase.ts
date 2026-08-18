@@ -404,6 +404,7 @@ export interface Order {
   cancelRequestedAt: string | null;
   cancelledAt: string | null;
   cancelledBy: string | null;
+  createdAt?: string | null;
 }
 
 export interface CreditRecord {

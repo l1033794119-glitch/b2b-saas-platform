@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { AdminLayout } from "@/components/Layout";
 import { PageCard, StatusBadge } from "@/components/Sidebar";
 import { useApp } from "@/components/AppProvider";
-import { formatCurrency, formatNumber } from "@/lib/utils";
+import { formatCurrency, formatNumber, parseOrderDate } from "@/lib/utils";
 import { Eye, Truck, FileText, Search, X, Phone, Mail, User, MapPin, Package, Image, Upload, Check, AlertCircle, Edit2, QrCode, Package as PackageIcon, Download, Zap, XCircle, Copy } from "lucide-react";
 interface OrderItem {
   productId: string;
@@ -346,9 +346,9 @@ export default function OrdersPage() {
       (o.warehouse && o.warehouse === warehouseFilter) ||
       (o.items && o.items.some((item: any) => item.warehouseId === warehouseFilter || item.warehouse === warehouseFilter));
 
-    const orderDate = o.date ? new Date(o.date) : new Date(0);
-    const fromDate = dateFrom ? new Date(dateFrom) : null;
-    const toDate = dateTo ? new Date(dateTo + "T23:59:59") : null;
+    const orderDate = parseOrderDate(o.date);
+    const fromDate = dateFrom ? parseOrderDate(dateFrom + " 00:00:00") : null;
+    const toDate = dateTo ? parseOrderDate(dateTo + " 23:59:59") : null;
     const mdate = (!fromDate || orderDate >= fromDate) && (!toDate || orderDate <= toDate);
 
     return mq && mf && mage && mdate && mwarehouse;

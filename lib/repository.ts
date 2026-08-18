@@ -123,11 +123,65 @@ export async function deleteWarehouse(id: string): Promise<{ success: boolean }>
 
 function parseJson(value: any): any {
   if (!value || typeof value === "object") return value;
+  if (value === "null" || value === "undefined") return null;
   try {
     return JSON.parse(value);
   } catch {
-    return value;
+    // 兼容历史脏数据：items 存的是字符串但格式不对，返回空数组避免整体报错
+    return typeof value === "string" && value.startsWith("[") ? [] : value;
   }
+}
+
+// 兼容所有历史 status 值 → 映射到系统可识别的 7 种枚举
+// 注意：如果 DB 直接 INSERT 的默认值（pending_review）也在兼容范围内
+function normalizeStatus(status: any): string {
+  const KNOWN = new Set([
+    "pending_qrcode",
+    "pending_delivery",
+    "pending_tracking",
+    "shipped",
+    "completed",
+    "cancelled",
+    "pending_cancellation",
+  ]);
+  const raw = typeof status === "string" ? status.trim() : String(status || "");
+  if (KNOWN.has(raw)) return raw;
+
+  const lower = raw.toLowerCase();
+  // 精确别名
+  const alias: Record<string, string> = {
+    pending_review: "pending_qrcode",
+    pending_review_qrcode: "pending_qrcode",
+    pending: "pending_qrcode",
+    new: "pending_qrcode",
+    created: "pending_qrcode",
+    approved: "pending_delivery",
+    pending_approved: "pending_delivery",
+    confirmed: "pending_delivery",
+    processing: "pending_tracking",
+    paid: "pending_tracking",
+    packed: "pending_tracking",
+    in_transit: "shipped",
+    out_for_delivery: "shipped",
+    delivered: "completed",
+    finished: "completed",
+    closed: "completed",
+    canceled: "cancelled",
+    cancel_requested: "pending_cancellation",
+    cancellation_requested: "pending_cancellation",
+    request_cancel: "pending_cancellation",
+  };
+  if (alias[lower]) return alias[lower];
+  // 兜底：按关键词猜
+  if (lower.includes("qrcode") || lower.includes("qr") || lower.includes("review")) return "pending_qrcode";
+  if (lower.includes("delivery") || lower.includes("deliver")) return "pending_delivery";
+  if (lower.includes("tracking") || lower.includes("waybill") || lower.includes("process") || lower.includes("paid")) return "pending_tracking";
+  if (lower.includes("ship")) return "shipped";
+  if (lower.includes("complete") || lower.includes("finish") || lower.includes("done")) return "completed";
+  if (lower.includes("cancellation") && lower.includes("pending")) return "pending_cancellation";
+  if (lower.includes("cancel")) return "cancelled";
+  // 无法判断的返回原值（前端 statusLabels || o.status 会显示原字符串）
+  return raw || "pending_qrcode";
 }
 
 function mapProductFromRow(p: any): Product {
@@ -397,9 +451,16 @@ function mapOrderFromRow(o: any): Order {
     id: o.id,
     orderNo: o.order_no,
     agentId: o.agent_id,
-    items: parseJson(o.items) || [],
+    items: (() => {
+      try {
+        const parsed = parseJson(o.items);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    })(),
     total: parseFloat(o.total) || 0,
-    status: o.status,
+    status: normalizeStatus(o.status),
     date: o.date,
     shippingAddress: o.shipping_address || "",
     postalCode: o.postal_code || "",
@@ -418,28 +479,55 @@ function mapOrderFromRow(o: any): Order {
     warehouseId: o.warehouse_id || o.warehouseId || null,
     warehouse: o.warehouse || null,
     cancelReason: o.cancel_reason || null,
-    previousStatus: o.previous_status || null,
+    previousStatus: normalizeStatus(o.previous_status),
     cancelRequestedAt: o.cancel_requested_at || null,
     cancelledAt: o.cancelled_at || null,
     cancelledBy: o.cancelled_by || null,
+    createdAt: o.created_at || null,
   };
 }
 
 export async function getAllOrders(): Promise<Order[]> {
   if (await useDatabase()) {
-    const rows: any[] = await query("SELECT * FROM orders ORDER BY date DESC");
-    return rows.map(mapOrderFromRow);
+    try {
+      const rows: any[] = await query("SELECT * FROM orders ORDER BY created_at DESC LIMIT 20000");
+      const result: Order[] = [];
+      for (const r of rows) {
+        try {
+          result.push(mapOrderFromRow(r));
+        } catch (e) {
+          console.warn("skip bad order row id=", r?.id, e);
+        }
+      }
+      return result;
+    } catch (e) {
+      console.error("getAllOrders fatal:", e);
+      return [];
+    }
   }
   return getMemoryStore().orders;
 }
 
 export async function getOrdersByAgentId(agentId: string): Promise<Order[]> {
   if (await useDatabase()) {
-    const rows: any[] = await query(
-      "SELECT * FROM orders WHERE agent_id = ? ORDER BY date DESC",
-      [agentId]
-    );
-    return rows.map(mapOrderFromRow);
+    try {
+      const rows: any[] = await query(
+        "SELECT * FROM orders WHERE agent_id = ? ORDER BY created_at DESC LIMIT 20000",
+        [agentId]
+      );
+      const result: Order[] = [];
+      for (const r of rows) {
+        try {
+          result.push(mapOrderFromRow(r));
+        } catch (e) {
+          console.warn("skip bad order row id=", r?.id, e);
+        }
+      }
+      return result;
+    } catch (e) {
+      console.error("getOrdersByAgentId fatal agentId=", agentId, e);
+      return [];
+    }
   }
   return getMemoryStore().orders.filter((o) => o.agentId === agentId);
 }

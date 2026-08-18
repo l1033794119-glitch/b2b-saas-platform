@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { AgentLayout } from "@/components/Layout";
 import { StatCard, StatusBadge } from "@/components/Sidebar";
 import { useApp } from "@/components/AppProvider";
-import { formatCurrency, formatNumber } from "@/lib/utils";
+import { formatCurrency, formatNumber, parseOrderDate } from "@/lib/utils";
 import { Package, Bell, CreditCard, Truck, Calendar, ChevronDown } from "lucide-react";
 
 interface CreditRecord {
@@ -344,7 +344,7 @@ export default function AgentDashboard() {
                   {filteredOrders.slice(0, 6).map((o) => (
                     <tr key={o.id}>
                       <td className="font-mono text-xs">{o.orderNo}</td>
-                      <td>{new Date(o.date).toLocaleDateString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit", timeZone: "Asia/Shanghai" })}</td>
+                      <td>{parseOrderDate(o.date).toLocaleDateString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit", timeZone: "Asia/Shanghai" })}</td>
                       <td className="font-medium">{formatCurrency(o.total, currency)}</td>
                       <td className={o.shippingFee ? "text-orange-600 font-medium" : "text-slate-400"}>
                         {o.shippingFee ? formatCurrency(o.shippingFee, currency) : "—"}

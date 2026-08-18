@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { AgentLayout } from "@/components/Layout";
 import { StatusBadge } from "@/components/Sidebar";
 import { useApp } from "@/components/AppProvider";
-import { formatCurrency, formatNumber } from "@/lib/utils";
+import { formatCurrency, formatNumber, parseOrderDate } from "@/lib/utils";
 import { Eye, Package, MapPin, Phone, Mail, User, Truck, Check, Search, Filter, Calendar, ChevronDown, X, XCircle, Copy } from "lucide-react";
 
 interface OrderItem {
@@ -182,9 +182,9 @@ export default function MyOrdersPage() {
         break;
       case "custom":
         if (customDateRange.start && customDateRange.end) {
-          start.setTime(new Date(customDateRange.start).getTime());
+          start.setTime(parseOrderDate(customDateRange.start + " 00:00:00").getTime());
           start.setHours(0, 0, 0, 0);
-          end.setTime(new Date(customDateRange.end).getTime());
+          end.setTime(parseOrderDate(customDateRange.end + " 23:59:59").getTime());
           end.setHours(23, 59, 59, 999);
         }
         break;
@@ -209,7 +209,7 @@ export default function MyOrdersPage() {
     const dateRange = getDateRange();
     if (dateRange) {
       filtered = filtered.filter((o) => {
-        const orderDate = o.date ? new Date(o.date) : new Date(0);
+        const orderDate = parseOrderDate(o.date);
         return orderDate >= dateRange.start && orderDate <= dateRange.end;
       });
     }
