@@ -19,6 +19,7 @@ export interface User {
   company?: string;
   country?: string;
   level?: "A" | "B" | "C";
+  skipCaptcha?: boolean;
   permissions?: Record<string, boolean>;
 }
 
