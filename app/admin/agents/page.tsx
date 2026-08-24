@@ -101,11 +101,12 @@ export default function AgentsPage() {
   const handleSave = async (agent: Partial<Agent>) => {
     setStatus("submitting");
     setMessage("");
+    const isEdit = !!(agent.id || editing);
     try {
       const res = await apiFetch("/api/agents", {
-        method: "POST",
+        method: isEdit ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(agent),
+        body: JSON.stringify(isEdit ? { agentId: editing?.id || agent.id, ...agent } : agent),
       });
       if (res.ok) {
         const saved = await res.json().catch(() => (null));
@@ -122,7 +123,9 @@ export default function AgentsPage() {
           });
         }
         setStatus("success");
-        setMessage(lang === "en" ? "Agent added successfully!" : lang === "zh-CN" ? "代理商添加成功！" : "代理商新增成功！");
+        setMessage(isEdit
+          ? (lang === "en" ? "Agent updated successfully!" : lang === "zh-CN" ? "代理商更新成功！" : "代理商更新成功！")
+          : (lang === "en" ? "Agent added successfully!" : lang === "zh-CN" ? "代理商添加成功！" : "代理商新增成功！"));
         setTimeout(() => {
           setShowForm(false);
           setEditing(null);
@@ -131,7 +134,9 @@ export default function AgentsPage() {
         }, 1500);
       } else {
         const err = await res.json().catch(() => ({}));
-        setMessage(err.error || (lang === "en" ? "Failed to add agent" : lang === "zh-CN" ? "添加失败" : "新增失敗"));
+        setMessage(err.error || (isEdit
+          ? (lang === "en" ? "Failed to update agent" : lang === "zh-CN" ? "更新失败" : "更新失敗")
+          : (lang === "en" ? "Failed to add agent" : lang === "zh-CN" ? "添加失败" : "新增失敗")));
         setStatus("error");
       }
     } catch {
