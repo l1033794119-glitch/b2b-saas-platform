@@ -593,7 +593,7 @@ function CartInner({
                 </button>
                 <button
                   onClick={handleSubmitOrder}
-                  disabled={status === "submitting" || !captchaToken}
+                  disabled={status === "submitting" || (!skipCaptcha && !captchaToken)}
                   className="flex-1 btn-primary justify-center flex items-center gap-2 disabled:opacity-50"
                 >
                   {status === "submitting" && <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
