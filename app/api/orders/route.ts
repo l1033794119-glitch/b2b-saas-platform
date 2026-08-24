@@ -91,14 +91,17 @@ export async function POST(req: NextRequest) {
 
     // ===== hCaptcha 人机验证：必须通过验证码才能下单 =====
     // 目的：彻底禁止自动化脚本（SHOPYY/Shoplazza 同步）下单
-    const captchaToken = body.captchaToken || body["h-captcha-response"] || null;
-    const remoteIp =
-      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-      req.headers.get("x-real-ip") ||
-      null;
-    const captchaOk = await verifyCaptcha(captchaToken, remoteIp);
-    if (!captchaOk) {
-      return await failWithNewCsrf("Captcha verification failed. Please complete the captcha and try again", 403);
+    // 被管理员标记为"免人机验证"的代理商跳过此步骤
+    if (!user.skipCaptcha) {
+      const captchaToken = body.captchaToken || body["h-captcha-response"] || null;
+      const remoteIp =
+        req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+        req.headers.get("x-real-ip") ||
+        null;
+      const captchaOk = await verifyCaptcha(captchaToken, remoteIp);
+      if (!captchaOk) {
+        return await failWithNewCsrf("Captcha verification failed. Please complete the captcha and try again", 403);
+      }
     }
 
     const { agentId: bodyAgentId, items, total, shippingAddress, postalCode, country, contactName, phone, email, note } = body;

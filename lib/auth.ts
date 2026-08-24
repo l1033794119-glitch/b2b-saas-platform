@@ -5,6 +5,7 @@ export interface SessionUser {
   id: string;
   role: "admin" | "agent" | "super_admin" | "warehouse_manager" | "finance_manager" | "operations_manager" | "customer_service";
   email?: string;
+  skipCaptcha?: boolean;
   name?: string;
   level?: string;
   company?: string;
@@ -49,6 +50,7 @@ export async function getSessionUser(req: NextRequest): Promise<SessionUser | nu
         name: agent.contact || agent.company,
         level: agent.level,
         company: agent.company,
+        skipCaptcha: !!(agent.skip_captcha && [1, "1", "true", true].includes(agent.skip_captcha)),
       };
     }
   } catch (error) {

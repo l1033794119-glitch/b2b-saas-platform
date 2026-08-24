@@ -364,6 +364,7 @@ export interface Agent {
   outstanding: number;
   availableCredit: number;
   joinDate: string;
+  skipCaptcha?: boolean;
 }
 
 export interface OrderItem {

@@ -36,6 +36,7 @@ export default function CartPage() {
         lang={lang}
         agentId={user?.id}
         level={user?.level}
+        skipCaptcha={user?.skipCaptcha}
         csrfToken={csrfToken}
         setCsrfToken={setCsrfToken}
         apiFetch={apiFetch}
@@ -50,6 +51,7 @@ function CartInner({
   lang,
   agentId,
   level,
+  skipCaptcha,
   csrfToken,
   setCsrfToken,
   apiFetch,
@@ -59,6 +61,7 @@ function CartInner({
   lang: string;
   agentId?: string;
   level?: string;
+  skipCaptcha?: boolean;
   csrfToken: string | null;
   setCsrfToken: (t: string | null) => void;
   apiFetch: (url: string, options?: RequestInit) => Promise<Response>;
@@ -187,7 +190,8 @@ function CartInner({
     }
 
     // ===== hCaptcha 校验：必须完成人机验证才能下单 =====
-    if (!captchaToken) {
+    // 被管理员标记为"免人机验证"的代理商跳过此步骤
+    if (!skipCaptcha && !captchaToken) {
       setMessage(lang === "en" ? "Please complete the captcha verification" : lang === "zh-CN" ? "请先完成人机验证" : "請先完成人機驗證");
       setStatus("error");
       return;
@@ -540,6 +544,8 @@ function CartInner({
               </div>
 
               {/* hCaptcha 人机验证：防止外部平台脚本自动化下单 */}
+              {/* 被管理员标记为"免人机验证"的代理商不显示验证码 */}
+              {!skipCaptcha && (
               <div className="space-y-2">
                 <label className="block text-sm font-medium mb-1.5 flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 text-amber-500" />
@@ -565,6 +571,7 @@ function CartInner({
                   </div>
                 )}
               </div>
+              )}
 
               {status === "error" && (
                 <div className="flex items-start gap-2 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/40">

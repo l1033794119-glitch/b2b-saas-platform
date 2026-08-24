@@ -20,6 +20,7 @@ interface Agent {
   creditLimit: number;
   outstanding: number;
   joinDate: string;
+  skipCaptcha?: boolean;
 }
 
 export default function AgentsPage() {
@@ -192,6 +193,11 @@ export default function AgentsPage() {
                   {a.company.charAt(0)}
                 </div>
                 <StatusBadge status={a.status} />
+                {a.skipCaptcha && (
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 font-medium">
+                    {lang === "en" ? "No Captcha" : "免验证"}
+                  </span>
+                )}
               </div>
               <div className="font-semibold text-lg">{a.company}</div>
               <div className="text-sm text-slate-500 mb-3">{a.contact}</div>
@@ -338,6 +344,23 @@ function AgentForm({ agent, onSave, onClose, lang, currency, status, message }: 
             <label className="label">{lang === "en" ? "Credit Limit" : "信用额度"} ({currency})</label>
             <input className="input" type="number" value={form.creditLimit || 10000} onChange={(e) => set("creditLimit", +e.target.value)} />
           </div>
+
+          <label className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+            <input
+              type="checkbox"
+              checked={!!form.skipCaptcha}
+              onChange={(e) => set("skipCaptcha", e.target.checked)}
+              className="w-4 h-4 rounded border-slate-300 text-emerald-500 focus:ring-emerald-500"
+            />
+            <div>
+              <div className="text-sm font-medium">
+                {lang === "en" ? "Skip Captcha Verification" : lang === "zh-CN" ? "免人机验证" : "免人機驗證"}
+              </div>
+              <div className="text-xs text-slate-500">
+                {lang === "en" ? "Disable hCaptcha at checkout for this agent" : lang === "zh-CN" ? "该代理商下单时无需通过验证码" : "該代理商下單時無需通過驗證碼"}
+              </div>
+            </div>
+          </label>
 
           {agent && (
             <div className="text-xs text-slate-500 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg">

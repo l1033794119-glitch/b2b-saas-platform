@@ -323,6 +323,7 @@ function mapAgentFromRow(a: any): Agent {
     outstanding: parseFloat(a.outstanding) || 0,
     availableCredit: (parseFloat(a.credit_limit) || 0) - (parseFloat(a.outstanding) || 0),
     joinDate: a.join_date,
+    skipCaptcha: !!(a.skip_captcha && [1, "1", "true", true].includes(a.skip_captcha)),
   };
 }
 
@@ -414,6 +415,7 @@ export async function updateAgent(id: string, updates: any): Promise<Agent | nul
     if (updates.creditLimit !== undefined) { setClauses.push("credit_limit = ?"); values.push(updates.creditLimit); }
     if (updates.outstanding !== undefined) { setClauses.push("outstanding = ?"); values.push(updates.outstanding); }
     if (updates.password !== undefined) { setClauses.push("password = ?"); values.push(updates.password); }
+    if (updates.skipCaptcha !== undefined) { setClauses.push("skip_captcha = ?"); values.push(updates.skipCaptcha ? 1 : 0); }
 
     setClauses.push("updated_at = ?");
     values.push(formatMySQLDate());

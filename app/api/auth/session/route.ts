@@ -275,6 +275,7 @@ export async function POST(req: NextRequest) {
           company: agent.company,
           country: agent.country,
           level: agent.level,
+          skipCaptcha: !!(agent.skip_captcha && [1, "1", "true", true].includes(agent.skip_captcha)),
         },
         sessionId,  // 前端用 document.cookie 手动设置
         csrfToken,
@@ -376,6 +377,7 @@ export async function GET(req: NextRequest) {
           company: agent.company,
           country: agent.country,
           level: agent.level,
+          skipCaptcha: !!(agent.skip_captcha && [1, "1", "true", true].includes(agent.skip_captcha)),
         },
         csrfToken,
       });
