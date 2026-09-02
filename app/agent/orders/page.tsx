@@ -958,8 +958,13 @@ export default function MyOrdersPage() {
                               body: JSON.stringify({ status: "completed" }),
                             }).then((res) => {
                               if (res.ok) {
-                                const safeOrders = Array.isArray(orders) ? orders : [];
-                                setOrders(safeOrders.map((o) => o.id === selected.id ? { ...o, status: "completed" } : o));
+                                res.json().then((updated: any) => {
+                                  updateOrderInCache(selected.id, { status: "completed", ...updated });
+                                  setStatsOrders((prev: any) => (Array.isArray(prev) ? prev.map((o: any) => (o.id === selected.id ? { ...o, status: "completed", ...updated } : o)) : prev));
+                                }).catch(() => {
+                                  updateOrderInCache(selected.id, { status: "completed" });
+                                  setStatsOrders((prev: any) => (Array.isArray(prev) ? prev.map((o: any) => (o.id === selected.id ? { ...o, status: "completed" } : o)) : prev));
+                                });
                                 setSelected({ ...selected, status: "completed" });
                               }
                             });

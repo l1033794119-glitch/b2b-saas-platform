@@ -349,8 +349,10 @@ export default function OrdersPage() {
     }
   };
 
-  const exportCSV = () => {
-    if (filtered.length === 0) return;
+  const exportCSV = async () => {
+    // 导出当前筛选条件下的**全量**订单（不只是当前页 20 条）
+    const list = await fetchAllForExport();
+    if (!list.length) return;
 
     const escapeCSV = (val: any) => {
       if (val === null || val === undefined) return "";
@@ -376,7 +378,7 @@ export default function OrdersPage() {
       "Tracking Number", "Notes",
     ];
 
-    const rows = filtered.map((o) => {
+    const rows = list.map((o: any) => {
       const agent = safeAgents.find((a) => a.id === o.agentId);
       const itemsStr = (o.items || [])
         .map((it: any) => `${it.name} x${it.quantity} @${it.price}`)
@@ -619,7 +621,8 @@ export default function OrdersPage() {
 
       if (res.ok) {
         const updated = await res.json().catch(() => ({}));
-        setData(safeData.map((o) => o.id === selectedOrder.id ? updated : o));
+        updateOrderInCache(selectedOrder.id, updated);
+        setSelectedOrder({ ...(selectedOrder as any), ...updated });
       } else {
         const err = await res.json().catch(() => ({}));
         alert(err.error || "操作失败");
@@ -648,7 +651,8 @@ export default function OrdersPage() {
 
       if (res.ok) {
         const updated = await res.json().catch(() => ({}));
-        setData(safeData.map((o) => o.id === selectedOrder.id ? updated : o));
+        updateOrderInCache(selectedOrder.id, updated);
+        setSelectedOrder({ ...(selectedOrder as any), ...updated });
       } else {
         const err = await res.json().catch(() => ({}));
         alert(err.error || "操作失败");
@@ -1464,7 +1468,8 @@ export default function OrdersPage() {
                     if (res.ok) {
                       const updated = await res.json().catch(() => ({}));
                       const updatedOrder = { ...selectedOrder, ...updated };
-                      setData(safeData.map((o) => o.id === selectedOrder.id ? updatedOrder : o));
+                      updateOrderInCache(selectedOrder.id, updated);
+                      setSelectedOrder(updatedOrder);
                       setShowShipModal(false);
                       setShipInfo({ trackingNumber: "", trackingImage: "" });
                     } else {
