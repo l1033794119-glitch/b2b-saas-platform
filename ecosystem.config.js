@@ -13,13 +13,15 @@ module.exports = {
     },
     instances: 1,
     exec_mode: 'fork',
-    max_restarts: 5,
-    min_uptime: '10s',
-    kill_timeout: 10000,
-    listen_timeout: 30000,
-    wait_ready: true,
+    max_restarts: 10,
+    min_uptime: '15s',
+    kill_timeout: 15000,
+    listen_timeout: 60000,
+    // ⚠️ 不要用 wait_ready: true — Next.js start 模式不发 process.send('ready')
+    //   会导致 PM2 等 listen_timeout 后认定启动失败并循环杀进程
+    wait_ready: false,
     autorestart: true,
-    max_memory_restart: '1.5G',
+    max_memory_restart: '1536M',
     log_date_format: 'YYYY-MM-DD HH:mm:ss Z'
   }]
 };
