@@ -102,54 +102,74 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // 401 处理中防止重复跳转
   const redirectingRef = useRef(false);
 
-  // 性能优化：同 URL 的 GET 请求做 10s 内存去重缓存（防止同一渲染循环多次发起）
-  const fetchCacheRef = useRef<Map<string, { ts: number; prom: Promise<Response> }>>(new Map());
+  // 性能优化：同 URL 的 GET 请求做 10s 内存去重缓存
+  //  —— 关键改动：缓存的是『已解析的 body Buffer + status + headers 纯数据』，而不是 Response（一次性 body stream）。
+  //     之前缓存 Response 克隆 2 次后会 body consumed → .json() 抛错 → 空数组覆盖订单，导致 20s 后暂无订单。
+  type CachedHttp = {
+    ts: number;
+    status: number;
+    statusText: string;
+    headers: Record<string, string>;
+    /** 已消费并序列化的响应体，保证每次命中都能完整重建一个全新 Response */
+    body: ArrayBuffer;
+    /** 正在进行中的 Promise（用于真正的请求合并，防并发打两次） */
+    inflight?: Promise<void>;
+  };
+  const fetchCacheRef = useRef<Map<string, CachedHttp>>(new Map());
   const FETCH_CACHE_TTL = 10000; // 10s
 
   const apiFetch = useCallback(async (url: string, options?: RequestInit): Promise<Response> => {
-    // 关键修复：当 body 是 FormData 时，绝对不能手动设置 Content-Type，
-    // 必须让浏览器自动生成带 boundary 的 multipart/form-data；
-    // 否则后端 req.formData() 无法解析，导致上传失败。
+    // FormData: 绝对不能手动 set Content-Type，必须让浏览器生成带 boundary 的 multipart/form-data
     const isFormData =
       typeof FormData !== "undefined" && options?.body instanceof FormData;
     const method = (options?.method || "GET").toUpperCase();
 
     const mergedHeaders = isFormData
-      ? { ...(options?.headers || {}) } // FormData: 不注入任何 Content-Type
+      ? { ...(options?.headers || {}) }
       : {
           "Content-Type": "application/json",
           ...(options?.headers || {}),
         };
 
-    // 性能：GET 同 URL 10s 内共享同一个 Promise（请求去重）
+    // 命中条件：GET + 未显式禁用缓存（!options?.cache）+ TTL 内
     let cacheKey: string | null = null;
     if (method === "GET" && !options?.cache) {
-      cacheKey = `${url}`;
+      cacheKey = url;
       const cached = fetchCacheRef.current.get(cacheKey);
       if (cached && Date.now() - cached.ts < FETCH_CACHE_TTL) {
+        // 有缓存：直接从 ArrayBuffer 构造全新 Response（100% 可重复读取）
+        const hdrs = new Headers();
+        Object.entries(cached.headers).forEach(([k, v]) => hdrs.set(k, v));
+        return new Response(cached.body.slice(0), {
+          status: cached.status,
+          statusText: cached.statusText,
+          headers: hdrs,
+        });
+      }
+      // 同一个 key 的并发合并
+      if (cached?.inflight) {
         try {
-          // 必须克隆响应，否则消费了之后第二次 .json() 会报错
-          const origRes = await cached.prom;
-          try {
-            const cloned = origRes.clone();
-            return cloned;
-          } catch {
-            return origRes;
+          await cached.inflight;
+          // 等待完成后再读一次（现在已落盘 body）
+          const c2 = fetchCacheRef.current.get(cacheKey);
+          if (c2 && c2.body) {
+            const hdrs = new Headers();
+            Object.entries(c2.headers).forEach(([k, v]) => hdrs.set(k, v));
+            return new Response(c2.body.slice(0), { status: c2.status, statusText: c2.statusText, headers: hdrs });
           }
         } catch {
-          fetchCacheRef.current.delete(cacheKey);
+          // 合并失败就 fallback 走真实请求
         }
       }
     }
 
-    // 关键：超时 15s 兜底（AbortController），避免慢 SQL 让整页白屏
+    // 15s 超时兜底
     const userSignal = options?.signal as AbortSignal | undefined;
     const timeoutCtrl = new AbortController();
     const timeoutMs = 15000;
     const timer = setTimeout(() => timeoutCtrl.abort(), timeoutMs);
     const combinedSignal: AbortSignal = userSignal
       ? (() => {
-          // 两个任一触发就 abort
           const ctrl = new AbortController();
           const onAbort = () => ctrl.abort();
           userSignal.addEventListener("abort", onAbort, { once: true });
@@ -165,36 +185,68 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       signal: combinedSignal,
     };
 
-    let res: Response;
-    const doFetch = (async () => {
-      try {
-        const r = await fetch(url, { ...defaultOptions, ...options, signal: combinedSignal });
-        return r;
-      } catch (err: any) {
-        console.error("apiFetch error:", url, err?.name || err?.message || err);
-        // 超时 / 网络错误 —— 构造一个 504/500 响应，避免 Promise.all 卡着
-        const isTimeout = err?.name === "AbortError" || /abort|timeout/i.test(err?.message || "");
-        return new Response(
-          JSON.stringify({
-            error: isTimeout ? `Request timed out (${timeoutMs / 1000}s)` : "Network error",
-          }),
-          {
-            status: isTimeout ? 504 : 500,
-            headers: { "Content-Type": "application/json" },
-          }
-        );
-      } finally {
-        clearTimeout(timer);
-      }
-    })();
-
+    // 先占位 inflight（用于并发合并）
+    let inflightResolve: (() => void) | null = null;
     if (cacheKey) {
-      fetchCacheRef.current.set(cacheKey, { ts: Date.now(), prom: doFetch });
-      // 5 分钟后强制清缓存，防止陈旧
-      setTimeout(() => fetchCacheRef.current.delete(cacheKey!), 300_000);
+      const placeholder: CachedHttp = {
+        ts: Date.now(),
+        status: 0,
+        statusText: "",
+        headers: {},
+        body: new ArrayBuffer(0),
+        inflight: new Promise<void>((res) => { inflightResolve = res; }),
+      };
+      fetchCacheRef.current.set(cacheKey, placeholder);
     }
 
-    res = await doFetch;
+    let res: Response;
+    try {
+      res = await fetch(url, { ...defaultOptions, ...options, signal: combinedSignal });
+    } catch (err: any) {
+      console.error("apiFetch error:", url, err?.name || err?.message || err);
+      const isTimeout = err?.name === "AbortError" || /abort|timeout/i.test(err?.message || "");
+      res = new Response(
+        JSON.stringify({
+          error: isTimeout ? `Request timed out (${timeoutMs / 1000}s)` : "Network error",
+        }),
+        {
+          status: isTimeout ? 504 : 500,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    } finally {
+      clearTimeout(timer);
+    }
+
+    // 如果是 GET → 把真实响应体读出来写成 ArrayBuffer 持久化进缓存
+    if (cacheKey) {
+      try {
+        // 必须先 clone，再把 clone 消费掉缓存，然后返回原始 res
+        const forCache = res.clone();
+        const bufP = forCache.arrayBuffer();
+        const headersRec: Record<string, string> = {};
+        res.headers.forEach((v, k) => { headersRec[k.toLowerCase()] = v; });
+        const status = res.status;
+        const statusText = res.statusText;
+        bufP.then((buf) => {
+          fetchCacheRef.current.set(cacheKey!, {
+            ts: Date.now(),
+            status,
+            statusText,
+            headers: headersRec,
+            body: buf,
+          });
+          inflightResolve?.();
+        }).catch(() => {
+          fetchCacheRef.current.delete(cacheKey!);
+          inflightResolve?.();
+        });
+      } catch {
+        inflightResolve?.();
+      }
+      // 5 分钟强制清旧数据
+      setTimeout(() => fetchCacheRef.current.delete(cacheKey!), 300_000);
+    }
 
     // 401 未授权 → 清除登录态并跳转登录页
     if (res.status === 401 && !redirectingRef.current) {

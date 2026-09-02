@@ -262,26 +262,41 @@ export default function MyOrdersPage() {
   };
 
   const fetchOrders = async () => {
-    if (!user?.id) return;
+    if (!user?.id) return false;
     try {
       const res = await apiFetch(`/api/orders?agentId=${user.id}`);
       if (res.ok) {
-        const data = await res.json().catch(() => []);
-        setOrders(Array.isArray(data) ? data : []);
+        const data = await res.json().catch(() => null);
+        // ✅ 双保险：只有真实返回数组时才覆盖 orders，任何异常（包括缓存 body consumed 导致 .json() 失败 / 401 / 5xx）
+        //    一律保留旧数据不写入 []，避免 20 秒后『暂无订单』。
+        if (Array.isArray(data)) {
+          setOrders(data);
+          return true;
+        } else {
+          console.warn("[agent/orders] /api/orders 返回非数组，保留旧 orders，data=", data);
+        }
+      } else {
+        console.warn("[agent/orders] /api/orders HTTP", res.status, "保留旧数据");
       }
     } catch (error) {
-      console.error("Failed to fetch orders:", error);
-    } finally {
-      setLoading(false);
+      console.error("Failed to fetch orders (保留旧数据):", error);
     }
+    return false;
   };
 
   useEffect(() => {
     if (!user?.id) return;
-    fetchOrders();
-    fetchProductImages();
-    const interval = setInterval(fetchOrders, 5000);
-    return () => clearInterval(interval);
+    let cancelled = false;
+    // 初次 fetch：成功与否都在首次响应后关 loading，避免白屏转圈
+    fetchOrders()
+      .then((ok) => { if (!cancelled) fetchProductImages(); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    // 从 5s 拉回到 15s：代理商端不需要毫秒级实时，避免与 GET 缓存 TTL(10s) 边界死锁
+    const interval = setInterval(() => { if (!cancelled) void fetchOrders(); }, 15000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
   }, [user?.id]);
 
   // 模态框打开时锁定背景滚动
