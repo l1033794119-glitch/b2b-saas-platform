@@ -258,30 +258,6 @@ export default function DashboardPage() {
     [dateFilter, customDateRange]
   );
 
-  // 根据日期筛选后的订单
-  const filteredOrders = useMemo(() => {
-    const safeOrders = Array.isArray(orders) ? orders : [];
-    let result = filterOrdersByDate(safeOrders, dateRange);
-
-    // 状态筛选
-    if (statusFilter !== "all") {
-      result = result.filter((o: any) => o.status === statusFilter);
-    }
-
-    // 关键词搜索
-    if (searchKeyword.trim()) {
-      const keyword = searchKeyword.toLowerCase();
-      result = result.filter((o: any) =>
-        (o.orderNo || "").toLowerCase().includes(keyword) ||
-        (o.company || "").toLowerCase().includes(keyword) ||
-        (o.contactName || "").toLowerCase().includes(keyword) ||
-        (o.agentId || "").toLowerCase().includes(keyword)
-      );
-    }
-
-    return result;
-  }, [orders, dateRange, statusFilter, searchKeyword]);
-
   const safeProducts = Array.isArray(products) ? products : [];
   const safeOrders = Array.isArray(orders) ? orders : [];
   const safeWarehouses = Array.isArray(warehouses) ? warehouses : [];
