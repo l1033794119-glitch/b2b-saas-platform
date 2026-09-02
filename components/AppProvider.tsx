@@ -306,6 +306,75 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     document.documentElement.classList.add("dark");
   }, []);
 
+  // ---- 屏蔽第三方浏览器扩展注入脚本的控制台报错 ----
+  //  用户截图报错：VMxxx:2 Uncaught TypeError: Cannot read properties of undefined (reading 'startTime')
+  //  典型来源是翻译、广告拦截、货币兑换、密码管理等扩展（DevTools 里堆栈全部是 <anonymous>）。
+  //  这类错误不影响业务，但会在 Console 里占满红色 ERROR，让用户以为代码坏了。
+  //  处理方式：
+  //   1) 注册 window.onerror，识别"注入脚本来源"（消息含 startTime / reportAllChanges / chrome-extension:// / moz-extension:// / VM\d+/ eval inline / anonymous）
+  //      全部改为 console.debug（灰色不显眼），并返回 true 阻止浏览器继续以红色 ERROR 打印。
+  //   2) 再加 window.addEventListener("unhandledrejection") 拦截来自扩展的 Promise 抛错。
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const EXTN_ERR_MARKERS = [
+      "startTime",
+      "reportAllChanges",
+      "chrome-extension://",
+      "moz-extension://",
+      "safari-extension://",
+      "edge-extension://",
+      "VM",
+    ];
+
+    const looksLikeExtensionError = (message: string, source?: string) => {
+      const m = String(message || "");
+      const s = String(source || "");
+      if (/chrome-extension:|moz-extension:|safari-extension:|edge-extension:/.test(s)) return true;
+      if (/^VM\d+/.test(s) || /eval at <anonymous>/.test(s)) return true;
+      for (const key of EXTN_ERR_MARKERS) if (m.includes(key) || s.includes(key)) return true;
+      return false;
+    };
+
+    const originalOnerror = window.onerror;
+    window.onerror = function (msg, url, lineNo, columnNo, error) {
+      try {
+        const message = typeof msg === "string" ? msg : (msg as any)?.message || String(msg);
+        const source = typeof url === "string" ? url : "";
+        if (looksLikeExtensionError(message, source)) {
+          // 真的是扩展注入脚本 → 只打 debug 级日志（不红），然后吞掉
+          // eslint-disable-next-line no-console
+          console.debug("[ext-inject suppressed]", message, { url, lineNo, columnNo });
+          return true;
+        }
+      } catch {}
+      // 非扩展 → 走原生 onerror（仍然按红色 ERROR 显示，方便定位真实代码问题）
+      if (typeof originalOnerror === "function") {
+        try { return originalOnerror.apply(window, arguments as any); } catch {}
+      }
+      return false;
+    };
+
+    const onUnhandled = (e: PromiseRejectionEvent) => {
+      try {
+        const reason = (e as any)?.reason;
+        const message = typeof reason === "string" ? reason : reason?.message || String(reason || "");
+        const stack = reason?.stack || "";
+        if (looksLikeExtensionError(message, stack)) {
+          // eslint-disable-next-line no-console
+          console.debug("[ext-inject suppressed unhandled]", message);
+          e.preventDefault?.();
+        }
+      } catch {}
+    };
+    window.addEventListener("unhandledrejection", onUnhandled);
+
+    return () => {
+      window.onerror = originalOnerror || null;
+      window.removeEventListener("unhandledrejection", onUnhandled);
+    };
+  }, []);
+
   const setLang = (l: Lang) => {
     setLangState(l);
     try {

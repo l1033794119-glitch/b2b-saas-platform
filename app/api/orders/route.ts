@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath, revalidateTag } from "next/cache";
-import { getAllOrders, getOrdersByAgentId, createOrder, getProductById, updateProductStock, getAgentById, deductCredit } from "@/lib/repository";
+import {
+  getAllOrders, getOrdersByAgentId, createOrder, getProductById,
+  updateProductStock, getAgentById, deductCredit, queryOrders,
+} from "@/lib/repository";
 import { requireAuth, requireAdmin, checkOwnership, SessionUser } from "@/lib/auth";
 import { verifyCsrfToken, issueCsrfToken, checkRateLimit } from "@/lib/rate-limit";
 import { verifyCaptcha } from "@/lib/captcha";
@@ -14,7 +17,7 @@ function formatMySQLDate(date: Date = new Date()): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
-// GET - 获取所有订单或按代理商筛选
+// GET - 获取订单（支持分页 + 搜索 + 多维度筛选 / 兼容老调用：不传 pageSize 仍返回数组）
 export async function GET(req: NextRequest) {
   try {
     const authResult = await requireAuth(req);
@@ -22,23 +25,49 @@ export async function GET(req: NextRequest) {
     const user = authResult as SessionUser;
 
     const { searchParams } = new URL(req.url);
-    const requestedAgentId = searchParams.get("agentId");
 
-    // 代理商只能查看自己的订单；管理员可指定 agentId 或查看全部
-    if (user.role === "agent") {
-      // 忽略前端传入的 agentId，强制使用当前登录用户 ID
-      const orders = await getOrdersByAgentId(user.id);
+    // ---- 分页/筛选参数（统一接收，admin/agent/shipping 都走 queryOrders） ----
+    const requestedAgentId = searchParams.get("agentId") || undefined;
+    const status = searchParams.get("status") || undefined;
+    // statusIn: 物流页用，逗号分隔（例：pending_delivery,pending_tracking,shipped,completed）
+    const statusIn = searchParams.get("statusIn")
+      ? searchParams.get("statusIn")!.split(",").map((s) => s.trim()).filter(Boolean)
+      : undefined;
+    const warehouseId = searchParams.get("warehouseId") || undefined;
+    const from = searchParams.get("from") || searchParams.get("dateFrom") || undefined;
+    const to = searchParams.get("to") || searchParams.get("dateTo") || undefined;
+    const q = searchParams.get("q") || searchParams.get("search") || undefined;
+    const pageRaw = searchParams.get("page");
+    const pageSizeRaw = searchParams.get("pageSize");
+
+    const page = pageRaw ? parseInt(pageRaw, 10) : NaN;
+    const pageSize = pageSizeRaw ? parseInt(pageSizeRaw, 10) : NaN;
+    const wantPaginated = Number.isFinite(pageSize) && pageSize > 0;
+
+    // 代理商：只能看自己的订单，完全忽略传入的 agentId
+    const agentScope = user.role === "agent" ? user.id : requestedAgentId;
+
+    // ---- 兼容模式：未传 pageSize（仍然一次性返回全量数组，给 dashboard/detail 老调用） ----
+    if (!wantPaginated) {
+      if (agentScope) {
+        const orders = await getOrdersByAgentId(agentScope);
+        return NextResponse.json(orders);
+      }
+      const orders = await getAllOrders();
       return NextResponse.json(orders);
     }
 
-    // 管理员
-    if (requestedAgentId) {
-      const orders = await getOrdersByAgentId(requestedAgentId);
-      return NextResponse.json(orders);
-    }
-
-    const orders = await getAllOrders();
-    return NextResponse.json(orders);
+    // ---- 分页模式：返回 { data, total, page, pageSize, totalPages, hasPrev, hasNext } ----
+    const result = await queryOrders({
+      agentId: agentScope,
+      status: status && status !== "all" ? status : undefined,
+      statusIn,
+      warehouseId: warehouseId && warehouseId !== "all" ? warehouseId : undefined,
+      from, to, q,
+      page: Number.isFinite(page) && page > 0 ? page : 1,
+      pageSize,
+    });
+    return NextResponse.json(result);
   } catch (error: any) {
     console.error("Orders GET error:", error);
     return NextResponse.json({ error: error.message || "Failed to fetch orders" }, { status: 500 });

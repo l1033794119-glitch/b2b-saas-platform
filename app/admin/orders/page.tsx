@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { AdminLayout } from "@/components/Layout";
 import { PageCard, StatusBadge } from "@/components/Sidebar";
 import { useApp } from "@/components/AppProvider";
 import { formatCurrency, formatNumber, parseOrderDate } from "@/lib/utils";
+import { useOrderQuery } from "@/hooks/useOrderQuery";
 import { Eye, Truck, FileText, Search, X, Phone, Mail, User, MapPin, Package, Image, Upload, Check, AlertCircle, Edit2, QrCode, Package as PackageIcon, Download, Zap, XCircle, Copy } from "lucide-react";
 interface OrderItem {
   productId: string;
@@ -73,19 +74,33 @@ const statuses = [
 
 export default function OrdersPage() {
   const { t, currency, lang, apiFetch, user } = useApp();
-  // ---- 修复：初始 null 区分「正在加载」 vs 「真的没订单」，避免刚进来显示「暂无订单 0 笔」再跳数据
-  const [data, setData] = useState<Order[] | null>(null);
+
+  // ---- 分页/搜索（逐页加载，不再一次拉 4000+ 订单） ----
+  const oq = useOrderQuery({ pageSize: 20, scope: "admin" });
+  const {
+    data, total, page, pageSize, totalPages, hasPrev, hasNext, loading, searching, pageStats,
+    draftQ, setDraftQ, draftStatus, draftAgent, draftWarehouse, draftFrom, setDraftFrom, draftTo, setDraftTo,
+    submitSearch, quickSetStatus, quickSetAgent, quickSetWarehouse, quickSetDate, quickClear,
+    setPage, goPrev, goNext, updateOrderInCache, fetchAllForExport,
+  } = oq;
+
+  // ---- Agents / Warehouses / Products 下拉选项仍保留本地一次性拉（不会变，数量少） ----
   const [agents, setAgents] = useState<Agent[] | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [q, setQ] = useState("");
-  const [flt, setFlt] = useState("all");
-  const [agentFilter, setAgentFilter] = useState("all");
-  const [warehouseFilter, setWarehouseFilter] = useState("all");
-  // ---- 修复：null（未加载）区分空数组
   const [warehouses, setWarehouses] = useState<Warehouse[] | null>(null);
   const [products, setProducts] = useState<any[] | null>(null);
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
+
+  // ---- 兼容：旧的 q/flt/agentFilter/warehouseFilter/dateFrom/dateTo 变量名
+  //      全部重定向到 hook 的 draft* 或 submitted。后续老的 setXxx 调用改成 quickSet
+  const q = draftQ;
+  const flt = draftStatus;
+  const agentFilter = draftAgent;
+  const warehouseFilter = draftWarehouse;
+  const dateFrom = draftFrom;
+  const dateTo = draftTo;
+
+  // 兼容：page 在 hook 内部管理（旧的本地 PAGE_SIZE 没用了）
+  void pageSize;
+
   const [selected, setSelected] = useState<string | null>(null);
   const [showShipModal, setShowShipModal] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
@@ -105,8 +120,6 @@ export default function OrdersPage() {
   const [tempAddress, setTempAddress] = useState("");
   const [tempPostalCode, setTempPostalCode] = useState("");
   const [tempCountry, setTempCountry] = useState("");
-  const [page, setPage] = useState(1);
-  const PAGE_SIZE = 10;
 
 
   const handleQrImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, forEdit = false) => {
@@ -191,66 +204,36 @@ export default function OrdersPage() {
     }
   };
 
-  // ---- 双保险：只有 res.ok && Array.isArray(data) 才覆盖；否则保留旧值（包括 null）
-  //      杜绝『缓存构造 Response 抛 status=0 → 500 → .json() fail → setOrders([])』变暂无订单
-  const fetchOrders = async () => {
-    if (!user?.id) return false;
-    try {
-      const res = await apiFetch("/api/orders");
-      if (res.ok) {
-        const orders = await res.json().catch(() => null);
-        if (Array.isArray(orders)) {
-          setData(orders);
-          return true;
-        } else {
-          console.warn("[admin/orders] /api/orders 返回非数组，保留旧 data:", orders);
-        }
-      } else {
-        console.warn("[admin/orders] /api/orders HTTP", res.status, "保留旧数据");
-      }
-    } catch (error) {
-      console.error("[admin/orders] Failed to fetch orders (保留旧数据):", error);
-    }
-    return false;
-  };
-
+  // ---- 保留：agents/warehouses/products 一次性拉（下拉选项目录，不会频繁变更；order 分页数据已由 useOrderQuery 管） ----
   const fetchAgents = async () => {
-    if (!user?.id) return false;
+    if (!user?.id) return;
     try {
       const res = await apiFetch("/api/agents");
       if (res.ok) {
         const list = await res.json().catch(() => null);
-        if (Array.isArray(list)) { setAgents(list); return true; }
-        console.warn("[admin/orders] /api/agents 非数组，保留旧:", list);
+        if (Array.isArray(list)) setAgents(list);
       }
-    } catch (e) { console.error("[admin/orders] fetchAgents fail (保留旧):", e); }
-    return false;
+    } catch (e) { console.error("admin/orders fetchAgents fail:", e); }
   };
-
   const fetchWarehouses = async () => {
-    if (!user?.id) return false;
+    if (!user?.id) return;
     try {
       const res = await apiFetch("/api/warehouses");
       if (res.ok) {
         const list = await res.json().catch(() => null);
-        if (Array.isArray(list)) { setWarehouses(list); return true; }
-        console.warn("[admin/orders] /api/warehouses 非数组，保留旧:", list);
+        if (Array.isArray(list)) setWarehouses(list);
       }
-    } catch (e) { console.error("[admin/orders] fetchWarehouses fail (保留旧):", e); }
-    return false;
+    } catch (e) { console.error("admin/orders fetchWarehouses fail:", e); }
   };
-
   const fetchProducts = async () => {
-    if (!user?.id) return false;
+    if (!user?.id) return;
     try {
       const res = await apiFetch("/api/products");
       if (res.ok) {
         const list = await res.json().catch(() => null);
-        if (Array.isArray(list)) { setProducts(list); return true; }
-        console.warn("[admin/orders] /api/products 非数组，保留旧:", list);
+        if (Array.isArray(list)) setProducts(list);
       }
-    } catch (e) { console.error("[admin/orders] fetchProducts fail (保留旧):", e); }
-    return false;
+    } catch (e) { console.error("admin/orders fetchProducts fail:", e); }
   };
 
   const getProductImage = (productId?: string) => {
@@ -262,42 +245,21 @@ export default function OrdersPage() {
     return "";
   };
 
-  // ---- 修复：
-  //      1) cancelled 防卸载后 setState
-  //      2) 15s 后台轮询 orders/agents/warehouses（products 不变），失败全保留旧值
-  //      3) 9s max 强行关 loading（兜底）
-  //      4) 真正的"订单数据写完 → 关 loading"在下面的 useEffect(监听 data)
+  // 只在首次加载时拉下拉选项 + 图片缓存（不再拉整表 orders，useOrderQuery 管）
   useEffect(() => {
     if (!user?.id) return;
     let cancelled = false;
-    const maxLoadingTimer = setTimeout(() => { if (!cancelled) setLoading(false); }, 9000);
-
-    void Promise.allSettled([fetchOrders(), fetchAgents(), fetchWarehouses(), fetchProducts()]);
-
-    const ival = setInterval(() => {
-      if (cancelled) return;
-      void fetchOrders();
-      void fetchAgents();
-      void fetchWarehouses();
-    }, 15000);
-    return () => {
-      cancelled = true;
-      clearTimeout(maxLoadingTimer);
-      clearInterval(ival);
-    };
+    void Promise.allSettled([fetchAgents(), fetchWarehouses(), fetchProducts()]);
+    // 搜索框默认按回车也能提交（同时用户要求"点击搜索按钮才搜"，所以不会自动搜）
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
-  // ---- 关键修复：
-  //     data 从 null → array（哪怕是 []）意味着首次 orders HTTP 真正成功了。
-  //     这时才关 loading，避免 data=null 时被当成空数组显示「暂无订单」然后再跳出来（用户描述的刷新后没数据再等有了）。
-  useEffect(() => {
-    if (Array.isArray(data) && loading) setLoading(false);
-  }, [data, loading]);
+  // ---- 兼容性：旧代码把 updateOrder 成功后 setData()——现在改调 updateOrderInCache（内存替换当前页） ----
+  //      同时保持 updateOrder 成功后 selectedOrder 合并 patch
+  // ---- 旧：setData(safeOrders.map(...)) → 新：oq.updateOrderInCache(id, updated)
 
-  useEffect(() => {
-    setPage(1);
-  }, [q, flt, agentFilter, warehouseFilter, dateFrom, dateTo]);
-
+  // 模态框锁定背景滚动
   useEffect(() => {
     if (selected && typeof window !== "undefined") {
       const originalBodyOverflow = document.body.style.overflow;
@@ -311,20 +273,11 @@ export default function OrdersPage() {
     }
   }, [selected]);
 
-  const [updatingOrderIds, setUpdatingOrderIds] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (updatingOrderIds.size === 0) {
-        fetchOrders();
-      }
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [updatingOrderIds]);
+  // ---- 兼容：旧的 useEffect 监听 q/flt/... 变化 setPage(1) 已由 useOrderQuery 的 quickSet* 做了 ----
+  void flt; void agentFilter; void warehouseFilter; void dateFrom; void dateTo;
 
   const updateOrder = async (id: string, updates: Partial<Order>) => {
     setUpdating(true);
-    setUpdatingOrderIds((prev) => new Set(prev).add(id));
     try {
       const res = await apiFetch(`/api/orders/${id}`, {
         method: "PUT",
@@ -333,9 +286,7 @@ export default function OrdersPage() {
       });
       if (res.ok) {
         const updated = await res.json().catch(() => ({}));
-        const currentOrder = safeData.find((o) => o.id === id);
-        const updatedOrder = { ...currentOrder, ...updated };
-        setData(safeData.map((o) => o.id === id ? updatedOrder : o));
+        updateOrderInCache(id, updated);
         return true;
       } else {
         const err = await res.json().catch(() => ({}));
@@ -348,46 +299,24 @@ export default function OrdersPage() {
       return false;
     } finally {
       setUpdating(false);
-      setUpdatingOrderIds((prev) => {
-        const next = new Set(prev);
-        next.delete(id);
-        return next;
-      });
     }
   };
 
-  const safeData = Array.isArray(data) ? data : [];
+  const safeData = data; // useOrderQuery 已经返回当前页的订单数组，后端分页后不再本地 filter
   const safeAgents = Array.isArray(agents) ? agents : [];
   const safeProducts = Array.isArray(products) ? products : [];
   const safeWarehouses = Array.isArray(warehouses) ? warehouses : [];
 
-  const filtered = safeData.filter((o) => {
-    const searchText = q.toLowerCase();
-    const mq = !q ||
-      (o.orderNo || "").toLowerCase().includes(searchText) ||
-      (o.contactName && o.contactName.toLowerCase().includes(searchText)) ||
-      (o.company && o.company.toLowerCase().includes(searchText)) ||
-      (o.phone && o.phone.toLowerCase().includes(searchText)) ||
-      (o.email && o.email.toLowerCase().includes(searchText)) ||
-      (o.postalCode && o.postalCode.toLowerCase().includes(searchText)) ||
-      (o.shippingAddress && o.shippingAddress.toLowerCase().includes(searchText));
+  // filtered 变量：后端已经分页+过滤返回了当前页 data
+  const filtered = safeData;
 
-    const mf = flt === "all" || o.status === flt;
-
-    const mage = agentFilter === "all" || o.agentId === agentFilter;
-
-    const mwarehouse = warehouseFilter === "all" || 
-      (o.warehouseId && o.warehouseId === warehouseFilter) ||
-      (o.warehouse && o.warehouse === warehouseFilter) ||
-      (o.items && o.items.some((item: any) => item.warehouseId === warehouseFilter || item.warehouse === warehouseFilter));
-
-    const orderDate = parseOrderDate(o.date);
-    const fromDate = dateFrom ? parseOrderDate(dateFrom + " 00:00:00") : null;
-    const toDate = dateTo ? parseOrderDate(dateTo + " 23:59:59") : null;
-    const mdate = (!fromDate || orderDate >= fromDate) && (!toDate || orderDate <= toDate);
-
-    return mq && mf && mage && mdate && mwarehouse;
-  });
+  // 搜索：回车触发
+  const onSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      submitSearch();
+    }
+  };
 
   // 统计待投递状态下的重复收件人姓名
   const showDupBadge = flt === "pending_delivery";
@@ -759,7 +688,7 @@ export default function OrdersPage() {
   };
 
   return (
-    <AdminLayout title={t("orders")} subtitle={`${formatNumber(filtered.length)} / ${formatNumber(safeData.length)} ${lang === "en" ? "orders" : lang === "zh-CN" ? "订单" : "訂單"}`}>
+    <AdminLayout title={t("orders")} subtitle={`${formatNumber(total)} ${lang === "en" ? "orders" : lang === "zh-CN" ? "订单" : "訂單"}`}>
       <div className="card p-3 sm:p-4 mb-4">
         <div className="flex items-center justify-between mb-3 gap-3">
           <div className="text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -767,24 +696,37 @@ export default function OrdersPage() {
           </div>
           <button
             onClick={exportCSV}
-            disabled={filtered.length === 0}
+            disabled={total === 0}
             className="btn-primary py-1.5 px-3 text-sm flex items-center gap-1.5 flex-shrink-0"
           >
             <Download className="w-4 h-4" />
             {lang === "en" ? "Export CSV" : lang === "zh-CN" ? "导出CSV" : "匯出CSV"}
-            <span className="text-xs opacity-75">({filtered.length})</span>
+            <span className="text-xs opacity-75">({formatNumber(total)})</span>
           </button>
         </div>
 
         <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-3 sm:gap-4">
-          <div className="w-full sm:flex-1 sm:min-w-[200px] relative">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              className="input !pl-11 py-2.5 w-full"
-              placeholder={lang === "en" ? "Search orders..." : lang === "zh-CN" ? "搜索订单（订单号、联系人、电话、邮箱、邮编、地址）..." : "搜尋訂單（訂單號、聯絡人、電話、郵箱、郵遞區號、地址）..."}
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-            />
+          <div className="w-full sm:flex-1 sm:min-w-[200px] flex gap-2">
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                className="input !pl-11 py-2.5 w-full"
+                placeholder={lang === "en" ? "Search orders..." : lang === "zh-CN" ? "搜索订单（订单号、联系人、电话、邮箱、邮编、地址）..." : "搜尋訂單（訂單號、聯絡人、電話、郵箱、郵遞區號、地址）..."}
+                value={q}
+                onChange={(e) => setDraftQ(e.target.value)}
+                onKeyDown={onSearchKeyDown}
+              />
+            </div>
+            <button
+              onClick={() => submitSearch()}
+              disabled={searching}
+              className="btn-primary px-3 sm:px-4 py-2.5 text-sm flex items-center gap-1.5 whitespace-nowrap disabled:opacity-60"
+            >
+              <Search className="w-4 h-4" />
+              {searching
+                ? (lang === "en" ? "Searching..." : lang === "zh-CN" ? "搜索中..." : "搜尋中...")
+                : (lang === "en" ? "Search" : lang === "zh-CN" ? "搜索" : "搜尋")}
+            </button>
           </div>
 
           <div className="grid grid-cols-2 gap-3 w-full sm:w-auto sm:min-w-[360px]">
@@ -793,7 +735,7 @@ export default function OrdersPage() {
               <select
                 className="select py-2 w-full"
                 value={agentFilter}
-                onChange={(e) => setAgentFilter(e.target.value)}
+                onChange={(e) => quickSetAgent(e.target.value)}
               >
                 <option value="all">{lang === "en" ? "All Agents" : lang === "zh-CN" ? "全部代理商" : "全部代理商"}</option>
                 {safeAgents.map((a) => (
@@ -807,7 +749,7 @@ export default function OrdersPage() {
               <select
                 className="select py-2 w-full"
                 value={warehouseFilter}
-                onChange={(e) => setWarehouseFilter(e.target.value)}
+                onChange={(e) => quickSetWarehouse(e.target.value)}
               >
                 <option value="all">{lang === "en" ? "All Warehouses" : lang === "zh-CN" ? "全部仓库" : "全部倉庫"}</option>
                 {safeWarehouses.map((w) => (
@@ -822,7 +764,7 @@ export default function OrdersPage() {
           {statuses.map((s) => (
             <button
               key={s.id}
-              onClick={() => setFlt(s.id)}
+              onClick={() => quickSetStatus(s.id)}
               className={`px-3 py-1.5 text-xs sm:text-sm rounded-lg border border-slate-200 dark:border-slate-800 ${flt === s.id ? "bg-emerald-500 text-white border-emerald-500" : ""}`}
             >
               {lang === "en" ? s.labelEn : lang === "zh-CN" ? s.labelZhCN : s.labelZhTW}
@@ -837,7 +779,11 @@ export default function OrdersPage() {
               type="date"
               className="input py-2 w-full"
               value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
+              onChange={(e) => {
+                const f = e.target.value;
+                setDraftFrom(f);
+                if (f && dateTo) quickSetDate(f, dateTo);
+              }}
             />
           </div>
           <div className="flex-1 min-w-[130px]">
@@ -846,11 +792,15 @@ export default function OrdersPage() {
               type="date"
               className="input py-2 w-full"
               value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
+              onChange={(e) => {
+                const t2 = e.target.value;
+                setDraftTo(t2);
+                if (dateFrom && t2) quickSetDate(dateFrom, t2);
+              }}
             />
           </div>
           <button
-            onClick={() => { setQ(""); setFlt("all"); setAgentFilter("all"); setWarehouseFilter("all"); setDateFrom(""); setDateTo(""); setPage(1); }}
+            onClick={() => quickClear()}
             className="btn-ghost py-2 flex-shrink-0"
           >
             {lang === "en" ? "Clear Filters" : lang === "zh-CN" ? "清除筛选" : "清除篩選"}
@@ -1572,11 +1522,9 @@ export default function OrdersPage() {
           ) : (
             <>
             {(() => {
-              const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
-              const currentPage = Math.min(page, totalPages);
-              const startIdx = (currentPage - 1) * PAGE_SIZE;
-              const endIdx = startIdx + PAGE_SIZE;
-              const pageItems = filtered.slice(startIdx, endIdx);
+              const pageItems = filtered;
+              const currentPage = page;
+              const { startIdx, endIdx } = pageStats;
               const dupLabel = lang === "en" ? "Multiple Orders" : lang === "zh-CN" ? "多订单" : "多訂單";
               const dupLabelFull = lang === "en" ? "Multiple Orders for this customer" : lang === "zh-CN" ? "该客户有多个订单" : "該客戶有多個訂單";
               return (
@@ -1698,16 +1646,16 @@ export default function OrdersPage() {
             <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/5">
               <div className="text-xs text-slate-500">
                 {lang === "en" 
-                  ? `${startIdx + 1}-${Math.min(endIdx, filtered.length)} of ${filtered.length}`
+                  ? `${startIdx}-${endIdx} of ${total}`
                   : lang === "zh-CN" 
-                    ? `${startIdx + 1}-${Math.min(endIdx, filtered.length)} 条 / 共 ${filtered.length} 条`
-                    : `${startIdx + 1}-${Math.min(endIdx, filtered.length)} 條 / 共 ${filtered.length} 條`
+                    ? `${startIdx}-${endIdx} 条 / 共 ${total} 条`
+                    : `${startIdx}-${endIdx} 條 / 共 ${total} 條`
                 }
               </div>
               <div className="flex items-center gap-1">
                 <button
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={currentPage <= 1}
+                  onClick={goPrev}
+                  disabled={!hasPrev}
                   className="w-8 h-8 rounded-lg flex items-center justify-center text-sm disabled:opacity-30 hover:bg-white/5 transition-colors"
                 >
                   ‹
@@ -1716,8 +1664,8 @@ export default function OrdersPage() {
                   {currentPage} / {totalPages}
                 </div>
                 <button
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={currentPage >= totalPages}
+                  onClick={goNext}
+                  disabled={!hasNext}
                   className="w-8 h-8 rounded-lg flex items-center justify-center text-sm disabled:opacity-30 hover:bg-white/5 transition-colors"
                 >
                   ›

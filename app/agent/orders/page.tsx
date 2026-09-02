@@ -5,6 +5,7 @@ import { AgentLayout } from "@/components/Layout";
 import { StatusBadge } from "@/components/Sidebar";
 import { useApp } from "@/components/AppProvider";
 import { formatCurrency, formatNumber, parseOrderDate } from "@/lib/utils";
+import { useOrderQuery } from "@/hooks/useOrderQuery";
 import { Eye, Package, MapPin, Phone, Mail, User, Truck, Check, Search, Filter, Calendar, ChevronDown, X, XCircle, Copy } from "lucide-react";
 
 interface OrderItem {
@@ -61,22 +62,52 @@ const statusConfig: Record<string, { labelEn: string; labelZhCN: string; labelZh
 
 export default function MyOrdersPage() {
   const { t, currency, lang, user, apiFetch } = useApp();
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
+
+  // ---- 分页/搜索（逐页加载，不再一次拉几千条） ----
+  const oq = useOrderQuery({ pageSize: 20, scope: "agent" });
+  const {
+    data, total, page, totalPages, hasPrev, hasNext, loading, searching, pageStats,
+    draftQ, setDraftQ, draftStatus, setDraftStatus, draftFrom, setDraftFrom, draftTo, setDraftTo,
+    submitSearch, quickSetStatus, quickSetDate, quickClear,
+    setPage, goPrev, goNext, updateOrderInCache, fetchAllForExport,
+    submitted,
+  } = oq;
+
+  // 兼容旧变量名
+  const orders = data as any[];
+  const searchKeyword = draftQ;
+  const statusFilter = draftStatus;
+
   const [selected, setSelected] = useState<Order | null>(null);
 
-  // 筛选状态
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  // 日期快捷选项（今日/本周/自定义...）选中态（UI 专用，实际筛选已转化为 from/to 传给 hook 的 submitted）
   const [dateFilter, setDateFilter] = useState<string>("all");
   const [customDateRange, setCustomDateRange] = useState<{ start: string; end: string }>({ start: "", end: "" });
-  const [searchKeyword, setSearchKeyword] = useState<string>("");
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [showDateDropdown, setShowDateDropdown] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
-  const [page, setPage] = useState(1);
-  const PAGE_SIZE = 10;
+  const _pageSizeOld = 10;
+  void _pageSizeOld;
+
+  // ---- 统计卡片：当前筛选条件下的全量（用 hook 的 submitted 作为 key，保证翻页不重拉）----
+  const [statsOrders, setStatsOrders] = useState<any[]>([]);
+  const statsLoadKey = JSON.stringify(submitted || {});
+
+  useEffect(() => {
+    if (!user?.id) return;
+    let alive = true;
+    fetchAllForExport().then((all) => { if (alive) setStatsOrders(all); });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statsLoadKey, user?.id]);
+
+  // ---- 产品图缓存（一次性拉） ----
+  useEffect(() => {
+    if (!user?.id) return;
+    fetchProductImages();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   // 订单 items.image 是历史快照，产品图更新/删除后会 404，
   // 所以优先用产品表最新缩略图缓存（按 productId 索引）。
@@ -233,11 +264,9 @@ export default function MyOrdersPage() {
 
   // 清除所有筛选
   const clearFilters = () => {
-    setStatusFilter("all");
     setDateFilter("all");
     setCustomDateRange({ start: "", end: "" });
-    setSearchKeyword("");
-    setPage(1);
+    quickClear();
   };
 
   const handleCopy = (text: string) => {
@@ -253,51 +282,6 @@ export default function MyOrdersPage() {
       document.body.removeChild(textarea);
     }
   };
-
-  // 计算运费总计
-  const getTotalShippingFees = () => {
-    return getFilteredOrders()
-      .filter((o) => o.shippingFee && o.shippingFee > 0)
-      .reduce((sum, o) => sum + (o.shippingFee || 0), 0);
-  };
-
-  const fetchOrders = async () => {
-    if (!user?.id) return false;
-    try {
-      const res = await apiFetch(`/api/orders?agentId=${user.id}`);
-      if (res.ok) {
-        const data = await res.json().catch(() => null);
-        // ✅ 双保险：只有真实返回数组时才覆盖 orders，任何异常（包括缓存 body consumed 导致 .json() 失败 / 401 / 5xx）
-        //    一律保留旧数据不写入 []，避免 20 秒后『暂无订单』。
-        if (Array.isArray(data)) {
-          setOrders(data);
-          return true;
-        } else {
-          console.warn("[agent/orders] /api/orders 返回非数组，保留旧 orders，data=", data);
-        }
-      } else {
-        console.warn("[agent/orders] /api/orders HTTP", res.status, "保留旧数据");
-      }
-    } catch (error) {
-      console.error("Failed to fetch orders (保留旧数据):", error);
-    }
-    return false;
-  };
-
-  useEffect(() => {
-    if (!user?.id) return;
-    let cancelled = false;
-    // 初次 fetch：成功与否都在首次响应后关 loading，避免白屏转圈
-    fetchOrders()
-      .then((ok) => { if (!cancelled) fetchProductImages(); })
-      .finally(() => { if (!cancelled) setLoading(false); });
-    // 从 5s 拉回到 15s：代理商端不需要毫秒级实时，避免与 GET 缓存 TTL(10s) 边界死锁
-    const interval = setInterval(() => { if (!cancelled) void fetchOrders(); }, 15000);
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-    };
-  }, [user?.id]);
 
   // 模态框打开时锁定背景滚动
   useEffect(() => {
@@ -330,8 +314,9 @@ export default function MyOrdersPage() {
 
       if (res.ok) {
         const updated = await res.json();
-        const safeOrders = Array.isArray(orders) ? orders : [];
-        setOrders(safeOrders.map((o) => o.id === selected.id ? updated : o));
+        updateOrderInCache(selected.id, updated);
+        // 同时更新统计数据（把取消状态同步进去）
+        setStatsOrders((prev) => (Array.isArray(prev) ? prev.map((o: any) => (o.id === selected.id ? { ...o, ...updated } : o)) : prev));
         setSelected(updated);
         setShowCancelModal(false);
         setCancelReason("");
@@ -352,27 +337,44 @@ export default function MyOrdersPage() {
     return lang === "en" ? config.labelEn : lang === "zh-CN" ? config.labelZhCN : config.labelZhTW;
   };
 
-  useEffect(() => {
-    setPage(1);
-  }, [statusFilter, dateFilter, customDateRange.start, customDateRange.end, searchKeyword]);
+  // 数据：hook 已按 agentId + 服务端搜索/状态/日期过滤，返回 data 就是当前页；total 是总条数。
+  const safeOrders = Array.isArray(orders) ? orders : [];
+  const filteredOrders = safeOrders; // 命名兼容旧模板引用
 
-  const filteredOrders = getFilteredOrders();
+  // 统计卡片基于 statsOrders（全量结果），保证数据正确
+  const statsSafe = Array.isArray(statsOrders) ? statsOrders : [];
+  const getTotalShippingFees = () => statsSafe.filter((o) => o.shippingFee && o.shippingFee > 0).reduce((sum, o) => sum + (o.shippingFee || 0), 0);
   const totalShippingFees = getTotalShippingFees();
+  const totalCount = statsSafe.length;
+  const totalAmount = statsSafe.reduce((sum, o) => sum + (o.total || 0), 0);
+  const pendingCount = statsSafe.filter((o) => ["pending_qrcode", "pending_delivery", "pending_tracking"].includes(o.status)).length;
+
   const hasActiveFilters = statusFilter !== "all" || dateFilter !== "all" || searchKeyword.trim() !== "";
   const statusOptions = getStatusFilterOptions();
   const dateOptions = getDateFilterOptions();
 
+  // 搜索：回车触发
+  const onSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      submitSearch();
+    }
+  };
+
+  // 旧版本地"重置到第一页"不再需要（分页由 hook 管理，搜索会 setPage(1)）
+  void page;
+
   return (
-    <AgentLayout title={t("my_orders")} subtitle={`${formatNumber(filteredOrders.length)} ${lang === "en" ? "orders" : lang === "zh-CN" ? "个订单" : "個訂單"}`}>
-      {/* 统计信息 */}
+    <AgentLayout title={t("my_orders")} subtitle={`${formatNumber(total)} ${lang === "en" ? "orders" : lang === "zh-CN" ? "个订单" : "個訂單"}`}>
+      {/* 统计信息（基于当前筛选下的全量订单） */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div className="card p-4">
           <div className="text-xs text-slate-500 mb-1">{lang === "en" ? "Total Orders" : lang === "zh-CN" ? "订单总数" : "訂單總數"}</div>
-          <div className="text-xl font-bold">{formatNumber(filteredOrders.length)}</div>
+          <div className="text-xl font-bold">{formatNumber(totalCount)}</div>
         </div>
         <div className="card p-4">
           <div className="text-xs text-slate-500 mb-1">{lang === "en" ? "Total Amount" : lang === "zh-CN" ? "订单总额" : "訂單總額"}</div>
-          <div className="text-xl font-bold text-indigo-600">{formatCurrency(filteredOrders.reduce((sum, o) => sum + o.total, 0), currency)}</div>
+          <div className="text-xl font-bold text-indigo-600">{formatCurrency(totalAmount, currency)}</div>
         </div>
         <div className="card p-4">
           <div className="text-xs text-slate-500 mb-1">{lang === "en" ? "Shipping Fees" : lang === "zh-CN" ? "运费总额" : "運費總額"}</div>
@@ -380,31 +382,46 @@ export default function MyOrdersPage() {
         </div>
         <div className="card p-4">
           <div className="text-xs text-slate-500 mb-1">{lang === "en" ? "Pending" : lang === "zh-CN" ? "待处理" : "待處理"}</div>
-          <div className="text-xl font-bold text-amber-600">{formatNumber(filteredOrders.filter((o) => ["pending_qrcode", "pending_delivery", "pending_tracking"].includes(o.status)).length)}</div>
+          <div className="text-xl font-bold text-amber-600">{formatNumber(pendingCount)}</div>
         </div>
       </div>
 
       {/* 筛选器 */}
       <div className="card p-4 mb-6" style={{ overflow: "visible", position: "relative", zIndex: 20 }}>
-        <div className="flex flex-wrap items-center gap-3">
-          {/* 搜索框 */}
-          <div className="relative flex-1 min-w-[200px]">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              placeholder={lang === "en" ? "Search orders..." : lang === "zh-CN" ? "搜索订单号/姓名/电话/运单号/邮编..." : "搜索訂單號/姓名/電話/運單號/郵遞區號..."}
-              value={searchKeyword}
-              onChange={(e) => setSearchKeyword(e.target.value)}
-              className="input !pl-11 w-full"
-            />
-            {searchKeyword && (
-              <button
-                onClick={() => setSearchKeyword("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
+        <div className="flex flex-wrap items-end gap-3">
+          {/* 搜索框 + 搜索按钮（点击按钮 / 回车才触发） */}
+          <div className="flex-1 min-w-[260px] flex flex-col sm:flex-row gap-2">
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder={lang === "en" ? "Search orders..." : lang === "zh-CN" ? "搜索订单号/姓名/电话/运单号/邮编..." : "搜索訂單號/姓名/電話/運單號/郵遞區號..."}
+                value={searchKeyword}
+                onChange={(e) => setDraftQ(e.target.value)}
+                onKeyDown={onSearchKeyDown}
+                className="input !pl-11 w-full"
+              />
+              {searchKeyword && (
+                <button
+                  onClick={() => setDraftQ("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  type="button"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+            <button
+              onClick={() => submitSearch()}
+              disabled={searching}
+              className="btn-primary px-3 sm:px-4 py-2 text-sm flex items-center gap-1.5 whitespace-nowrap disabled:opacity-60"
+              type="button"
+            >
+              <Search className="w-4 h-4" />
+              {searching
+                ? (lang === "en" ? "Searching..." : lang === "zh-CN" ? "搜索中..." : "搜尋中...")
+                : (lang === "en" ? "Search" : lang === "zh-CN" ? "搜索" : "搜尋")}
+            </button>
           </div>
 
           {/* 状态筛选 */}
@@ -412,6 +429,7 @@ export default function MyOrdersPage() {
             <button
               onClick={() => { setShowStatusDropdown(!showStatusDropdown); setShowDateDropdown(false); }}
               className={`btn-ghost flex items-center gap-2 ${statusFilter !== "all" ? "border-indigo-300 bg-indigo-50 dark:bg-indigo-950/30" : ""}`}
+              type="button"
             >
               <Filter className="w-4 h-4" />
               {statusOptions.find((o) => o.value === statusFilter)?.label}
@@ -422,10 +440,11 @@ export default function MyOrdersPage() {
                 {statusOptions.map((option) => (
                   <button
                     key={option.value}
-                    onClick={() => { setStatusFilter(option.value); setShowStatusDropdown(false); }}
+                    onClick={() => { quickSetStatus(option.value); setShowStatusDropdown(false); }}
                     className={`w-full text-left px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 first:rounded-t-xl last:rounded-b-xl ${
                       statusFilter === option.value ? "text-indigo-600 dark:text-indigo-400 font-medium" : ""
                     }`}
+                    type="button"
                   >
                     {option.label}
                   </button>
@@ -439,6 +458,7 @@ export default function MyOrdersPage() {
             <button
               onClick={() => { setShowDateDropdown(!showDateDropdown); setShowStatusDropdown(false); }}
               className={`btn-ghost flex items-center gap-2 ${dateFilter !== "all" ? "border-indigo-300 bg-indigo-50 dark:bg-indigo-950/30" : ""}`}
+              type="button"
             >
               <Calendar className="w-4 h-4" />
               {dateOptions.find((o) => o.value === dateFilter)?.label}
@@ -449,10 +469,43 @@ export default function MyOrdersPage() {
                 {dateOptions.map((option) => (
                   <button
                     key={option.value}
-                    onClick={() => { setDateFilter(option.value); setShowDateDropdown(false); }}
+                    onClick={() => {
+                      setDateFilter(option.value);
+                      setShowDateDropdown(false);
+                      // 除 custom 之外：选了就立即生效（转化成 from/to）
+                      if (option.value !== "custom") {
+                        const rng = (() => {
+                          const now = new Date();
+                          const s = new Date(); const e = new Date();
+                          switch (option.value) {
+                            case "today":
+                              s.setHours(0, 0, 0, 0); e.setHours(23, 59, 59, 999); break;
+                            case "this_week": {
+                              const d = s.getDay(); s.setDate(s.getDate() - d); s.setHours(0, 0, 0, 0); e.setHours(23, 59, 59, 999); break;
+                            }
+                            case "this_month":
+                              s.setDate(1); s.setHours(0, 0, 0, 0); e.setHours(23, 59, 59, 999); break;
+                            case "last_month":
+                              s.setMonth(s.getMonth() - 1); s.setDate(1); s.setHours(0, 0, 0, 0);
+                              e.setDate(0); e.setHours(23, 59, 59, 999); break;
+                            case "last_7_days":
+                              s.setDate(s.getDate() - 7); s.setHours(0, 0, 0, 0); e.setHours(23, 59, 59, 999); break;
+                            case "all":
+                            default:
+                              return { from: "", to: "" };
+                          }
+                          const pad = (n: number) => String(n).padStart(2, "0");
+                          const fmt = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+                          return { from: fmt(s), to: fmt(e) };
+                        })();
+                        quickSetDate(rng.from, rng.to);
+                        setCustomDateRange({ start: rng.from, end: rng.to });
+                      }
+                    }}
                     className={`w-full text-left px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 first:rounded-t-xl last:rounded-b-xl ${
                       dateFilter === option.value ? "text-indigo-600 dark:text-indigo-400 font-medium" : ""
                     }`}
+                    type="button"
                   >
                     {option.label}
                   </button>
@@ -467,14 +520,23 @@ export default function MyOrdersPage() {
               <input
                 type="date"
                 value={customDateRange.start}
-                onChange={(e) => setCustomDateRange({ ...customDateRange, start: e.target.value })}
+                onChange={(e) => {
+                  const ns = e.target.value;
+                  setCustomDateRange({ ...customDateRange, start: ns });
+                  // 起止都填了才立即应用
+                  if (ns && customDateRange.end) quickSetDate(ns, customDateRange.end);
+                }}
                 className="input py-1.5 px-3 text-sm"
               />
               <span className="text-slate-400">-</span>
               <input
                 type="date"
                 value={customDateRange.end}
-                onChange={(e) => setCustomDateRange({ ...customDateRange, end: e.target.value })}
+                onChange={(e) => {
+                  const ne = e.target.value;
+                  setCustomDateRange({ ...customDateRange, end: ne });
+                  if (customDateRange.start && ne) quickSetDate(customDateRange.start, ne);
+                }}
                 className="input py-1.5 px-3 text-sm"
               />
             </div>
@@ -485,6 +547,7 @@ export default function MyOrdersPage() {
             <button
               onClick={clearFilters}
               className="btn-ghost text-sm flex items-center gap-1 text-rose-500 hover:text-rose-700"
+              type="button"
             >
               <X className="w-4 h-4" />
               {lang === "en" ? "Clear" : lang === "zh-CN" ? "清除" : "清除"}
@@ -511,11 +574,9 @@ export default function MyOrdersPage() {
               ) : (
                 <>
                   {(() => {
-                    const totalPages = Math.ceil(filteredOrders.length / PAGE_SIZE);
-                    const currentPage = Math.min(page, totalPages);
-                    const startIdx = (currentPage - 1) * PAGE_SIZE;
-                    const endIdx = startIdx + PAGE_SIZE;
-                    const pageItems = filteredOrders.slice(startIdx, endIdx);
+                    const pageItems = filteredOrders;
+                    const currentPage = page;
+                    const { startIdx, endIdx } = pageStats;
                     return (
                       <>
                 <div className="hidden sm:block">
@@ -532,11 +593,11 @@ export default function MyOrdersPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {pageItems.map((o) => (
+                      {pageItems.map((o: any) => (
                         <tr key={o.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                           <td className="font-mono text-xs">{o.orderNo}</td>
                           <td className="text-sm max-w-[150px]">
-                            <div className="truncate">{o.items.map((i) => i.name).join(", ")}</div>
+                            <div className="truncate">{o.items.map((i: any) => i.name).join(", ")}</div>
                             <div className="text-xs text-slate-400">{o.items.length} {lang === "en" ? "items" : lang === "zh-CN" ? "件" : "件"}</div>
                           </td>
                           <td className="text-sm">
@@ -564,7 +625,7 @@ export default function MyOrdersPage() {
                 </div>
 
                 <div className="sm:hidden space-y-3">
-                  {pageItems.map((o) => (
+                  {pageItems.map((o: any) => (
                     <div
                       key={o.id}
                       className="card p-4"
@@ -616,16 +677,16 @@ export default function MyOrdersPage() {
                 <div className="flex items-center justify-between px-4 py-3 border-t border-white/5">
                   <div className="text-xs text-slate-500">
                     {lang === "en" 
-                      ? `${startIdx + 1}-${Math.min(endIdx, filteredOrders.length)} of ${filteredOrders.length}`
+                      ? `${startIdx}-${endIdx} of ${total}`
                       : lang === "zh-CN" 
-                        ? `${startIdx + 1}-${Math.min(endIdx, filteredOrders.length)} 条 / 共 ${filteredOrders.length} 条`
-                        : `${startIdx + 1}-${Math.min(endIdx, filteredOrders.length)} 條 / 共 ${filteredOrders.length} 條`
+                        ? `${startIdx}-${endIdx} 条 / 共 ${total} 条`
+                        : `${startIdx}-${endIdx} 條 / 共 ${total} 條`
                     }
                   </div>
                   <div className="flex items-center gap-1">
                     <button
-                      onClick={() => setPage((p) => Math.max(1, p - 1))}
-                      disabled={currentPage <= 1}
+                      onClick={goPrev}
+                      disabled={!hasPrev}
                       className="w-8 h-8 rounded-lg flex items-center justify-center text-sm disabled:opacity-30 hover:bg-white/5 transition-colors"
                     >
                       ‹
@@ -634,8 +695,8 @@ export default function MyOrdersPage() {
                       {currentPage} / {totalPages}
                     </div>
                     <button
-                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                      disabled={currentPage >= totalPages}
+                      onClick={goNext}
+                      disabled={!hasNext}
                       className="w-8 h-8 rounded-lg flex items-center justify-center text-sm disabled:opacity-30 hover:bg-white/5 transition-colors"
                     >
                       ›

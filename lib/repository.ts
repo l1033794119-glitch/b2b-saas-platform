@@ -556,6 +556,163 @@ export async function getOrderById(id: string): Promise<Order | null> {
   return getMemoryStore().orders.find((o) => o.id === id) || null;
 }
 
+/**
+ * 带分页 + 多维筛选 + 模糊搜索的订单查询（订单/物流管理 逐页加载专用）。
+ *
+ * 兼容说明：不传 pageSize 仍然返回全量（最多 20000 条），此时 total 也返回总数方便 subtitle 展示。
+ * 搜索 q 命中：order_no, contact_name, phone, email, postal_code, shipping_address, company(来自 agents 表), agent_id
+ * 搜索 LIKE 用 CONCAT('%',?,'%') 防止注入，同时只对非空 q 生效。
+ */
+export interface QueryOrdersParams {
+  agentId?: string;
+  /** 强制只保留某些状态集合（数组），物流管理要传 ["pending_delivery","pending_tracking","shipped","completed"]。不传则不限制。 */
+  statusIn?: string[];
+  status?: string;
+  warehouseId?: string;
+  from?: string;       // 'YYYY-MM-DD' 或 'YYYY-MM-DD HH:mm:ss'，闭区间起点
+  to?: string;         // 闭区间终点
+  q?: string;          // 搜索词
+  page?: number;       // 1-based；不传或<=0 表示全量（pageSize 也得 undefined 才全量）
+  pageSize?: number;   // 不传：全量；传了：LIMIT pageSize OFFSET (page-1)*pageSize
+}
+
+export interface QueryOrdersResult {
+  data: Order[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  hasPrev: boolean;
+  hasNext: boolean;
+}
+
+export async function queryOrders(p: QueryOrdersParams = {}): Promise<QueryOrdersResult> {
+  const q = (p.q || "").trim();
+  const wantPaginated = typeof p.pageSize === "number" && p.pageSize > 0;
+  const page = Math.max(1, p.page || 1);
+  const pageSize = wantPaginated ? Math.max(1, Math.min(200, p.pageSize!)) : 0;
+  const limit = wantPaginated ? pageSize : 20000;
+  const offset = wantPaginated ? (page - 1) * pageSize : 0;
+
+  if (!(await useDatabase())) {
+    // 内存 store：全量过滤 + 手动分页
+    const store = getMemoryStore();
+    let list: Order[] = store.orders.slice();
+    if (p.agentId) list = list.filter((o) => o.agentId === p.agentId);
+    if (p.statusIn?.length) list = list.filter((o) => p.statusIn!.includes(o.status));
+    if (p.status && p.status !== "all") list = list.filter((o) => o.status === p.status);
+    if (p.warehouseId && p.warehouseId !== "all") {
+      list = list.filter((o) => o.warehouseId === p.warehouseId || o.warehouse === p.warehouseId
+        || (o.items || []).some((it: any) => it.warehouseId === p.warehouseId || it.warehouse === p.warehouseId));
+    }
+    if (p.from) {
+      const s = new Date(p.from).getTime();
+      list = list.filter((o) => new Date(o.date || 0).getTime() >= s);
+    }
+    if (p.to) {
+      const e = new Date(p.to + " 23:59:59").getTime();
+      list = list.filter((o) => new Date(o.date || 0).getTime() <= e);
+    }
+    if (q) {
+      const kw = q.toLowerCase();
+      list = list.filter((o) => {
+        const hay = [
+          o.orderNo, o.contactName, o.phone, o.email, o.postalCode,
+          o.shippingAddress, o.company, o.agentId,
+        ].map((x) => (x || "").toLowerCase()).join(" ");
+        return hay.includes(kw);
+      });
+    }
+    const total = list.length;
+    const data = wantPaginated ? list.slice(offset, offset + pageSize) : list;
+    const totalPages = wantPaginated ? Math.max(1, Math.ceil(total / pageSize)) : 1;
+    return {
+      data, total, page: wantPaginated ? page : 1, pageSize: wantPaginated ? pageSize : total,
+      totalPages, hasPrev: wantPaginated && page > 1,
+      hasNext: wantPaginated && page < totalPages,
+    };
+  }
+
+  // ===== MySQL：动态 WHERE，把每个条件都加 AND =====
+  const where: string[] = [];
+  const args: any[] = [];
+
+  if (p.agentId) {
+    where.push("o.agent_id = ?"); args.push(p.agentId);
+  }
+  if (p.statusIn?.length) {
+    const ph = p.statusIn.map(() => "?").join(",");
+    where.push(`o.status IN (${ph})`); p.statusIn.forEach((s) => args.push(s));
+  }
+  if (p.status && p.status !== "all") {
+    where.push("o.status = ?"); args.push(p.status);
+  }
+  if (p.warehouseId && p.warehouseId !== "all") {
+    // 兼容 MySQL 5.7/8.0/MariaDB：不用 JSON_TABLE（仅 8.0.4+），改成三种字段直接匹配
+    where.push(
+      "(o.warehouse_id = ? OR o.warehouse = ?" +
+      " OR o.items LIKE ? OR o.items LIKE ?)"
+    );
+    // items: "...\"warehouseId\":\"XXX\"..." 或 "...\"warehouse\":\"XXX\"..."
+    args.push(p.warehouseId, p.warehouseId,
+      `%"warehouseId":"${p.warehouseId}"%`,
+      `%"warehouse":"${p.warehouseId}"%`);
+  }
+  if (p.from) {
+    where.push("o.created_at >= ?"); args.push(/\s/.test(p.from) ? p.from : `${p.from} 00:00:00`);
+  }
+  if (p.to) {
+    where.push("o.created_at <= ?"); args.push(/\s/.test(p.to) ? p.to : `${p.to} 23:59:59`);
+  }
+  if (q) {
+    const like = `%${q}%`;
+    // company 是 agents 表里的字段，需要 LEFT JOIN agents a ON a.id = o.agent_id
+    where.push(
+      "(o.order_no LIKE ? OR o.contact_name LIKE ? OR o.phone LIKE ? OR o.email LIKE ?" +
+      " OR o.postal_code LIKE ? OR o.shipping_address LIKE ? OR COALESCE(a.company,'') LIKE ? OR o.agent_id LIKE ?)"
+    );
+    for (let i = 0; i < 8; i++) args.push(like);
+  }
+
+  const joinAgents = q ? "LEFT JOIN agents a ON a.id = o.agent_id" : "";
+  const whereSql = where.length > 0 ? `WHERE ${where.join(" AND ")}` : "";
+
+  let total = 0;
+  try {
+    const countSql = `SELECT COUNT(*) AS c FROM orders o ${joinAgents} ${whereSql}`;
+    const row: any = await queryOne(countSql, args);
+    total = Number(row?.c ?? 0);
+  } catch (e) {
+    console.error("queryOrders count fail:", e, "args:", args);
+  }
+
+  let data: Order[] = [];
+  try {
+    const sql =
+      `SELECT o.* FROM orders o ${joinAgents} ${whereSql} ` +
+      `ORDER BY o.created_at DESC LIMIT ? OFFSET ?`;
+    const rows: any[] = await query(sql, [...args, limit, offset]);
+    for (const r of rows) {
+      try { data.push(mapOrderFromRow(r)); }
+      catch (e) { console.warn("queryOrders: skip bad order id=", r?.id, e); }
+    }
+  } catch (e) {
+    console.error("queryOrders data fail:", e, "limit/offset:", limit, offset);
+    data = [];
+  }
+
+  const totalPages = wantPaginated ? Math.max(1, Math.ceil(Math.max(0, total) / pageSize)) : 1;
+  return {
+    data,
+    total: Math.max(0, total),
+    page: wantPaginated ? page : 1,
+    pageSize: wantPaginated ? pageSize : Math.max(1, total),
+    totalPages,
+    hasPrev: wantPaginated && page > 1,
+    hasNext: wantPaginated && page < totalPages,
+  };
+}
+
 export async function createOrder(order: any): Promise<Order> {
   const id = order.id || `ord_${Date.now()}`;
   const now = formatMySQLDate();

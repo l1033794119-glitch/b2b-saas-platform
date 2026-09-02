@@ -4,6 +4,7 @@ import { AdminLayout } from "@/components/Layout";
 import { PageCard, Badge } from "@/components/Sidebar";
 import { useApp } from "@/components/AppProvider";
 import { formatCurrency, formatNumber, parseOrderDate } from "@/lib/utils";
+import { useOrderQuery } from "@/hooks/useOrderQuery";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Truck, Package, Search, Eye, X, Phone, Mail, User,
@@ -49,10 +50,25 @@ interface Order {
 
 export default function ShippingPage() {
   const { t, currency, lang, apiFetch, user } = useApp();
-  const [data, setData] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [q, setQ] = useState("");
-  const [flt, setFlt] = useState("all");
+
+  // ---- 分页/搜索（逐页加载，不再一次拉几千条） ----
+  //  scope=shipping + statusIn 限定：只返回物流阶段的订单，跟旧逻辑一致
+  const oq = useOrderQuery({
+    pageSize: 20,
+    scope: "shipping",
+    statusIn: ["pending_delivery", "pending_tracking", "shipped", "completed"],
+  });
+  const {
+    data, total, page, pageSize: _pageSize, totalPages, hasPrev, hasNext, loading, searching, pageStats,
+    draftQ, setDraftQ, draftStatus, setDraftStatus,
+    submitSearch, quickSetStatus,
+    setPage, goPrev, goNext, updateOrderInCache,
+  } = oq;
+
+  // ---- 兼容：旧的 q/flt 变量名，其他 state 不变 ----
+  const q = draftQ;
+  const flt = draftStatus;
+
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [updating, setUpdating] = useState(false);
@@ -60,8 +76,6 @@ export default function ShippingPage() {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [tempWaybillImage, setTempWaybillImage] = useState("");
   const [uploadingWaybillImage, setUploadingWaybillImage] = useState(false);
-  const [page, setPage] = useState(1);
-  const PAGE_SIZE = 10;
 
   // 产品 ID -> 最新缩略图缓存。
   // 订单 items.image 是下单时的快照，产品改图/删图后会导致 404，
@@ -115,26 +129,11 @@ export default function ShippingPage() {
     { id: "completed", labelEn: "Completed", labelZhCN: "已完成", labelZhTW: "已完成" },
   ];
 
-  const fetchOrders = async () => {
-    if (!user?.id) return;
-    setLoading(true);
-    try {
-      const res = await apiFetch("/api/orders");
-      if (res.ok) {
-        const ordersData = await res.json().catch(() => []);
-        setData(Array.isArray(ordersData) ? ordersData : []);
-      }
-    } catch (error) {
-      console.error("Failed to fetch orders:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // ---- 产品图缓存（一次性拉，数据量不大） ----
   useEffect(() => {
     if (!user?.id) return;
-    fetchOrders();
     fetchProductImages();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
   useEffect(() => {
@@ -150,35 +149,15 @@ export default function ShippingPage() {
     }
   }, [selectedOrder]);
 
-  useEffect(() => {
-    setPage(1);
-  }, [q, flt]);
-
+  // ---- 数据：因为 useOrderQuery 已经按 statusIn 过滤 + 服务端搜索 ----
+  //      data = 当前页 20 条（服务端筛选后）；total = 服务端总条数
   const safeData = Array.isArray(data) ? data : [];
-  const filtered = safeData.filter((o) => {
-    if (!["pending_delivery", "pending_tracking", "shipped", "completed"].includes(o.status)) {
-      return false;
-    }
-    if (flt !== "all" && o.status !== flt) return false;
-    if (q) {
-      const searchText = q.toLowerCase();
-      return (
-        (o.orderNo || "").toLowerCase().includes(searchText) ||
-        (o.contactName && o.contactName.toLowerCase().includes(searchText)) ||
-        (o.company && o.company.toLowerCase().includes(searchText)) ||
-        (o.shippingAddress && o.shippingAddress.toLowerCase().includes(searchText)) ||
-        (o.postalCode && o.postalCode.toLowerCase().includes(searchText)) ||
-        (o.phone && o.phone.toLowerCase().includes(searchText))
-      );
-    }
-    return true;
-  });
 
-  // 统计待投递状态下的重复收件人姓名
+  // 统计待投递状态下的重复收件人姓名（基于当前页，避免一次性统计几千条）
   const showDupBadge = flt === "pending_delivery";
   const nameCountMap: Record<string, number> = {};
   if (showDupBadge) {
-    filtered.forEach(o => {
+    safeData.forEach(o => {
       if (o.contactName) {
         nameCountMap[o.contactName] = (nameCountMap[o.contactName] || 0) + 1;
       }
@@ -199,9 +178,10 @@ export default function ShippingPage() {
       });
       if (res.ok) {
         const updated = await res.json().catch(() => ({}));
-        const currentOrder = safeData.find((o) => o.id === id);
-        const updatedOrder = { ...currentOrder, ...updated };
-        setData(safeData.map((o) => o.id === id ? updatedOrder : o));
+        const patch: Record<string, any> = { ...updates, ...updated };
+        // 内存替换当前页这条记录（不重新拉页，避免闪）
+        updateOrderInCache(id, patch);
+        const updatedOrder = { ...(safeData.find((o: any) => o.id === id) || {}), ...patch } as any;
         if (selectedId === id) setSelectedOrder(updatedOrder);
         return true;
       } else {
@@ -264,9 +244,17 @@ export default function ShippingPage() {
   };
 
   const selected = (id: string) => {
-    const order = data.find((o) => o.id === id);
+    const order = (safeData as any[]).find((o) => o.id === id);
     setSelectedId(id);
     setSelectedOrder(order || null);
+  };
+
+  // 搜索：回车触发
+  const onSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      submitSearch();
+    }
   };
 
   const getStatusInfo = (status: string) => {
@@ -299,21 +287,34 @@ export default function ShippingPage() {
     <AdminLayout title={t("shipping")} subtitle={lang === "en" ? "Carrier management & tracking" : lang === "zh-CN" ? "物流管理与追踪" : "物流管理與追蹤"}>
       <div className="card p-3 sm:p-4 mb-4">
         <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-3 sm:gap-4">
-          <div className="w-full sm:flex-1 sm:min-w-[200px] relative">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              className="input !pl-11 py-2.5 w-full"
-              placeholder={lang === "en" ? "Search shipments..." : lang === "zh-CN" ? "搜索物流订单（订单号、地址、收件人、邮编）..." : "搜尋物流訂單（訂單號、地址、收件人、郵遞區號）..."}
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-            />
+          <div className="w-full sm:flex-1 sm:min-w-[200px] flex gap-2">
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                className="input !pl-11 py-2.5 w-full"
+                placeholder={lang === "en" ? "Search shipments..." : lang === "zh-CN" ? "搜索物流订单（订单号、地址、收件人、邮编）..." : "搜尋物流訂單（訂單號、地址、收件人、郵遞區號）..."}
+                value={q}
+                onChange={(e) => setDraftQ(e.target.value)}
+                onKeyDown={onSearchKeyDown}
+              />
+            </div>
+            <button
+              onClick={() => submitSearch()}
+              className="btn-primary px-3 sm:px-4 py-2.5 text-sm flex items-center gap-1.5 whitespace-nowrap disabled:opacity-60"
+              disabled={searching}
+            >
+              <Search className="w-4 h-4" />
+              {searching
+                ? (lang === "en" ? "Searching..." : lang === "zh-CN" ? "搜索中..." : "搜尋中...")
+                : (lang === "en" ? "Search" : lang === "zh-CN" ? "搜索" : "搜尋")}
+            </button>
           </div>
 
           <div className="flex gap-1.5 flex-wrap w-full sm:w-auto">
             {statuses.map((s) => (
               <button
                 key={s.id}
-                onClick={() => setFlt(s.id)}
+                onClick={() => quickSetStatus(s.id)}
                 className={`px-3 py-1.5 text-xs sm:text-sm rounded-lg border border-slate-200 dark:border-slate-800 ${flt === s.id ? "bg-emerald-500 text-white border-emerald-500" : ""}`}
               >
                 {lang === "en" ? s.labelEn : lang === "zh-CN" ? s.labelZhCN : s.labelZhTW}
@@ -610,22 +611,20 @@ export default function ShippingPage() {
         </div>
       )}
 
-      <PageCard title={lang === "en" ? "Shipments" : lang === "zh-CN" ? "物流订单" : "物流訂單"} subtitle={`${formatNumber(filtered.length)} ${lang === "en" ? "orders" : lang === "zh-CN" ? "条订单" : "條訂單"}`}>
+      <PageCard title={lang === "en" ? "Shipments" : lang === "zh-CN" ? "物流订单" : "物流訂單"} subtitle={`${formatNumber(total)} ${lang === "en" ? "orders" : lang === "zh-CN" ? "条订单" : "條訂單"}`}>
         <div className="scrollable">
           {loading ? (
             <div className="text-center py-8 text-slate-500">{lang === "en" ? "Loading..." : lang === "zh-CN" ? "加载中..." : "載入中..."}</div>
-          ) : filtered.length === 0 ? (
+          ) : safeData.length === 0 ? (
             <div className="text-center py-8 text-slate-500">{lang === "en" ? "No shipments found" : lang === "zh-CN" ? "暂无物流订单" : "暫無物流訂單"}</div>
           ) : (
             <>
             {(() => {
-              const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
-              const currentPage = Math.min(page, totalPages) || 1;
-              const startIdx = (currentPage - 1) * PAGE_SIZE;
-              const endIdx = startIdx + PAGE_SIZE;
-              const pageItems = filtered.slice(startIdx, endIdx);
+              const pageItems = safeData;
+              const currentPage = page;
               const dupLabel = lang === "en" ? "Multiple Orders" : lang === "zh-CN" ? "多订单" : "多訂單";
               const dupLabelFull = lang === "en" ? "Multiple Orders for this customer" : lang === "zh-CN" ? "该客户有多个订单" : "該客戶有多個訂單";
+              const { startIdx, endIdx } = pageStats;
               return (
                 <>
             <div className="hidden sm:block">
@@ -641,7 +640,7 @@ export default function ShippingPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {pageItems.map((o) => (
+                  {pageItems.map((o: any) => (
                     <tr key={o.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                       <td className="font-mono text-xs">{o.orderNo}</td>
                       <td className="font-medium">
@@ -670,7 +669,7 @@ export default function ShippingPage() {
             </div>
 
             <div className="sm:hidden space-y-3">
-              {pageItems.map((o) => (
+              {pageItems.map((o: any) => (
                 <div
                   key={o.id}
                   className="card p-4 relative"
@@ -716,16 +715,16 @@ export default function ShippingPage() {
             <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/5">
               <div className="text-xs text-slate-500">
                 {lang === "en" 
-                  ? `${startIdx + 1}-${Math.min(endIdx, filtered.length)} of ${filtered.length}`
+                  ? `${startIdx}-${endIdx} of ${total}`
                   : lang === "zh-CN" 
-                    ? `${startIdx + 1}-${Math.min(endIdx, filtered.length)} 条 / 共 ${filtered.length} 条`
-                    : `${startIdx + 1}-${Math.min(endIdx, filtered.length)} 條 / 共 ${filtered.length} 條`
+                    ? `${startIdx}-${endIdx} 条 / 共 ${total} 条`
+                    : `${startIdx}-${endIdx} 條 / 共 ${total} 條`
                 }
               </div>
               <div className="flex items-center gap-1">
                 <button
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={currentPage <= 1}
+                  onClick={goPrev}
+                  disabled={!hasPrev}
                   className="w-8 h-8 rounded-lg flex items-center justify-center text-sm disabled:opacity-30 hover:bg-white/5 transition-colors"
                 >
                   ‹
@@ -734,8 +733,8 @@ export default function ShippingPage() {
                   {currentPage} / {totalPages}
                 </div>
                 <button
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={currentPage >= totalPages}
+                  onClick={goNext}
+                  disabled={!hasNext}
                   className="w-8 h-8 rounded-lg flex items-center justify-center text-sm disabled:opacity-30 hover:bg-white/5 transition-colors"
                 >
                   ›
