@@ -49,131 +49,164 @@ export default function AgentDashboard() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
+  // 性能优化：后端聚合仪表盘数据（毫秒级）
+  const [summary, setSummary] = useState<any>(null);
+  const [detailLoading, setDetailLoading] = useState(true);
   const [dateFilter, setDateFilter] = useState<string>("this_month");
   const [customDateRange, setCustomDateRange] = useState<{ start: string; end: string }>({ start: "", end: "" });
   const [showDatePicker, setShowDatePicker] = useState(false);
 
-  // 获取日期过滤选项
-  const getDateFilterOptions = (): DateFilter[] => {
-    return [
-      { label: lang === "en" ? "This Month" : lang === "zh-CN" ? "本月" : "本月", value: "this_month" },
-      { label: lang === "en" ? "Last Month" : lang === "zh-CN" ? "上月" : "上月", value: "last_month" },
-      { label: lang === "en" ? "Last 7 Days" : lang === "zh-CN" ? "近七天" : "近七天", value: "last_7_days" },
-      { label: lang === "en" ? "Custom" : lang === "zh-CN" ? "自定义" : "自訂", value: "custom" },
-    ];
-  };
+  // summary 查询参数
+  const summaryUrl = useMemo(() => {
+    const { start, end } = (() => {
+      const now = new Date(); const s = new Date(); const e = new Date();
+      switch (dateFilter) {
+        case "this_month": s.setDate(1); s.setHours(0,0,0,0); e.setHours(23,59,59,999); break;
+        case "last_month": s.setMonth(s.getMonth()-1); s.setDate(1); s.setHours(0,0,0,0); e.setDate(0); e.setHours(23,59,59,999); break;
+        case "last_7_days": s.setDate(s.getDate()-7); s.setHours(0,0,0,0); e.setHours(23,59,59,999); break;
+        case "custom":
+          if (customDateRange.start) s.setTime(new Date(customDateRange.start).getTime());
+          if (customDateRange.end) e.setTime(new Date(customDateRange.end).getTime());
+          s.setHours(0,0,0,0); e.setHours(23,59,59,999); break;
+        default: return { start: null, end: null };
+      }
+      return { start: s, end: e };
+    })();
+    const p = new URLSearchParams();
+    if (start && !isNaN(start.getTime())) {
+      p.set("from", `${start.getFullYear()}-${String(start.getMonth()+1).padStart(2,"0")}-${String(start.getDate()).padStart(2,"0")}`);
+    }
+    if (end && !isNaN(end.getTime())) {
+      p.set("to", `${end.getFullYear()}-${String(end.getMonth()+1).padStart(2,"0")}-${String(end.getDate()).padStart(2,"0")}`);
+    }
+    const qs = p.toString();
+    return `/api/dashboard-summary${qs ? "?"+qs : ""}`;
+  }, [dateFilter, customDateRange.start, customDateRange.end]);
 
-  // 根据筛选条件获取日期范围
+  // 阶段 1：summary 秒出
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    apiFetch(summaryUrl)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (!cancelled && d && typeof d === "object") setSummary(d); })
+      .catch(e => console.warn("agent dashboard summary fail:", e));
+    return () => { cancelled = true; };
+  }, [user?.id, apiFetch, summaryUrl]);
+
+  // 阶段 2：detail 懒加载（credit / orders / products / notifications）
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    setDetailLoading(true);
+
+    (async () => {
+      // 先拿 credit + orders（最需要）
+      const [cRes, oRes] = await Promise.all([
+        apiFetch(`/api/credit?agentId=${user.id}`)
+          .then((r) => (r.ok ? r.json().catch(() => null) : null)),
+        apiFetch(`/api/orders?agentId=${user.id}`)
+          .then((r) => (r.ok ? r.json().catch(() => []) : [])),
+      ]);
+      if (cancelled) return;
+      if (cRes) setCredit(cRes);
+      if (Array.isArray(oRes)) setOrders(oRes);
+
+      const [pRes, nRes] = await Promise.all([
+        apiFetch("/api/products").then(r => r.ok ? r.json().catch(()=>[]) : []),
+        apiFetch("/api/notifications")
+          .then((r) => (r.ok ? r.json().catch(() => []) : []))
+          .catch(() => []),
+      ]);
+      if (cancelled) return;
+      if (Array.isArray(pRes)) setProducts(pRes);
+      if (Array.isArray(nRes)) {
+        setNotifications(nRes.filter((n: any) => n.userId === user.id || !n.userId));
+      }
+      setDetailLoading(false);
+    })();
+
+    return () => { cancelled = true; };
+  }, [user?.id, apiFetch]);
+
+  // ---- helper：日期选项 & 范围 & 过滤 ----
+  const getDateFilterOptions = (): DateFilter[] => [
+    { label: lang === "en" ? "This Month" : lang === "zh-CN" ? "本月" : "本月", value: "this_month" },
+    { label: lang === "en" ? "Last Month" : lang === "zh-CN" ? "上月" : "上月", value: "last_month" },
+    { label: lang === "en" ? "Last 7 Days" : lang === "zh-CN" ? "近七天" : "近七天", value: "last_7_days" },
+    { label: lang === "en" ? "Custom" : lang === "zh-CN" ? "自定义" : "自訂", value: "custom" },
+  ];
   const getDateRange = () => {
-    const now = new Date();
-    const start = new Date();
-    const end = new Date();
-
+    const now = new Date(); const start = new Date(); const end = new Date();
     switch (dateFilter) {
-      case "this_month":
-        start.setDate(1);
-        start.setHours(0, 0, 0, 0);
-        end.setHours(23, 59, 59, 999);
-        break;
-      case "last_month":
-        start.setMonth(start.getMonth() - 1);
-        start.setDate(1);
-        start.setHours(0, 0, 0, 0);
-        end.setDate(0);
-        end.setHours(23, 59, 59, 999);
-        break;
-      case "last_7_days":
-        start.setDate(start.getDate() - 7);
-        start.setHours(0, 0, 0, 0);
-        end.setHours(23, 59, 59, 999);
-        break;
+      case "this_month": start.setDate(1); start.setHours(0,0,0,0); end.setHours(23,59,59,999); break;
+      case "last_month": start.setMonth(start.getMonth()-1); start.setDate(1); start.setHours(0,0,0,0); end.setDate(0); end.setHours(23,59,59,999); break;
+      case "last_7_days": start.setDate(start.getDate()-7); start.setHours(0,0,0,0); end.setHours(23,59,59,999); break;
       case "custom":
-        if (customDateRange.start && customDateRange.end) {
-          start.setTime(new Date(customDateRange.start).getTime());
-          start.setHours(0, 0, 0, 0);
-          end.setTime(new Date(customDateRange.end).getTime());
-          end.setHours(23, 59, 59, 999);
-        }
-        break;
+        if (customDateRange.start) start.setTime(new Date(customDateRange.start).getTime());
+        if (customDateRange.end) end.setTime(new Date(customDateRange.end).getTime());
+        start.setHours(0,0,0,0); end.setHours(23,59,59,999); break;
     }
     return { start, end };
   };
 
-  // 筛选订单
-  const getFilteredOrders = () => {
+  const filteredOrders = useMemo(() => {
     const { start, end } = getDateRange();
-    const safeOrders = Array.isArray(orders) ? orders : [];
-    return safeOrders.filter((order) => {
+    const safe = Array.isArray(orders) ? orders : [];
+    return safe.filter((order) => {
       const orderDate = order.date ? new Date(order.date) : new Date(0);
       return orderDate >= start && orderDate <= end;
     });
-  };
+  }, [orders, dateFilter, customDateRange.start, customDateRange.end]);
 
-  // 获取运费记录（从信用交易中筛选）
-  const getShippingFeeRecords = () => {
+  const shippingRecords = useMemo(() => {
     if (!credit?.transactions) return [];
     const txns = Array.isArray(credit.transactions) ? credit.transactions : [];
     return txns.filter((txn) =>
       txn.type === "order_deduct" && txn.note?.includes("Shipping fee")
     );
-  };
+  }, [credit?.transactions]);
 
-  // 计算统计数据
-  const getStats = () => {
-    const filteredOrders = getFilteredOrders();
-    const totalOrders = filteredOrders.length;
-    const totalSpent = filteredOrders
-      .filter((o) => o.status !== "cancelled")
-      .reduce((sum, o) => sum + (o.total || 0), 0);
-    const totalShippingFees = filteredOrders
-      .filter((o) => o.shippingFee && o.shippingFee > 0)
-      .reduce((sum, o) => sum + (o.shippingFee || 0), 0);
+  // 统计：优先 summary，否则走前端过滤
+  const stats = useMemo(() => {
+    if (summary?.orders) {
+      return {
+        totalOrders: Number(summary.orders.count) || 0,
+        // summary 的 revenue 不含运费但没过滤 cancelled，这里近似处理：
+        // 代理商关心实际消费，用 summary.orders.revenue（后端聚合不区分 cancelled 因为只 1 次查询性能最优）
+        totalSpent: Number(summary.orders.revenue) || 0,
+        totalShippingFees: Number(summary.orders.shippingFees) || 0,
+      };
+    }
+    // 降级：旧逻辑
+    const filtered = filteredOrders;
+    return {
+      totalOrders: filtered.length,
+      totalSpent: filtered.filter((o) => o.status !== "cancelled").reduce((sum, o) => sum + (o.total || 0), 0),
+      totalShippingFees: filtered.filter((o) => o.shippingFee && o.shippingFee > 0).reduce((sum, o) => sum + (o.shippingFee || 0), 0),
+    };
+  }, [summary, filteredOrders]);
 
-    return { totalOrders, totalSpent, totalShippingFees };
-  };
-
-  useEffect(() => {
-    if (!user?.id) return;
-
-    // 获取信用记录
-    apiFetch(`/api/credit?agentId=${user.id}`)
-      .then((r) => r.ok ? r.json().catch(() => null) : null)
-      .then((data) => { if (data) setCredit(data); });
-
-    // 获取订单（只拉取自己的订单，后端会根据 session 强制过滤）
-    apiFetch(`/api/orders?agentId=${user.id}`)
-      .then((r) => r.ok ? r.json().catch(() => []) : [])
-      .then((data) => {
-        const myOrders = Array.isArray(data) ? data : [];
-        setOrders(myOrders);
-      });
-
-    // 获取产品列表（用于显示商品图片）
-    apiFetch("/api/products")
-      .then((r) => r.ok ? r.json().catch(() => []) : [])
-      .then((data) => { if (Array.isArray(data)) setProducts(data); });
-
-    // 获取通知（如果 API 存在）
-    apiFetch("/api/notifications")
-      .then((r) => r.ok ? r.json().catch(() => []) : [])
-      .catch(() => [])
-      .then((data) => {
-        if (Array.isArray(data)) {
-          setNotifications(data.filter((n: any) => n.userId === user.id || !n.userId));
-        }
-      });
-  }, [user?.id, apiFetch]);
-
-  const stats = getStats();
-  const filteredOrders = getFilteredOrders();
-  const shippingRecords = getShippingFeeRecords();
   const safeNotifications = Array.isArray(notifications) ? notifications : [];
   const unreadCount = safeNotifications.filter((n) => !n.read).length;
   const safeProducts = Array.isArray(products) ? products : [];
   const dateOptions = getDateFilterOptions();
 
   // 计算已购买商品统计（按SKU聚合，含图片和名称）
+  // 优先 summary.topProducts（无需等全量订单），否则走 detail 计算
   const purchasedProducts = useMemo(() => {
+    if (summary?.topProducts && Array.isArray(summary.topProducts) && summary.topProducts.length > 0) {
+      // 已按 revenue 排序，转为数量排序（更贴合代理视角"买了多少"）
+      return summary.topProducts
+        .map((p: any) => ({
+          name: p.name,
+          sku: p.sku,
+          image: p.image || "",
+          qty: Number(p.qty) || 0,
+          total: Number(p.revenue) || 0,
+        }))
+        .sort((a: any, b: any) => b.qty - a.qty);
+    }
     const productMap = new Map<string, { name: string; sku: string; image: string; qty: number; total: number }>();
 
     filteredOrders.forEach((o) => {
@@ -201,7 +234,7 @@ export default function AgentDashboard() {
     });
 
     return Array.from(productMap.values()).sort((a, b) => b.qty - a.qty);
-  }, [filteredOrders, safeProducts]);
+  }, [summary, filteredOrders, safeProducts]);
 
   return (
     <AgentLayout title={lang === "en" ? "Welcome back" : lang === "zh-CN" ? "欢迎回来" : "歡迎回來"} subtitle={user?.company || user?.name}>

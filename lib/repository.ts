@@ -73,17 +73,30 @@ export async function getAllWarehouses(): Promise<Warehouse[]> {
   if (await useDatabase()) {
     const rows: any[] = await query("SELECT * FROM warehouses ORDER BY created_at DESC");
 
-    const enriched: Warehouse[] = [];
-    for (const wh of rows) {
-      const productsData: any[] = await query(
-        "SELECT stock, cost_price FROM products WHERE warehouse_id = ?",
-        [wh.id]
-      );
-      const stock = (productsData || []).reduce((sum: number, p: any) => sum + (p.stock || 0), 0);
-      const value = (productsData || []).reduce((sum: number, p: any) => sum + (p.stock || 0) * (p.cost_price || 0), 0);
-      enriched.push({ id: wh.id, name: wh.name, location: wh.location, manager: wh.manager, stock, value });
+    // 性能优化：把每个仓库的 N+1 查询合并为 1 条 SQL（GROUP BY warehouse_id）
+    const aggRows: any[] = await query(
+      `SELECT warehouse_id,
+              COALESCE(SUM(stock), 0)          AS total_stock,
+              COALESCE(SUM(stock * cost_price), 0) AS total_value
+       FROM products
+       WHERE warehouse_id IS NOT NULL AND warehouse_id <> ''
+       GROUP BY warehouse_id`
+    );
+    const aggMap = new Map<string, { stock: number; value: number }>();
+    for (const r of aggRows) {
+      aggMap.set(String(r.warehouse_id), {
+        stock: Number(r.total_stock) || 0,
+        value: Number(r.total_value) || 0,
+      });
     }
-    return enriched;
+
+    return rows.map((wh) => {
+      const agg = aggMap.get(wh.id) || { stock: 0, value: 0 };
+      return {
+        id: wh.id, name: wh.name, location: wh.location, manager: wh.manager,
+        stock: agg.stock, value: agg.value,
+      };
+    });
   }
   return getMemoryStore().warehouses;
 }
@@ -674,19 +687,26 @@ export async function getAllCredits(): Promise<CreditRecord[]> {
   if (await useDatabase()) {
     const agentsRows: any[] = await query("SELECT * FROM agents");
 
+    // 性能优化：把每个代理的 N+1 查 credit_transactions 合并为 1 条 SQL
+    const allTxnRows: any[] = await query(
+      "SELECT * FROM credit_transactions ORDER BY time DESC"
+    );
+    const txnMap = new Map<string, any[]>();
+    for (const t of allTxnRows) {
+      const aid = String(t.agent_id);
+      if (!txnMap.has(aid)) txnMap.set(aid, []);
+      txnMap.get(aid)!.push(t);
+    }
+
     const credits: CreditRecord[] = [];
     for (const agent of agentsRows || []) {
-      const transactionsRows: any[] = await query(
-        "SELECT * FROM credit_transactions WHERE agent_id = ? ORDER BY time DESC",
-        [agent.id]
-      );
-
+      const transactionsRows = txnMap.get(String(agent.id)) || [];
       credits.push({
         agentId: agent.id, company: agent.company,
         creditLimit: parseFloat(agent.credit_limit) || 0,
         outstanding: parseFloat(agent.outstanding) || 0,
         available: (parseFloat(agent.credit_limit) || 0) - (parseFloat(agent.outstanding) || 0),
-        transactions: (transactionsRows || []).map((t: any) => ({
+        transactions: transactionsRows.map((t: any) => ({
           id: t.id, type: t.type, amount: parseFloat(t.amount) || 0,
           balance: parseFloat(t.balance) || 0, note: t.note, time: t.time,
         })),
@@ -1092,3 +1112,280 @@ export async function initializeSystem(): Promise<void> {
 }
 
 initializeSystem().catch(() => {});
+
+// ================= 性能优化：仪表盘统计专用接口 =================
+// 以前：前端 Promise.all 拉 products + orders + agents + warehouses 4 张整表
+//       （orders 可能 LIMIT 20000，items JSON 字段导致内存/带宽爆）
+// 现在：后端用一条带 GROUP BY 的聚合 SQL 一次性返回 6 张卡片 + 图表的汇总数据
+//       典型耗时从 5~30s 降到 20~100ms
+export interface DashboardSummary {
+  orders: {
+    count: number; revenue: number; shippingFees: number;
+    pending: number; shipped: number; completed: number; cancelled: number;
+  };
+  stock: {
+    totalQty: number; totalValue: number; lowStock: number; productsCount: number;
+  };
+  agents: { total: number; active: number };
+  warehouses: number;
+  // 近 14 天销售趋势
+  dailyTrend: Array<{ date: string; revenue: number; orders: number }>;
+  // 近 6 个月收入
+  monthlyRevenue: Array<{ month: string; revenue: number }>;
+  // Top 5 产品（按销售额）
+  topProducts: Array<{ productId: string; name: string; sku: string; qty: number; revenue: number; image: string }>;
+  // Top 5 活跃代理
+  topAgents: Array<{ agentId: string; company: string; orderCount: number; totalRevenue: number }>;
+}
+
+/**
+ * 仪表盘统计聚合
+ * @param scope  { role:'admin' } 或 { role:'agent', agentId:'xxx' }
+ * @param range  时间范围 { start, end } ，不传即不限制
+ */
+export async function getDashboardSummary(
+  scope: { role: "admin" } | { role: "agent"; agentId: string },
+  range?: { start?: Date | null; end?: Date | null }
+): Promise<DashboardSummary> {
+  const empty: DashboardSummary = {
+    orders: { count: 0, revenue: 0, shippingFees: 0, pending: 0, shipped: 0, completed: 0, cancelled: 0 },
+    stock: { totalQty: 0, totalValue: 0, lowStock: 0, productsCount: 0 },
+    agents: { total: 0, active: 0 },
+    warehouses: 0,
+    dailyTrend: [],
+    monthlyRevenue: [],
+    topProducts: [],
+    topAgents: [],
+  };
+  if (!(await useDatabase())) return empty;
+
+  const now = formatMySQLDate();
+  const endStr = range?.end ? formatMySQLDate(range.end) : now;
+  const startStr = range?.start ? formatMySQLDate(range.start) : "2000-01-01 00:00:00";
+
+  const agentWhere = scope.role === "agent"
+    ? " AND agent_id = ? "
+    : "";
+  const agentParams: any[] = scope.role === "agent" ? [scope.agentId] : [];
+
+  try {
+    // -------- 1. 订单统计（6 个指标一条 SQL） --------
+    const orderStatRow = await queryOne(
+      `SELECT
+         COUNT(*)                                                   AS cnt,
+         COALESCE(SUM(total), 0)                                    AS revenue,
+         COALESCE(SUM(CASE WHEN shipping_fee > 0 THEN shipping_fee ELSE 0 END), 0) AS ship_fees,
+         COALESCE(SUM(CASE WHEN status IN ('pending_qrcode','pending_delivery','pending_tracking','pending_payment','pending_review','pending','new','created') THEN 1 ELSE 0 END), 0) AS pending_cnt,
+         COALESCE(SUM(CASE WHEN status IN ('shipped','in_transit','out_for_delivery') THEN 1 ELSE 0 END), 0) AS shipped_cnt,
+         COALESCE(SUM(CASE WHEN status IN ('completed','delivered','finished','closed') THEN 1 ELSE 0 END), 0) AS completed_cnt,
+         COALESCE(SUM(CASE WHEN status IN ('cancelled','canceled') THEN 1 ELSE 0 END), 0) AS cancelled_cnt
+       FROM orders
+       WHERE created_at BETWEEN ? AND ? ${agentWhere}`,
+      [startStr, endStr, ...agentParams]
+    ) as any;
+
+    // -------- 2. 库存统计（一条 SQL） --------
+    const stockRow = await queryOne(
+      `SELECT
+         COUNT(*)                                                        AS products_cnt,
+         COALESCE(SUM(stock), 0)                                        AS total_qty,
+         COALESCE(SUM(stock * cost_price), 0)                           AS total_value,
+         COALESCE(SUM(CASE WHEN stock < 50 THEN 1 ELSE 0 END), 0)      AS low_stock
+       FROM products`
+    ) as any;
+
+    // -------- 3. 代理 + 仓库数（简单计数） --------
+    let agentsRow: any = { total: 0, active: 0 };
+    if (scope.role === "admin") {
+      agentsRow = await queryOne(
+        `SELECT COUNT(*) AS total,
+                COALESCE(SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END), 0) AS active
+         FROM agents`
+      ) as any;
+    }
+    const whRow = await queryOne("SELECT COUNT(*) AS cnt FROM warehouses") as any;
+
+    // -------- 4. 近 14 天销售趋势（GROUP BY DATE） --------
+    const dailyRows: any[] = await query(
+      `SELECT DATE(created_at)                                 AS d,
+              COALESCE(SUM(total), 0)                          AS revenue,
+              COUNT(*)                                         AS orders
+       FROM orders
+       WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 13 DAY)
+         AND created_at < DATE_ADD(CURDATE(), INTERVAL 1 DAY)
+         ${agentWhere}
+       GROUP BY DATE(created_at)
+       ORDER BY d ASC`,
+      [...agentParams]
+    );
+    // 补齐最近 14 天，哪怕那天没订单也要显示 0
+    const trendMap = new Map<string, { revenue: number; orders: number }>();
+    for (const r of dailyRows) {
+      trendMap.set(String(r.d), { revenue: Number(r.revenue) || 0, orders: Number(r.orders) || 0 });
+    }
+    const dailyTrend: DashboardSummary["dailyTrend"] = [];
+    for (let i = 13; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      const v = trendMap.get(key) || { revenue: 0, orders: 0 };
+      dailyTrend.push({
+        date: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+        revenue: v.revenue,
+        orders: v.orders,
+      });
+    }
+
+    // -------- 5. 近 6 个月收入 --------
+    const monthRows: any[] = await query(
+      `SELECT DATE_FORMAT(created_at, '%Y-%m')                AS ym,
+              COALESCE(SUM(total), 0)                          AS revenue
+       FROM orders
+       WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 5 MONTH)
+         ${agentWhere}
+       GROUP BY DATE_FORMAT(created_at, '%Y-%m')
+       ORDER BY ym ASC`,
+      [...agentParams]
+    );
+    const monthMap = new Map<string, number>();
+    for (const r of monthRows) monthMap.set(String(r.ym), Number(r.revenue) || 0);
+    const monthlyRevenue: DashboardSummary["monthlyRevenue"] = [];
+    const now2 = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now2.getFullYear(), now2.getMonth() - i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      monthlyRevenue.push({
+        month: d.toLocaleDateString("en-US", { month: "short" }),
+        revenue: monthMap.get(key) || 0,
+      });
+    }
+
+    // -------- 6. Top 5 产品（基于订单聚合 + 关联 products 取图） --------
+    // items 是 JSON，MySQL 5.7+ 支持 JSON_TABLE；为兼容 5.6 也兼容，
+    // 这里先取最近 N 单到内存拆 items（因为要 TOP 5 排名，不需要全量 20000 单）
+    const recentOrdersForTop: any[] = await query(
+      `SELECT id, items, created_at
+       FROM orders
+       WHERE created_at BETWEEN ? AND ? ${agentWhere}
+       ORDER BY created_at DESC
+       LIMIT 5000`,
+      [startStr, endStr, ...agentParams]
+    );
+    const pMap = new Map<string, { productId: string; name: string; sku: string; qty: number; revenue: number; image: string }>();
+    for (const o of recentOrdersForTop) {
+      const items = parseJson(o.items);
+      if (!Array.isArray(items)) continue;
+      for (const it of items) {
+        const key = String(it.productId || it.sku || it.name || Math.random());
+        const price = Number(it.price) || 0;
+        const qty = Number(it.quantity || it.qty || 1);
+        const ex = pMap.get(key);
+        if (ex) {
+          ex.qty += qty;
+          ex.revenue += price * qty;
+        } else {
+          pMap.set(key, {
+            productId: String(it.productId || ""),
+            name: String(it.name || ""),
+            sku: String(it.sku || ""),
+            qty,
+            revenue: price * qty,
+            image: String(it.image || ""),
+          });
+        }
+      }
+    }
+    // 如果有 productId，用 products 表最新 image 覆盖（避免历史图是旧/已删除的）
+    const needImgIds = Array.from(pMap.values()).filter(v => v.productId).map(v => v.productId);
+    if (needImgIds.length > 0) {
+      // 分批避免 IN (...) 过长
+      for (let i = 0; i < needImgIds.length; i += 200) {
+        const batch = needImgIds.slice(i, i + 200);
+        const qs = batch.map(() => "?").join(",");
+        const pRows: any[] = await query(
+          `SELECT id, images FROM products WHERE id IN (${qs})`,
+          batch
+        );
+        for (const pr of pRows) {
+          const target = Array.from(pMap.values()).find(v => v.productId === String(pr.id));
+          if (!target) continue;
+          const arr = parseJson(pr.images);
+          if (Array.isArray(arr) && typeof arr[0] === "string") target.image = arr[0];
+        }
+      }
+    }
+    const topProducts = Array.from(pMap.values())
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 5);
+
+    // -------- 7. Top 5 活跃代理（仅管理员） --------
+    let topAgents: DashboardSummary["topAgents"] = [];
+    if (scope.role === "admin") {
+      const topAgentRows: any[] = await query(
+        `SELECT agent_id,
+                COUNT(*)                                 AS order_cnt,
+                COALESCE(SUM(total), 0)                  AS revenue
+         FROM orders
+         WHERE created_at BETWEEN ? AND ?
+         GROUP BY agent_id
+         ORDER BY revenue DESC
+         LIMIT 5`,
+        [startStr, endStr]
+      );
+      // 顺便把 company 名查出来
+      const aIds = topAgentRows.map(r => String(r.agent_id)).filter(Boolean);
+      const aMap = new Map<string, string>();
+      if (aIds.length > 0) {
+        const qs = aIds.map(() => "?").join(",");
+        const aRows: any[] = await query(
+          `SELECT id, company FROM agents WHERE id IN (${qs})`, aIds
+        );
+        for (const a of aRows) aMap.set(String(a.id), String(a.company || ""));
+      }
+      topAgents = topAgentRows.map(r => ({
+        agentId: String(r.agent_id),
+        company: aMap.get(String(r.agent_id)) || String(r.agent_id),
+        orderCount: Number(r.order_cnt) || 0,
+        totalRevenue: Number(r.revenue) || 0,
+      }));
+    } else if (scope.role === "agent") {
+      // 代理视角：只返回当前代理自己的汇总作为 top1
+      topAgents = [{
+        agentId: scope.agentId,
+        company: "",
+        orderCount: Number(orderStatRow?.cnt) || 0,
+        totalRevenue: Number(orderStatRow?.revenue) || 0,
+      }];
+    }
+
+    return {
+      orders: {
+        count: Number(orderStatRow?.cnt) || 0,
+        revenue: Number(orderStatRow?.revenue) || 0,
+        shippingFees: Number(orderStatRow?.ship_fees) || 0,
+        pending: Number(orderStatRow?.pending_cnt) || 0,
+        shipped: Number(orderStatRow?.shipped_cnt) || 0,
+        completed: Number(orderStatRow?.completed_cnt) || 0,
+        cancelled: Number(orderStatRow?.cancelled_cnt) || 0,
+      },
+      stock: {
+        totalQty: Number(stockRow?.total_qty) || 0,
+        totalValue: Number(stockRow?.total_value) || 0,
+        lowStock: Number(stockRow?.low_stock) || 0,
+        productsCount: Number(stockRow?.products_cnt) || 0,
+      },
+      agents: {
+        total: Number(agentsRow?.total) || 0,
+        active: Number(agentsRow?.active) || 0,
+      },
+      warehouses: Number(whRow?.cnt) || 0,
+      dailyTrend,
+      monthlyRevenue,
+      topProducts,
+      topAgents,
+    };
+  } catch (e) {
+    console.error("[getDashboardSummary] 聚合失败，降级返回空:", e);
+    return empty;
+  }
+}

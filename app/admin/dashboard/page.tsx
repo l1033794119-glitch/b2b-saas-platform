@@ -144,7 +144,11 @@ export default function DashboardPage() {
   const [agents, setAgents] = useState<any[]>([]);
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
+  // 仪表盘统计聚合（来源：新接口 /api/dashboard-summary）
+  const [summary, setSummary] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  // 详细数据（订单列表 / 产品表 / 商品销售统计卡片）懒加载完成标记
+  const [detailLoading, setDetailLoading] = useState(true);
 
   const [dateFilter, setDateFilter] = useState<DateFilterType>("this_month");
   const [customDateRange, setCustomDateRange] = useState({ start: "", end: "" });
@@ -153,22 +157,55 @@ export default function DashboardPage() {
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState<string>("");
 
-  const fetchData = useCallback(async () => {
-    if (!user?.id) return; // 登录态未确认前不发请求，避免触发 401 跳回登录
-    setLoading(true);
-    try {
-      const [productsRes, ordersRes, agentsRes, warehousesRes] = await Promise.all([
-        apiFetch("/api/products").then(r => r.json()).catch(() => []),
-        apiFetch("/api/orders").then(r => r.json()).catch(() => []),
-        apiFetch("/api/agents").then(r => r.json()).catch(() => []),
-        apiFetch("/api/warehouses").then(r => r.json()).catch(() => []),
-      ]);
+  // 把前端的 dateFilter 转成 summary API 能吃的 from/to 查询参数
+  const summaryUrl = useMemo(() => {
+    const range = getDateRange(dateFilter, customDateRange.start, customDateRange.end);
+    const p = new URLSearchParams();
+    if (range) {
+      const f = `${range.start.getFullYear()}-${String(range.start.getMonth() + 1).padStart(2, "0")}-${String(range.start.getDate()).padStart(2, "0")}`;
+      const t = `${range.end.getFullYear()}-${String(range.end.getMonth() + 1).padStart(2, "0")}-${String(range.end.getDate()).padStart(2, "0")}`;
+      p.set("from", f);
+      p.set("to", t);
+    }
+    const qs = p.toString();
+    return `/api/dashboard-summary${qs ? "?" + qs : ""}`;
+  }, [dateFilter, customDateRange.start, customDateRange.end]);
 
-      setProducts(Array.isArray(productsRes) ? productsRes : []);
+  // ===== 第 1 阶段：只拉聚合统计，6 个卡片 + 图表 100ms 级别出来 =====
+  const fetchSummary = useCallback(async () => {
+    try {
+      const r = await apiFetch(summaryUrl);
+      if (r.ok) {
+        const data = await r.json().catch(() => null);
+        if (data && typeof data === "object") setSummary(data);
+      }
+    } catch (e) {
+      console.warn("dashboard-summary failed, fallback to old flow:", e);
+    }
+  }, [apiFetch, summaryUrl]);
+
+  // ===== 第 2 阶段：详细数据异步拉取（订单列表 / 产品表 / 代理 / 仓库 / 通知） =====
+  // 这些是「最近订单表格 / 商品销售统计卡片 / 低库存卡片」才需要的大数组
+  const fetchDetail = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      // 性能：之前是 Promise.all 4 个大接口同时打，对 DB 和带宽压力大。
+      // 改成分两批：先拿 orders / products（最需要），再拿 agents / warehouses。
+      const [ordersRes, productsRes] = await Promise.all([
+        apiFetch("/api/orders").then(r => r.json()).catch(() => []),
+        apiFetch("/api/products").then(r => r.json()).catch(() => []),
+      ]);
       setOrders(Array.isArray(ordersRes) ? ordersRes : []);
+      setProducts(Array.isArray(productsRes) ? productsRes : []);
+
+      const [agentsRes, warehousesRes] = await Promise.all([
+        apiFetch("/api/agents").then(r => r.json().catch(() => [])),
+        apiFetch("/api/warehouses").then(r => r.json().catch(() => [])),
+      ]);
       setAgents(Array.isArray(agentsRes) ? agentsRes : []);
       setWarehouses(Array.isArray(warehousesRes) ? warehousesRes : []);
 
+      // 通知最后拿
       try {
         const notifsRes = await apiFetch("/api/notifications").then(r => r.json()).catch(() => []);
         setNotifications(Array.isArray(notifsRes) ? notifsRes : []);
@@ -176,15 +213,44 @@ export default function DashboardPage() {
         setNotifications([]);
       }
     } catch (error) {
-      console.error("Failed to fetch dashboard data:", error);
+      console.error("Failed to fetch dashboard detail data:", error);
     } finally {
-      setLoading(false);
+      setDetailLoading(false);
     }
   }, [apiFetch, user?.id]);
 
+  // 统一刷新按钮：两个阶段都跑
+  const fetchData = useCallback(async () => {
+    if (!user?.id) return;
+    setLoading(true);
+    setDetailLoading(true);
+    try {
+      await fetchSummary();
+    } finally {
+      setLoading(false);
+    }
+    // 第二阶段异步继续，不阻塞 loading 变 false
+    void fetchDetail();
+  }, [user?.id, fetchSummary, fetchDetail]);
+
+  // 初次加载 & 切换筛选器时重新拉 summary
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    if (!user?.id) return;
+    const t0 = Date.now();
+    setLoading(true);
+    fetchSummary().finally(() => {
+      setLoading(false);
+      console.debug(`[dashboard] summary fetched in ${Date.now() - t0}ms`);
+    });
+  }, [fetchSummary, user?.id]);
+
+  // 初次加载再拉一遍 detail（懒加载）
+  useEffect(() => {
+    if (!user?.id) return;
+    setDetailLoading(true);
+    fetchDetail();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   // 计算日期范围
   const dateRange = useMemo(
@@ -219,33 +285,139 @@ export default function DashboardPage() {
   const safeProducts = Array.isArray(products) ? products : [];
   const safeOrders = Array.isArray(orders) ? orders : [];
   const safeWarehouses = Array.isArray(warehouses) ? warehouses : [];
-  // 计算统计数据（基于筛选后的订单）
-  const totalStock = safeProducts.reduce((s, p) => s + (p.stock || 0), 0);
-  const totalValue = safeProducts.reduce((s, p) => s + (p.stock || 0) * (p.costPrice || 0), 0);
-  const lowStock = safeProducts.filter((p) => (p.stock || 0) < 50).length;
 
-  // 基于筛选后订单的统计
-  const totalRevenue = filteredOrders.reduce((sum: number, o: any) => sum + (o.total || 0), 0);
-  const totalOrdersCount = filteredOrders.length;
-  const totalShippingFees = filteredOrders
-    .filter((o: any) => o.shippingFee && o.shippingFee > 0)
-    .reduce((sum: number, o: any) => sum + (o.shippingFee || 0), 0);
-  const pendingOrdersCount = filteredOrders.filter((o: any) =>
-    o.status === "pending_qrcode" || o.status === "pending_delivery" || o.status === "pending_tracking" || o.status === "pending_payment"
-  ).length;
-  const shippedOrdersCount = filteredOrders.filter((o: any) =>
-    o.status === "shipped"
-  ).length;
+  // ======== 统一数据层：优先用后端聚合 summary（<100ms），没有就走前端过滤（旧逻辑，保证 100% 兼容） ========
+  const stats = useMemo(() => {
+    // 筛选后订单：日期 + 状态 + 关键词（用于"最近订单表格 / 商品销售统计 / 搜索匹配"）
+    const safe = Array.isArray(orders) ? orders : [];
+    let filtered = filterOrdersByDate(safe, dateRange);
+    if (statusFilter !== "all") filtered = filtered.filter((o: any) => o.status === statusFilter);
+    if (searchKeyword.trim()) {
+      const kw = searchKeyword.toLowerCase();
+      filtered = filtered.filter((o: any) =>
+        (o.orderNo || "").toLowerCase().includes(kw) ||
+        (o.company || "").toLowerCase().includes(kw) ||
+        (o.contactName || "").toLowerCase().includes(kw) ||
+        (o.agentId || "").toLowerCase().includes(kw)
+      );
+    }
+
+    // 6 个统计卡片（含日期筛选 + 状态筛选，优先 summary，但 summary 不受 status/keyword 影响）
+    const s: any = summary || null;
+
+    // 如果用户没有加 status/keyword，只改了日期筛选 → 优先用 summary 数据（毫秒级）
+    const canUseSummaryForStats =
+      s && statusFilter === "all" && !searchKeyword.trim();
+
+    // 库存 / 仓库 数不受订单筛选影响，直接用 summary
+    const totalStock = s?.stock?.totalQty ?? safeProducts.reduce((sum: number, p: any) => sum + (p.stock || 0), 0);
+    const totalValue = s?.stock?.totalValue ?? safeProducts.reduce((sum: number, p: any) => sum + (p.stock || 0) * (p.costPrice || 0), 0);
+    const lowStock = s?.stock?.lowStock ?? safeProducts.filter((p: any) => (p.stock || 0) < 50).length;
+
+    // 订单维度 6 指标
+    let totalRevenue: number;
+    let totalOrdersCount: number;
+    let totalShippingFees: number;
+    let pendingOrdersCount: number;
+    let shippedOrdersCount: number;
+    // let completedOrdersCount: number;
+
+    if (canUseSummaryForStats) {
+      totalRevenue = Number(s.orders.revenue) || 0;
+      totalOrdersCount = Number(s.orders.count) || 0;
+      totalShippingFees = Number(s.orders.shippingFees) || 0;
+      pendingOrdersCount = Number(s.orders.pending) || 0;
+      shippedOrdersCount = Number(s.orders.shipped) || 0;
+      // completedOrdersCount = Number(s.orders.completed) || 0;
+    } else {
+      totalRevenue = filtered.reduce((sum: number, o: any) => sum + (o.total || 0), 0);
+      totalOrdersCount = filtered.length;
+      totalShippingFees = filtered
+        .filter((o: any) => o.shippingFee && o.shippingFee > 0)
+        .reduce((sum: number, o: any) => sum + (o.shippingFee || 0), 0);
+      pendingOrdersCount = filtered.filter((o: any) =>
+        o.status === "pending_qrcode" || o.status === "pending_delivery" || o.status === "pending_tracking" || o.status === "pending_payment"
+      ).length;
+      shippedOrdersCount = filtered.filter((o: any) => o.status === "shipped").length;
+    }
+
+    return {
+      totalStock, totalValue, lowStock,
+      totalRevenue, totalOrdersCount, totalShippingFees,
+      pendingOrdersCount, shippedOrdersCount,
+      filteredOrders: filtered,
+    };
+  }, [orders, dateRange, statusFilter, searchKeyword, summary, safeProducts]);
+
+  const filteredOrders = stats.filteredOrders;
+  const totalStock = stats.totalStock;
+  const totalValue = stats.totalValue;
+  const lowStock = stats.lowStock;
+  const totalRevenue = stats.totalRevenue;
+  const totalOrdersCount = stats.totalOrdersCount;
+  const totalShippingFees = stats.totalShippingFees;
+  const pendingOrdersCount = stats.pendingOrdersCount;
+  const shippedOrdersCount = stats.shippedOrdersCount;
 
   // 生成图表数据
-  const salesTrend = useMemo(
-    () => generateSalesTrend(safeOrders, dateRange, dateFilter),
-    [safeOrders, dateRange, dateFilter]
-  );
-  const monthlyRevenue = useMemo(() => generateMonthlyRevenue(safeOrders), [safeOrders]);
+  // summary 里已经带了 14 天和 6 个月，直接用（毫秒级）
+  const salesTrend = useMemo(() => {
+    if (summary?.dailyTrend && Array.isArray(summary.dailyTrend) && summary.dailyTrend.length > 0
+        && statusFilter === "all" && !searchKeyword.trim()) {
+      return summary.dailyTrend.map((d: any) => ({
+        date: d.date,
+        revenue: Number(d.revenue) || 0,
+        orders: Number(d.orders) || 0,
+      }));
+    }
+    return generateSalesTrend(safeOrders, dateRange, dateFilter);
+  }, [summary, safeOrders, dateRange, dateFilter, statusFilter, searchKeyword]);
+
+  const monthlyRevenue = useMemo(() => {
+    if (summary?.monthlyRevenue && Array.isArray(summary.monthlyRevenue) && summary.monthlyRevenue.length > 0) {
+      return summary.monthlyRevenue.map((m: any) => ({
+        month: m.month,
+        revenue: Number(m.revenue) || 0,
+      }));
+    }
+    return generateMonthlyRevenue(safeOrders);
+  }, [summary, safeOrders]);
+
+  // Top 产品 / 活跃代理：优先 summary（summary 的 Top 不考虑 status/keyword 筛选，和后端语义一致）
+  const summaryTopProducts = useMemo(() => {
+    if (summary?.topProducts && Array.isArray(summary.topProducts) && statusFilter === "all" && !searchKeyword.trim()) {
+      return summary.topProducts.map((p: any) => ({
+        name: p.name,
+        sku: p.sku,
+        qty: Number(p.qty) || 0,
+        revenue: Number(p.revenue) || 0,
+        image: p.image || "",
+        productId: p.productId || "",
+      }));
+    }
+    return null;
+  }, [summary, statusFilter, searchKeyword]);
+
+  const summaryTopAgents = useMemo(() => {
+    if (summary?.topAgents && Array.isArray(summary.topAgents) && statusFilter === "all" && !searchKeyword.trim()) {
+      return summary.topAgents.map((a: any) => ({
+        name: a.agentId,
+        company: a.company,
+        orderCount: Number(a.orderCount) || 0,
+        totalRevenue: Number(a.totalRevenue) || 0,
+      }));
+    }
+    return null;
+  }, [summary, statusFilter, searchKeyword]);
 
   // 计算热销产品（基于筛选后订单中商品出现的次数）
   const topProducts = useMemo(() => {
+    if (summaryTopProducts) {
+      // summary 的 Top5 按销售额排好序，直接用
+      return summaryTopProducts.map((p: any) => ({
+        name: p.name, sku: p.sku, qty: p.qty, revenue: p.revenue,
+      }));
+    }
     const productMap = new Map<string, { name: string; sku: string; qty: number; revenue: number }>();
 
     filteredOrders.forEach((o: any) => {
@@ -318,6 +490,8 @@ export default function DashboardPage() {
 
   // 计算活跃代理商（基于筛选后订单）
   const activeAgents = useMemo(() => {
+    if (summaryTopAgents) return summaryTopAgents;
+
     const agentMap = new Map<string, { name: string; company: string; orderCount: number; totalRevenue: number }>();
 
     filteredOrders.forEach((o: any) => {
@@ -344,8 +518,15 @@ export default function DashboardPage() {
 
   const unread = notifications.filter((n) => !n.read).length;
 
+  // 空状态：现在有 summary 也算有数据（不用等 detail 全拉完）
+  const hasSummaryData = !!summary && (
+    (summary.orders?.count || 0) > 0
+      || (summary.stock?.productsCount || 0) > 0
+      || (summary.agents?.total || 0) > 0
+      || summary.warehouses > 0
+  );
   // 空状态
-  const hasData = products.length > 0 || orders.length > 0 || agents.length > 0;
+  const hasData = products.length > 0 || orders.length > 0 || agents.length > 0 || hasSummaryData;
   const hasActiveFilters = dateFilter !== "all" || statusFilter !== "all" || searchKeyword.trim() !== "";
 
   // 清除所有筛选

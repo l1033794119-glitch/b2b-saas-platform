@@ -102,12 +102,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // 401 处理中防止重复跳转
   const redirectingRef = useRef(false);
 
+  // 性能优化：同 URL 的 GET 请求做 10s 内存去重缓存（防止同一渲染循环多次发起）
+  const fetchCacheRef = useRef<Map<string, { ts: number; prom: Promise<Response> }>>(new Map());
+  const FETCH_CACHE_TTL = 10000; // 10s
+
   const apiFetch = useCallback(async (url: string, options?: RequestInit): Promise<Response> => {
     // 关键修复：当 body 是 FormData 时，绝对不能手动设置 Content-Type，
     // 必须让浏览器自动生成带 boundary 的 multipart/form-data；
     // 否则后端 req.formData() 无法解析，导致上传失败。
     const isFormData =
       typeof FormData !== "undefined" && options?.body instanceof FormData;
+    const method = (options?.method || "GET").toUpperCase();
 
     const mergedHeaders = isFormData
       ? { ...(options?.headers || {}) } // FormData: 不注入任何 Content-Type
@@ -116,22 +121,80 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           ...(options?.headers || {}),
         };
 
+    // 性能：GET 同 URL 10s 内共享同一个 Promise（请求去重）
+    let cacheKey: string | null = null;
+    if (method === "GET" && !options?.cache) {
+      cacheKey = `${url}`;
+      const cached = fetchCacheRef.current.get(cacheKey);
+      if (cached && Date.now() - cached.ts < FETCH_CACHE_TTL) {
+        try {
+          // 必须克隆响应，否则消费了之后第二次 .json() 会报错
+          const origRes = await cached.prom;
+          try {
+            const cloned = origRes.clone();
+            return cloned;
+          } catch {
+            return origRes;
+          }
+        } catch {
+          fetchCacheRef.current.delete(cacheKey);
+        }
+      }
+    }
+
+    // 关键：超时 15s 兜底（AbortController），避免慢 SQL 让整页白屏
+    const userSignal = options?.signal as AbortSignal | undefined;
+    const timeoutCtrl = new AbortController();
+    const timeoutMs = 15000;
+    const timer = setTimeout(() => timeoutCtrl.abort(), timeoutMs);
+    const combinedSignal: AbortSignal = userSignal
+      ? (() => {
+          // 两个任一触发就 abort
+          const ctrl = new AbortController();
+          const onAbort = () => ctrl.abort();
+          userSignal.addEventListener("abort", onAbort, { once: true });
+          timeoutCtrl.signal.addEventListener("abort", onAbort, { once: true });
+          return ctrl.signal;
+        })()
+      : timeoutCtrl.signal;
+
     const defaultOptions: RequestInit = {
       credentials: "include",
       headers: mergedHeaders,
+      method,
+      signal: combinedSignal,
     };
 
     let res: Response;
-    try {
-      res = await fetch(url, { ...defaultOptions, ...options });
-    } catch (err) {
-      console.error("apiFetch network error:", err);
-      // 构造一个 500 响应
-      return new Response(JSON.stringify({ error: "Network error" }), {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      });
+    const doFetch = (async () => {
+      try {
+        const r = await fetch(url, { ...defaultOptions, ...options, signal: combinedSignal });
+        return r;
+      } catch (err: any) {
+        console.error("apiFetch error:", url, err?.name || err?.message || err);
+        // 超时 / 网络错误 —— 构造一个 504/500 响应，避免 Promise.all 卡着
+        const isTimeout = err?.name === "AbortError" || /abort|timeout/i.test(err?.message || "");
+        return new Response(
+          JSON.stringify({
+            error: isTimeout ? `Request timed out (${timeoutMs / 1000}s)` : "Network error",
+          }),
+          {
+            status: isTimeout ? 504 : 500,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+      } finally {
+        clearTimeout(timer);
+      }
+    })();
+
+    if (cacheKey) {
+      fetchCacheRef.current.set(cacheKey, { ts: Date.now(), prom: doFetch });
+      // 5 分钟后强制清缓存，防止陈旧
+      setTimeout(() => fetchCacheRef.current.delete(cacheKey!), 300_000);
     }
+
+    res = await doFetch;
 
     // 401 未授权 → 清除登录态并跳转登录页
     if (res.status === 401 && !redirectingRef.current) {
