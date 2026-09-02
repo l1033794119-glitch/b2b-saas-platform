@@ -136,23 +136,30 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (method === "GET" && !options?.cache) {
       cacheKey = url;
       const cached = fetchCacheRef.current.get(cacheKey);
-      if (cached && Date.now() - cached.ts < FETCH_CACHE_TTL) {
-        // 有缓存：直接从 ArrayBuffer 构造全新 Response（100% 可重复读取）
+
+      // ------- 修复：status=0 是 inflight 占位空壳（还没完成 fetch），绝对不能直接 return new Response(status:0)
+      //         否则浏览器抛 RangeError: The status provided (0) is outside [200,599]
+      //         只有 status ∈ [100, 599] 才叫"已完成的缓存"
+      const hasFilledCache = cached && typeof cached.status === "number"
+        && cached.status >= 100 && cached.status <= 599
+        && cached.body && cached.body.byteLength > 0;
+
+      if (hasFilledCache && Date.now() - cached!.ts < FETCH_CACHE_TTL) {
+        const c = cached!;
         const hdrs = new Headers();
-        Object.entries(cached.headers).forEach(([k, v]) => hdrs.set(k, v));
-        return new Response(cached.body.slice(0), {
-          status: cached.status,
-          statusText: cached.statusText,
+        Object.entries(c.headers).forEach(([k, v]) => hdrs.set(k, v));
+        return new Response(c.body.slice(0), {
+          status: c.status,
+          statusText: c.statusText,
           headers: hdrs,
         });
       }
-      // 同一个 key 的并发合并
-      if (cached?.inflight) {
+      // 同一个 key 的并发合并（两种情况都等：1) status=0 inflight 刚占位 2) TTL 内正 pending）
+      if (cached?.inflight && !hasFilledCache) {
         try {
           await cached.inflight;
-          // 等待完成后再读一次（现在已落盘 body）
           const c2 = fetchCacheRef.current.get(cacheKey);
-          if (c2 && c2.body) {
+          if (c2 && typeof c2.status === "number" && c2.status >= 100 && c2.status <= 599 && c2.body) {
             const hdrs = new Headers();
             Object.entries(c2.headers).forEach(([k, v]) => hdrs.set(k, v));
             return new Response(c2.body.slice(0), { status: c2.status, statusText: c2.statusText, headers: hdrs });

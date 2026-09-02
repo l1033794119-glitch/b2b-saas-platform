@@ -73,15 +73,17 @@ const statuses = [
 
 export default function OrdersPage() {
   const { t, currency, lang, apiFetch, user } = useApp();
-  const [data, setData] = useState<Order[]>([]);
-  const [agents, setAgents] = useState<Agent[]>([]);
+  // ---- 修复：初始 null 区分「正在加载」 vs 「真的没订单」，避免刚进来显示「暂无订单 0 笔」再跳数据
+  const [data, setData] = useState<Order[] | null>(null);
+  const [agents, setAgents] = useState<Agent[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [flt, setFlt] = useState("all");
   const [agentFilter, setAgentFilter] = useState("all");
   const [warehouseFilter, setWarehouseFilter] = useState("all");
-  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
-  const [products, setProducts] = useState<any[]>([]);
+  // ---- 修复：null（未加载）区分空数组
+  const [warehouses, setWarehouses] = useState<Warehouse[] | null>(null);
+  const [products, setProducts] = useState<any[] | null>(null);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
@@ -189,58 +191,66 @@ export default function OrdersPage() {
     }
   };
 
+  // ---- 双保险：只有 res.ok && Array.isArray(data) 才覆盖；否则保留旧值（包括 null）
+  //      杜绝『缓存构造 Response 抛 status=0 → 500 → .json() fail → setOrders([])』变暂无订单
   const fetchOrders = async () => {
-    if (!user?.id) return;
+    if (!user?.id) return false;
     try {
       const res = await apiFetch("/api/orders");
       if (res.ok) {
-        const orders = await res.json().catch(() => []);
-        setData(Array.isArray(orders) ? orders : []);
+        const orders = await res.json().catch(() => null);
+        if (Array.isArray(orders)) {
+          setData(orders);
+          return true;
+        } else {
+          console.warn("[admin/orders] /api/orders 返回非数组，保留旧 data:", orders);
+        }
+      } else {
+        console.warn("[admin/orders] /api/orders HTTP", res.status, "保留旧数据");
       }
     } catch (error) {
-      console.error("Failed to fetch orders:", error);
-    } finally {
-      setLoading(false);
+      console.error("[admin/orders] Failed to fetch orders (保留旧数据):", error);
     }
+    return false;
   };
 
   const fetchAgents = async () => {
-    if (!user?.id) return;
+    if (!user?.id) return false;
     try {
       const res = await apiFetch("/api/agents");
       if (res.ok) {
-        const agentsData = await res.json().catch(() => []);
-        setAgents(Array.isArray(agentsData) ? agentsData : []);
+        const list = await res.json().catch(() => null);
+        if (Array.isArray(list)) { setAgents(list); return true; }
+        console.warn("[admin/orders] /api/agents 非数组，保留旧:", list);
       }
-    } catch (error) {
-      console.error("Failed to fetch agents:", error);
-    }
+    } catch (e) { console.error("[admin/orders] fetchAgents fail (保留旧):", e); }
+    return false;
   };
 
   const fetchWarehouses = async () => {
-    if (!user?.id) return;
+    if (!user?.id) return false;
     try {
       const res = await apiFetch("/api/warehouses");
       if (res.ok) {
-        const warehousesData = await res.json().catch(() => []);
-        setWarehouses(Array.isArray(warehousesData) ? warehousesData : []);
+        const list = await res.json().catch(() => null);
+        if (Array.isArray(list)) { setWarehouses(list); return true; }
+        console.warn("[admin/orders] /api/warehouses 非数组，保留旧:", list);
       }
-    } catch (error) {
-      console.error("Failed to fetch warehouses:", error);
-    }
+    } catch (e) { console.error("[admin/orders] fetchWarehouses fail (保留旧):", e); }
+    return false;
   };
 
   const fetchProducts = async () => {
-    if (!user?.id) return;
+    if (!user?.id) return false;
     try {
       const res = await apiFetch("/api/products");
       if (res.ok) {
-        const productsData = await res.json().catch(() => []);
-        setProducts(Array.isArray(productsData) ? productsData : []);
+        const list = await res.json().catch(() => null);
+        if (Array.isArray(list)) { setProducts(list); return true; }
+        console.warn("[admin/orders] /api/products 非数组，保留旧:", list);
       }
-    } catch (error) {
-      console.error("Failed to fetch products:", error);
-    }
+    } catch (e) { console.error("[admin/orders] fetchProducts fail (保留旧):", e); }
+    return false;
   };
 
   const getProductImage = (productId?: string) => {
@@ -252,12 +262,37 @@ export default function OrdersPage() {
     return "";
   };
 
+  // ---- 修复：
+  //      1) cancelled 防卸载后 setState
+  //      2) 15s 后台轮询 orders/agents/warehouses（products 不变），失败全保留旧值
+  //      3) 9s max 强行关 loading（兜底）
+  //      4) 真正的"订单数据写完 → 关 loading"在下面的 useEffect(监听 data)
   useEffect(() => {
-    fetchOrders();
-    fetchAgents();
-    fetchWarehouses();
-    fetchProducts();
+    if (!user?.id) return;
+    let cancelled = false;
+    const maxLoadingTimer = setTimeout(() => { if (!cancelled) setLoading(false); }, 9000);
+
+    void Promise.allSettled([fetchOrders(), fetchAgents(), fetchWarehouses(), fetchProducts()]);
+
+    const ival = setInterval(() => {
+      if (cancelled) return;
+      void fetchOrders();
+      void fetchAgents();
+      void fetchWarehouses();
+    }, 15000);
+    return () => {
+      cancelled = true;
+      clearTimeout(maxLoadingTimer);
+      clearInterval(ival);
+    };
   }, [user?.id]);
+
+  // ---- 关键修复：
+  //     data 从 null → array（哪怕是 []）意味着首次 orders HTTP 真正成功了。
+  //     这时才关 loading，避免 data=null 时被当成空数组显示「暂无订单」然后再跳出来（用户描述的刷新后没数据再等有了）。
+  useEffect(() => {
+    if (Array.isArray(data) && loading) setLoading(false);
+  }, [data, loading]);
 
   useEffect(() => {
     setPage(1);
@@ -724,7 +759,7 @@ export default function OrdersPage() {
   };
 
   return (
-    <AdminLayout title={t("orders")} subtitle={`${formatNumber(filtered.length)} / ${formatNumber(data.length)} ${lang === "en" ? "orders" : lang === "zh-CN" ? "订单" : "訂單"}`}>
+    <AdminLayout title={t("orders")} subtitle={`${formatNumber(filtered.length)} / ${formatNumber(safeData.length)} ${lang === "en" ? "orders" : lang === "zh-CN" ? "订单" : "訂單"}`}>
       <div className="card p-3 sm:p-4 mb-4">
         <div className="flex items-center justify-between mb-3 gap-3">
           <div className="text-sm font-medium text-slate-700 dark:text-slate-300">
