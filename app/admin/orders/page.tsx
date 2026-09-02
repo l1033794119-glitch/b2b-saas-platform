@@ -622,7 +622,6 @@ export default function OrdersPage() {
       if (res.ok) {
         const updated = await res.json().catch(() => ({}));
         updateOrderInCache(selectedOrder.id, updated);
-        setSelectedOrder({ ...(selectedOrder as any), ...updated });
       } else {
         const err = await res.json().catch(() => ({}));
         alert(err.error || "操作失败");
@@ -652,7 +651,6 @@ export default function OrdersPage() {
       if (res.ok) {
         const updated = await res.json().catch(() => ({}));
         updateOrderInCache(selectedOrder.id, updated);
-        setSelectedOrder({ ...(selectedOrder as any), ...updated });
       } else {
         const err = await res.json().catch(() => ({}));
         alert(err.error || "操作失败");
@@ -1467,9 +1465,7 @@ export default function OrdersPage() {
                     });
                     if (res.ok) {
                       const updated = await res.json().catch(() => ({}));
-                      const updatedOrder = { ...selectedOrder, ...updated };
                       updateOrderInCache(selectedOrder.id, updated);
-                      setSelectedOrder(updatedOrder);
                       setShowShipModal(false);
                       setShipInfo({ trackingNumber: "", trackingImage: "" });
                     } else {
