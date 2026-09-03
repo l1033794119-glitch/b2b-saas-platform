@@ -6,7 +6,7 @@ import { PageCard, StatusBadge } from "@/components/Sidebar";
 import { useApp } from "@/components/AppProvider";
 import { formatCurrency, formatNumber, parseOrderDate } from "@/lib/utils";
 import { useOrderQuery } from "@/hooks/useOrderQuery";
-import { Eye, Truck, FileText, Search, X, Phone, Mail, User, MapPin, Package, Image, Upload, Check, AlertCircle, Edit2, QrCode, Package as PackageIcon, Download, Zap, XCircle, Copy } from "lucide-react";
+import { Eye, Truck, FileText, Search, X, Phone, Mail, User, MapPin, Package, Image, Upload, Check, AlertCircle, Edit2, QrCode, Package as PackageIcon, Download, Zap, XCircle, Copy, Printer } from "lucide-react";
 interface OrderItem {
   productId: string;
   name: string;
@@ -121,6 +121,34 @@ export default function OrdersPage() {
   const [tempPostalCode, setTempPostalCode] = useState("");
   const [tempCountry, setTempCountry] = useState("");
 
+  // 打印支付二维码（PDF 用 iframe 打印，图片用新窗口打印）
+  const handlePrintQr = (url?: string) => {
+    if (!url) return;
+    const isPdf = url.toLowerCase().endsWith(".pdf");
+    if (isPdf) {
+      const old = document.getElementById("print-qr-frame");
+      if (old) old.remove();
+      const iframe = document.createElement("iframe");
+      iframe.id = "print-qr-frame";
+      iframe.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;";
+      iframe.src = url;
+      document.body.appendChild(iframe);
+      iframe.onload = () => {
+        try { iframe.contentWindow?.focus(); iframe.contentWindow?.print(); }
+        catch { window.open(url, "_blank"); }
+        setTimeout(() => { try { iframe.remove(); } catch {} }, 3000);
+      };
+    } else {
+      const w = window.open("", "_blank");
+      if (w) {
+        w.document.write(`<html><head><title>Print</title></head><body style="margin:0;display:flex;align-items:center;justify-content:center;"><img src="${url}" style="max-width:100%;max-height:100vh;"/></body></html>`);
+        w.document.close();
+        const img = w.document.querySelector("img");
+        if (img) img.onload = () => { w.focus(); w.print(); };
+        else { w.focus(); w.print(); }
+      }
+    }
+  };
 
   const handleQrImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, forEdit = false) => {
     const file = e.target.files?.[0];
@@ -986,7 +1014,18 @@ export default function OrdersPage() {
                         <div className="border-2 border-dashed border-amber-300 dark:border-amber-700 rounded-xl p-4 text-center hover:border-amber-500 transition-colors">
                           {tempQrCode ? (
                             <div className="relative">
-                              <img src={tempQrCode} alt="QR Code" className="max-h-40 mx-auto rounded-lg" />
+                              {tempQrCode.toLowerCase().endsWith(".pdf") ? (
+                                <div className="flex items-center gap-3 p-3 bg-amber-100 dark:bg-amber-900/40 rounded-lg">
+                                  <FileText className="w-10 h-10 text-amber-600 flex-shrink-0" />
+                                  <div className="flex-1 min-w-0">
+                                    <div className="text-sm font-medium text-amber-700 dark:text-amber-300 truncate">{tempQrCode.split("/").pop()}</div>
+                                    <div className="text-xs text-amber-500">PDF</div>
+                                  </div>
+                                  <a href={tempQrCode} target="_blank" rel="noopener noreferrer" className="text-xs text-amber-600 hover:underline">预览</a>
+                                </div>
+                              ) : (
+                                <img src={tempQrCode} alt="QR Code" className="max-h-40 mx-auto rounded-lg" />
+                              )}
                               <button
                                 onClick={() => setTempQrCode("")}
                                 className="absolute top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center"
@@ -998,7 +1037,7 @@ export default function OrdersPage() {
                             <>
                               <input
                                 type="file"
-                                accept="image/*"
+                                accept="image/*,application/pdf"
                                 className="hidden"
                                 id="qr-edit-upload"
                                 onChange={(e) => handleQrImageUpload(e, true)}
@@ -1049,7 +1088,27 @@ export default function OrdersPage() {
                   ) : (
                     <div>
                       {selectedOrder.qrCode ? (
-                        <img src={selectedOrder.qrCode} alt="QR Code" onClick={() => setPreviewImage(selectedOrder.qrCode!)} className="max-w-xs rounded-lg border border-amber-200 dark:border-amber-800 cursor-pointer hover:opacity-80 transition-opacity" />
+                        <>
+                          {selectedOrder.qrCode.toLowerCase().endsWith(".pdf") ? (
+                            <div className="flex items-center gap-3 p-3 bg-amber-100 dark:bg-amber-900/40 rounded-lg">
+                              <FileText className="w-10 h-10 text-amber-600 flex-shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-medium text-amber-700 dark:text-amber-300 truncate">{selectedOrder.qrCode.split("/").pop()}</div>
+                                <div className="text-xs text-amber-500">PDF</div>
+                              </div>
+                              <a href={selectedOrder.qrCode} target="_blank" rel="noopener noreferrer" className="text-xs text-amber-600 hover:underline">预览</a>
+                            </div>
+                          ) : (
+                            <img src={selectedOrder.qrCode} alt="QR Code" onClick={() => setPreviewImage(selectedOrder.qrCode!)} className="max-w-xs rounded-lg border border-amber-200 dark:border-amber-800 cursor-pointer hover:opacity-80 transition-opacity" />
+                          )}
+                          <button
+                            onClick={() => handlePrintQr(selectedOrder.qrCode)}
+                            className="mt-2 w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm rounded-lg transition-colors"
+                          >
+                            <Printer className="w-4 h-4" />
+                            {lang === "en" ? "Print Label" : lang === "zh-CN" ? "打印面单" : "列印面單"}
+                          </button>
+                        </>
                       ) : (
                         <div className="text-sm text-amber-500 italic">
                           {lang === "en" ? "Not uploaded yet" : lang === "zh-CN" ? "尚未上传" : "尚未上傳"}
