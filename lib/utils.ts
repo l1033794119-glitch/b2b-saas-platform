@@ -59,3 +59,137 @@ export function parseOrderDate(dateStr: string | null | undefined): Date {
   );
   return new Date(utcMs);
 }
+
+/**
+ * 打印面单（图片或 PDF），兼容 iOS Safari 等所有浏览器。
+ *
+ * iOS 不支持 iframe.contentWindow.print()，也无法可靠打印 iframe 内的 PDF 内容。
+ * 解决：PDF 用 pdf.js 渲染成 canvas 后再调用 window.print()，并通过 @media print
+ * 隐藏页面其它元素，只让 overlay 内的内容出现在打印预览中。
+ */
+export function printLabel(url?: string) {
+  if (typeof window === "undefined" || !url) return;
+
+  // 清理上一次的 overlay
+  const old = document.getElementById("print-label-overlay");
+  if (old) old.remove();
+
+  // 注入一次性打印样式（重复调用时复用）
+  let styleEl = document.getElementById("print-label-style") as HTMLStyleElement | null;
+  if (!styleEl) {
+    styleEl = document.createElement("style");
+    styleEl.id = "print-label-style";
+    styleEl.textContent = `
+      @media print {
+        html, body { width: 100%; height: 100%; margin: 0 !important; padding: 0 !important; }
+        body > *:not(#print-label-overlay) { display: none !important; }
+        #print-label-overlay {
+          display: block !important;
+          position: absolute !important;
+          left: 0 !important; top: 0 !important;
+          width: 100% !important; height: auto !important;
+        }
+        #print-label-overlay img,
+        #print-label-overlay canvas {
+          max-width: 100% !important;
+          width: 100% !important;
+          height: auto !important;
+          display: block !important;
+          page-break-after: always;
+        }
+        #print-label-overlay img:last-child,
+        #print-label-overlay canvas:last-child {
+          page-break-after: auto;
+        }
+        @page { size: auto; margin: 0; }
+      }
+    `;
+    document.head.appendChild(styleEl);
+  }
+
+  const overlay = document.createElement("div");
+  overlay.id = "print-label-overlay";
+  overlay.style.cssText =
+    "position:fixed;inset:0;z-index:99999;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;overflow:auto;padding:16px;";
+  document.body.appendChild(overlay);
+
+  const cleanup = () => {
+    try {
+      overlay.remove();
+    } catch {
+      /* ignore */
+    }
+  };
+  window.addEventListener("afterprint", cleanup, { once: true });
+  // 兜底：60 秒后强制移除
+  window.setTimeout(cleanup, 60000);
+
+  const triggerPrint = () => {
+    window.focus();
+    window.print();
+  };
+
+  const isPdf = url.toLowerCase().endsWith(".pdf");
+
+  if (!isPdf) {
+    // 图片：直接显示后打印
+    const img = document.createElement("img");
+    img.src = url;
+    img.alt = "label";
+    img.style.cssText = "max-width:100%;height:auto;display:block;";
+    overlay.appendChild(img);
+    if (img.complete) {
+      window.setTimeout(triggerPrint, 100);
+    } else {
+      img.onload = () => triggerPrint();
+    }
+    return;
+  }
+
+  // PDF：用 pdf.js 渲染成 canvas（跨平台最可靠，iOS 也能正确打印）
+  const loading = document.createElement("div");
+  loading.style.cssText = "margin:auto;font-size:16px;color:#333;";
+  loading.textContent = "正在加载 PDF…";
+  overlay.appendChild(loading);
+
+  const renderPdf = async () => {
+    try {
+      // 懒加载 pdf.js
+      if (!(window as any).pdfjsLib) {
+        await new Promise<void>((resolve, reject) => {
+          const s = document.createElement("script");
+          s.src = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js";
+          s.onload = () => resolve();
+          s.onerror = () => reject(new Error("pdf.js load failed"));
+          document.head.appendChild(s);
+        });
+        (window as any).pdfjsLib.GlobalWorkerOptions.workerSrc =
+          "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
+      }
+      const pdfjsLib = (window as any).pdfjsLib;
+      const pdf = await pdfjsLib.getDocument(url).promise;
+
+      overlay.innerHTML = "";
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const viewport = page.getViewport({ scale: 2 });
+        const canvas = document.createElement("canvas");
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        canvas.style.cssText = "max-width:100%;height:auto;display:block;margin-bottom:10px;";
+        overlay.appendChild(canvas);
+        await page.render({
+          canvasContext: canvas.getContext("2d"),
+          viewport,
+        }).promise;
+      }
+      window.setTimeout(triggerPrint, 300);
+    } catch (e) {
+      console.error("PDF 渲染失败，降级为新窗口打开：", e);
+      cleanup();
+      window.open(url, "_blank");
+    }
+  };
+
+  renderPdf();
+}

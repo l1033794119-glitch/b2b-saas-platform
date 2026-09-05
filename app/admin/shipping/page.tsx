@@ -3,7 +3,7 @@
 import { AdminLayout } from "@/components/Layout";
 import { PageCard, Badge } from "@/components/Sidebar";
 import { useApp } from "@/components/AppProvider";
-import { formatCurrency, formatNumber, parseOrderDate } from "@/lib/utils";
+import { formatCurrency, formatNumber, parseOrderDate, printLabel } from "@/lib/utils";
 import { useOrderQuery } from "@/hooks/useOrderQuery";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -283,35 +283,6 @@ export default function ShippingPage() {
     }
   };
 
-  // 打印支付二维码（PDF 用 iframe 打印，图片用新窗口打印）
-  const handlePrintQr = (url?: string) => {
-    if (!url) return;
-    const isPdf = url.toLowerCase().endsWith(".pdf");
-    if (isPdf) {
-      const old = document.getElementById("print-qr-frame");
-      if (old) old.remove();
-      const iframe = document.createElement("iframe");
-      iframe.id = "print-qr-frame";
-      iframe.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;";
-      iframe.src = url;
-      document.body.appendChild(iframe);
-      iframe.onload = () => {
-        try { iframe.contentWindow?.focus(); iframe.contentWindow?.print(); }
-        catch { window.open(url, "_blank"); }
-        setTimeout(() => { try { iframe.remove(); } catch {} }, 3000);
-      };
-    } else {
-      const w = window.open("", "_blank");
-      if (w) {
-        w.document.write(`<html><head><title>Print</title></head><body style="margin:0;display:flex;align-items:center;justify-content:center;"><img src="${url}" style="max-width:100%;max-height:100vh;"/></body></html>`);
-        w.document.close();
-        const img = w.document.querySelector("img");
-        if (img) img.onload = () => { w.focus(); w.print(); };
-        else { w.focus(); w.print(); }
-      }
-    }
-  };
-
   return (
     <AdminLayout title={t("shipping")} subtitle={lang === "en" ? "Carrier management & tracking" : lang === "zh-CN" ? "物流管理与追踪" : "物流管理與追蹤"}>
       <div className="card p-3 sm:p-4 mb-4">
@@ -466,7 +437,7 @@ export default function ShippingPage() {
                       <img src={selectedOrder.qrCode} alt="QR Code" onClick={() => setPreviewImage(selectedOrder.qrCode!)} className="max-w-full rounded-lg border border-amber-200 dark:border-amber-800 cursor-pointer hover:opacity-80 transition-opacity" />
                     )}
                     <button
-                      onClick={() => handlePrintQr(selectedOrder.qrCode)}
+                      onClick={() => printLabel(selectedOrder.qrCode)}
                       className="mt-3 w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm rounded-lg transition-colors"
                     >
                       <Printer className="w-4 h-4" />
