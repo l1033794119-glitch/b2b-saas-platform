@@ -81,27 +81,47 @@ export function printLabel(url?: string) {
     styleEl.id = "print-label-style";
     styleEl.textContent = `
       @media print {
-        html, body { width: 100%; height: 100%; margin: 0 !important; padding: 0 !important; }
-        body > *:not(#print-label-overlay) { display: none !important; }
+        html, body {
+          width: 100% !important;
+          height: auto !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+        body > *:not(#print-label-overlay) {
+          display: none !important;
+        }
         #print-label-overlay {
           display: block !important;
-          position: absolute !important;
-          left: 0 !important; top: 0 !important;
-          width: 100% !important; height: auto !important;
+          position: relative !important;
+          left: auto !important;
+          top: auto !important;
+          width: 100% !important;
+          height: auto !important;
+          padding: 10mm !important;
+          margin: 0 !important;
+          background: #fff !important;
         }
         #print-label-overlay img,
         #print-label-overlay canvas {
           max-width: 100% !important;
-          width: 100% !important;
+          width: auto !important;
+          max-height: none !important;
           height: auto !important;
           display: block !important;
+          margin: 0 auto 10mm auto !important;
           page-break-after: always;
+          break-after: page;
         }
         #print-label-overlay img:last-child,
         #print-label-overlay canvas:last-child {
-          page-break-after: auto;
+          page-break-after: auto !important;
+          break-after: auto !important;
+          margin-bottom: 0 !important;
         }
-        @page { size: auto; margin: 0; }
+        @page {
+          size: auto;
+          margin: 10mm;
+        }
       }
     `;
     document.head.appendChild(styleEl);
